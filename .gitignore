@@ -1,0 +1,19 @@
+# Ignorar la carpeta de dependencias de Node
+node_modules/
+
+# Ignorar archivos de registro de npm
+npm-debug.log*
+.npm/
+
+# Ignorar la carpeta de compilación de Vite
+dist/
+
+# Ignorar archivos específicos de VS Code
+.vscode/
+
+# Ignorar archivos de caché
+.cache/
+
+# Ignorar archivos de variables de entorno locales (si los usas)
+.env
+.env.local
