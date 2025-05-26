@@ -1,60 +1,105 @@
 // C:\Proyectos\Label\frontend\src\App.jsx
-import { useState } from 'react'; // Importa el hook useState para manejar el estado
-import Header from './components/Header'; // <-- ¡Importa tu componente Header!
+import React, { useState, useEffect } from 'react'; // Necesitamos useEffect para el loading
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-// NOTA: Las importaciones de logos o App.css pueden ser eliminadas/comentadas si no se usan directamente
+import AccessModal from './components/AccessModal';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import DashboardHome from './components/DashboardHome';
+
+// Importar los nuevos componentes de "páginas"
+import InventoryPage from './components/InventoryPage';
+import FinancialPage from './components/FinancialPage';
+import PosPage from './components/PosPage';
+import ClientsPage from './components/ClientsPage';
+import StatsPage from './components/StatsPage';
+import SettingsPage from './components/SettingsPage';
+
+import { useAuth } from './context/AuthContext'; // <-- Importa el hook useAuth
 
 function App() {
-  // Define un estado para el contador
-  const [count, setCount] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Eliminamos el estado `isAuthenticated` de aquí, ahora lo obtenemos del contexto
+  // const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Consumimos el contexto de autenticación
+  const { isAuthenticated, loading, logout, user } = useAuth();
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  // handleLoginSuccess ya no es necesario aquí, la lógica de login se mueve a AccessModal
+  // const handleLoginSuccess = () => {
+  //   setIsAuthenticated(true);
+  //   setIsModalOpen(false);
+  // };
+
+  // Si la aplicación está cargando (ej. verificando autenticación inicial), mostrar un spinner
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-deep-night-blue text-neutral-light">
+        <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full border-t-transparent border-copper-rose-accent"></div>
+        <p className="ml-3 text-lg">Cargando aplicación...</p>
+      </div>
+    );
+  }
 
   return (
-    // Contenedor principal de la aplicación.
-    // flex flex-col items-center justify-center: Centra el contenido en columna.
-    // min-h-screen: Ocupa al menos toda la altura de la pantalla.
-    // bg-deep-night-blue: Fondo azul oscuro personalizado.
-    // text-neutral-light: Color de texto claro personalizado.
-    // font-inter: Aplica la fuente Inter.
-    // p-4: Relleno general alrededor del contenido.
-    <div className="flex flex-col items-center justify-center min-h-screen bg-deep-night-blue text-neutral-light font-inter p-4">
+    <Router>
+      <div className="min-h-screen bg-deep-night-blue text-neutral-light font-inter">
+        {isAuthenticated ? (
+          // Si el usuario está autenticado, muestra el layout del Dashboard
+          <div className="flex flex-col h-screen">
+            {/* Pasamos 'user' al Header para mostrar el nombre */}
+            <Header onLogout={logout} currentUser={user} />
+            <div className="flex flex-1 overflow-hidden">
+              <Sidebar />
+              <main className="flex-1 p-8 bg-gray-900 text-neutral-light overflow-y-auto">
+                <Routes>
+                  <Route path="/" element={<DashboardHome />} />
+                  <Route path="/inventario" element={<InventoryPage />} />
+                  <Route path="/finanzas" element={<FinancialPage />} />
+                  <Route path="/pos" element={<PosPage />} />
+                  <Route path="/clientes" element={<ClientsPage />} />
+                  <Route path="/estadisticas" element={<StatsPage />} />
+                  <Route path="/ajustes" element={<SettingsPage />} />
 
-      <Header /> {/* <-- ¡Renderiza tu componente Header aquí! */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </main>
+            </div>
+          </div>
+        ) : (
+          // Si el usuario NO está autenticado, muestra la página de inicio o el modal
+          <div className="min-h-screen flex flex-col items-center justify-center p-4">
+            <div className="text-center">
+              <h1 className="text-6xl font-bold mb-6 text-copper-rose-accent">
+                Label
+              </h1>
+              <p className="text-2xl mb-8 max-w-2xl">
+                Un ecosistema comercial hiperlocal diseñado para Cumaná, simplificando la gestión y el intercambio de negocios.
+              </p>
+              <button
+                onClick={handleOpenModal}
+                className="bg-action-blue hover:bg-blue-700 text-neutral-light font-bold py-4 px-10 rounded-full text-2xl shadow-lg transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
+              >
+                Acceder
+              </button>
+            </div>
 
-      {/* Título de bienvenida */}
-      <h1 className="text-5xl font-bold mb-8 text-copper-rose-accent">¡Hola, Tailwind!</h1>
-
-      {/* Párrafo de prueba */}
-      <p className="mb-4 text-xl">
-        Este es un contador de prueba con Tailwind CSS.
-      </p>
-
-      {/* Campo de entrada de ejemplo */}
-      <div className="mb-4 w-full max-w-sm">
-        <label htmlFor="username" className="block text-neutral-light text-sm font-bold mb-2">
-          Nombre de Usuario:
-        </label>
-        <input
-          type="text"
-          id="username"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-deep-night-blue leading-tight focus:outline-none focus:shadow-outline"
-          placeholder="Escribe tu nombre"
-        />
+            {/* Ya no pasamos onLoginSuccess, ya que el modal usará login/register del contexto */}
+            {/* El modal ahora manejará su propio cierre después de llamar a login/register */}
+            {isModalOpen && <AccessModal onClose={handleCloseModal} />}
+          </div>
+        )}
       </div>
-
-      {/* Botón de contador */}
-      <button
-        className="px-6 py-3 bg-neutral-gray text-neutral-light rounded-lg shadow-md hover:bg-neutral-light hover:text-deep-night-blue transition-colors duration-300"
-        onClick={() => setCount((count) => count + 1)}
-      >
-        Contador: {count}
-      </button>
-
-      {/* Instrucción de edición */}
-      <p className="mt-4 text-sm text-neutral-gray">
-        Edita <code className="bg-gray-700 px-2 py-1 rounded text-neutral-light">src/App.jsx</code> y guarda para ver los cambios.
-      </p>
-    </div>
+    </Router>
   );
 }
 
-export default App; // <-- ¡Exporta el componente App por defecto! (Crucial)
+export default App;

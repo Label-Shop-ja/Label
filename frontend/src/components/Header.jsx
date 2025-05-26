@@ -1,29 +1,32 @@
 // C:\Proyectos\Label\frontend\src\components\Header.jsx
-import React from 'react'; // Necesario si usas JSX, aunque no uses hooks
+import React from 'react';
+import { useAuth } from '../context/AuthContext'; // <-- Importa useAuth
 
 function Header() {
-  return (
-    // Contenedor principal del encabezado:
-    // w-full: 100% de ancho
-    // bg-deep-night-blue: Color de fondo personalizado
-    // text-neutral-light: Color de texto personalizado
-    // p-4: Relleno en todos los lados
-    // shadow-md: Sombra mediana
-    // flex justify-between items-center: Flexbox para alinear elementos (título a la izquierda, navegación a la derecha)
-    <header className="w-full bg-deep-night-blue text-neutral-light p-4 shadow-md flex justify-between items-center">
-      {/* Título del Dashboard */}
-      <h1 className="text-2xl font-bold text-copper-rose-accent">Label Dashboard</h1>
+  const { user, logout } = useAuth(); // <-- Obtiene user y logout del contexto
 
-      {/* Navegación */}
-      <nav>
-        <ul className="flex space-x-4"> {/* flex space-x-4: Muestra los elementos en fila con espacio entre ellos */}
-          <li><a href="#" className="hover:text-copper-rose-accent transition-colors duration-200">Inicio</a></li>
-          <li><a href="#" className="hover:text-copper-rose-accent transition-colors duration-200">Proyectos</a></li>
-          <li><a href="#" className="hover:text-copper-rose-accent transition-colors duration-200">Configuración</a></li>
-        </ul>
-      </nav>
+  return (
+    <header className="w-full bg-deep-night-blue p-4 flex items-center justify-between shadow-lg z-10">
+      <div className="text-3xl font-bold text-copper-rose-accent">
+        Label
+      </div>
+      <div className="flex items-center space-x-4">
+        {/* Muestra el nombre del usuario si está logueado */}
+        {user && (
+          <span className="text-lg text-neutral-light">
+            Hola, {user.fullName}!
+          </span>
+        )}
+        {/* Botón de Cerrar Sesión */}
+        <button
+          onClick={logout} // <-- Llama a la función logout del contexto
+          className="bg-action-blue text-neutral-light px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+        >
+          Cerrar Sesión
+        </button>
+      </div>
     </header>
   );
 }
 
-export default Header; // Exporta el componente para que pueda ser usado en otros archivos
+export default Header;

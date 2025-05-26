@@ -1,26 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <title>Label | Gestión de Negocios</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Esta configuración permite usar tus colores y fuentes personalizadas
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
-              inter: ['Inter', 'sans-serif'], // Define la fuente 'inter'
+              inter: ['Inter', 'sans-serif'],
             },
             colors: {
-              // Define tu paleta de colores personalizada
               'deep-night-blue': '#0D1B2A',
               'copper-rose-accent': '#B08D57',
               'neutral-light': '#F7F9FC',
               'neutral-gray': '#6B7280',
+              'action-blue': '#3B82F6', // Nuevo color para botones de acción
+              'success-green': '#10B981', // Nuevo color para éxito
+              'error-red': '#EF4444',     // Nuevo color para errores
             }
           }
         }
@@ -28,7 +29,8 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
-  <body class="font-inter"> <div id="root"></div>
+  <body class="font-inter bg-deep-night-blue text-neutral-light min-h-screen flex items-center justify-center p-4">
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

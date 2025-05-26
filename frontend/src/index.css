@@ -1,0 +1,88 @@
+/* C:\Proyectos\Label\frontend\src\index.css */
+
+/* Importa las directivas base de Tailwind si lo usaras localmente,
+   pero como usamos CDN, esto es más para futuras expansiones */
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities; */
+
+/* Definiciones de Keyframes para animaciones personalizadas */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%); /* Empieza fuera de la pantalla a la derecha */
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0); /* Termina en su posición normal */
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%); /* Empieza fuera de la pantalla a la izquierda */
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0); /* Termina en su posición normal */
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-20px); /* Empieza un poco arriba */
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0); /* Termina en su posición normal */
+    opacity: 1;
+  }
+}
+
+
+/* Clases de utilidad de Tailwind para usar las animaciones */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards; /* 0.3s de duración, se queda al final */
+}
+
+.animate-slideInFromRight {
+  animation: slideInFromRight 0.4s ease-out forwards; /* 0.4s para el deslizamiento */
+}
+
+.animate-slideInFromLeft {
+  animation: slideInFromLeft 0.4s ease-out forwards; /* 0.4s para el deslizamiento */
+}
+
+.animate-slideInFromTop {
+  animation: slideInFromTop 0.3s ease-out forwards;
+}
+
+/* Puedes añadir más estilos globales aquí si es necesario *
+
+/* Estilos para el spinner */
+.spinner-border {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  vertical-align: -0.125em;
+  border: 0.25em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  -webkit-animation: spinner-border .75s linear infinite;
+  animation: spinner-border .75s linear infinite;
+}
+
+@keyframes spinner-border {
+  to { transform: rotate(360deg); }
+}
