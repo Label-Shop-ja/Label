@@ -50,7 +50,6 @@ function App() {
   }
 
   return (
-    <Router>
       <div className="min-h-screen bg-deep-night-blue text-neutral-light font-inter">
         {isAuthenticated ? (
           // Si el usuario está autenticado, muestra el layout del Dashboard
@@ -98,7 +97,7 @@ function App() {
           </div>
         )}
       </div>
-    </Router>
+
   );
 }
 
