@@ -1,314 +1,134 @@
 // C:\Proyectos\Label\frontend\src\components\AccessModal.jsx
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext'; // <-- Importa useAuth
+import { useAuth } from '../context/AuthContext'; // Importa tu hook de autenticación
+import { useNavigate } from 'react-router-dom'; // Para redireccionar
 
-function AccessModal({ onClose }) { // Ya no recibe onLoginSuccess
-  const [view, setView] = useState('initial');
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [isLoadingLogin, setIsLoadingLogin] = useState(false);
-
+const AccessModal = ({ onClose }) => {
+  const [isRegisterMode, setIsRegisterMode] = useState(false); // Alterna entre Login y Register
   const [fullName, setFullName] = useState('');
-  const [regUsername, setRegUsername] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPassword, setRegPassword] = useState(''); // Corregido: setRegPassoword -> setRegPassword
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [registerError, setRegisterError] = useState('');
-  const [isLoadingRegister, setIsLoadingRegister] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(''); // Para mostrar errores al usuario
+  const { login, register, loading } = useAuth(); // Obtiene las funciones y el estado de carga del contexto
+  const navigate = useNavigate();
 
-  // Consumimos las funciones de login y register del contexto
-  const { login, register } = useAuth();
-
-  const resetLoginStates = () => {
-    setLoginEmail('');
-    setLoginPassword('');
-    setLoginError('');
-    setIsLoadingLogin(false);
-  };
-
-  const resetRegisterStates = () => {
-    setFullName('');
-    setRegUsername('');
-    setRegEmail('');
-    setRegPassword(''); // Usar setRegPassword
-    setConfirmPassword('');
-    setRegisterError('');
-    setIsLoadingRegister(false);
-  };
-
-  const handleLoginClick = () => {
-    setView('login');
-    resetRegisterStates();
-  };
-
-  const handleRegisterClick = () => {
-    setView('register');
-    resetLoginStates();
-  };
-
-  const handleBackClick = () => {
-    setView('initial');
-    resetLoginStates();
-    resetRegisterStates();
-  };
-
-  // Función para manejar el envío del formulario de inicio de sesión
-  const handleLoginSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoginError('');
-    setIsLoadingLogin(true);
-
-    if (!loginEmail || !loginPassword) {
-      setLoginError('Por favor, ingresa tu correo/usuario y contraseña.');
-      setIsLoadingLogin(false);
-      return;
-    }
+    setError(''); // Limpiar errores previos
 
     try {
-      // Ahora llamamos a la función login del contexto
-      await login(loginEmail, loginPassword);
-      alert('¡Inicio de sesión exitoso! (Gestionado por AuthContext)');
-      onClose(); // Cierra el modal solo después de un login exitoso
-    } catch (error) {
-      setLoginError(error); // El error viene directamente del AuthContext
-    } finally {
-      setIsLoadingLogin(false);
-    }
-  };
-
-  // Función para manejar el envío del formulario de registro
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    setRegisterError('');
-    setIsLoadingRegister(true);
-
-    // Validaciones básicas del formulario de registro
-    if (!fullName || !regUsername || !regEmail || !regPassword || !confirmPassword) {
-      setRegisterError('Todos los campos son obligatorios.');
-      setIsLoadingRegister(false);
-      return;
-    }
-
-    if (regPassword !== confirmPassword) {
-      setRegisterError('Las contraseñas no coinciden.');
-      setIsLoadingRegister(false);
-      return;
-    }
-
-    if (!regEmail.includes('@') || !regEmail.includes('.')) {
-      setRegisterError('Por favor, ingresa un formato de correo electrónico válido.');
-      setIsLoadingRegister(false);
-      return;
-    }
-
-    if (regPassword.length < 6) {
-      setRegisterError('La contraseña debe tener al menos 6 caracteres.');
-      setIsLoadingRegister(false);
-      return;
-    }
-
-    try {
-      // Ahora llamamos a la función register del contexto
-      // Nueva línea en AccessModal.jsx
-await register({
-  fullName,
-  username: regUsername, // <-- Mapeamos regUsername a username
-  email: regEmail,       // <-- Mapeamos regEmail a email
-  password: regPassword
-});
-      alert(`¡Registro exitoso para ${fullName}! (Gestionado por AuthContext)`);
-      onClose(); // Cierra el modal solo después de un registro exitoso
-    } catch (error) {
-      setRegisterError(error); // El error viene directamente del AuthContext
-    } finally {
-      setIsLoadingRegister(false);
+      if (isRegisterMode) {
+        // Lógica de registro
+        await register({ fullName, email, password });
+        console.log('Registro exitoso! Redirigiendo...');
+      } else {
+        // Lógica de login
+        await login(email, password);
+        console.log('Login exitoso! Redirigiendo...');
+      }
+      onClose(); // Cierra el modal al éxito
+      navigate('/dashboard'); // Redirige al dashboard
+    } catch (err) {
+      // Manejo de errores desde el backend o Axios
+      const errorMessage = err.response?.data?.message || err.message || 'Ocurrió un error inesperado.';
+      setError(errorMessage);
+      console.error("Error en autenticación:", err);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 animate-fadeIn">
-      <div className="bg-deep-night-blue rounded-lg shadow-xl p-8 w-full max-w-md transform transition-all duration-300 ease-out relative">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-gradient-to-br from-deep-night-blue to-dark-slate-gray p-8 rounded-lg shadow-2xl w-full max-w-md border border-action-blue relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-neutral-light hover:text-copper-rose-accent text-2xl"
-          aria-label="Cerrar modal"
+          className="absolute top-3 right-3 text-neutral-light hover:text-copper-rose-accent text-xl font-bold"
         >
           &times;
         </button>
+        <h2 className="text-3xl font-bold text-center mb-6 text-copper-rose-accent">
+          {isRegisterMode ? 'Registrarse' : 'Iniciar Sesión'}
+        </h2>
 
-        {view === 'initial' && (
-          <div className="flex flex-col space-y-4 animate-slideInFromTop">
-            <h2 className="text-3xl font-bold text-center mb-6 text-neutral-light">Acceder a Label</h2>
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {loading && <p className="text-action-blue text-center mb-4">Procesando...</p>}
+
+        <form onSubmit={handleSubmit}>
+          {isRegisterMode && (
+            <div className="mb-4">
+              <label className="block text-neutral-light text-sm font-bold mb-2" htmlFor="fullName">
+                Nombre Completo
+              </label>
+              <input
+                type="text"
+                id="fullName"
+                className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                placeholder="Tu Nombre Completo"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required={isRegisterMode} // 'fullName' es requerido solo en modo registro
+                disabled={loading} // Deshabilita el input mientras carga
+              />
+            </div>
+          )}
+          <div className="mb-4">
+            <label className="block text-neutral-light text-sm font-bold mb-2" htmlFor="email">
+              Correo Electrónico
+            </label>
+            <input
+              type="email"
+              id="email"
+              className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+              placeholder="tu@ejemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading} // Deshabilita el input mientras carga
+            />
+          </div>
+          <div className="mb-6">
+            <label className="block text-neutral-light text-sm font-bold mb-2" htmlFor="password">
+              Contraseña
+            </label>
+            <input
+              type="password"
+              id="password"
+              className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+              placeholder="********"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading} // Deshabilita el input mientras carga
+            />
+          </div>
+          <div className="flex items-center justify-between flex-col">
             <button
-              onClick={handleLoginClick}
-              className="bg-action-blue hover:bg-blue-700 text-neutral-light font-bold py-3 px-6 rounded-lg text-xl transition duration-300 transform hover:scale-105"
+              type="submit"
+              className="bg-action-blue hover:bg-blue-700 text-neutral-light font-bold py-3 px-6 rounded-full text-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 w-full mb-4"
+              disabled={loading} // Deshabilita el botón mientras carga
             >
-              Iniciar Sesión
+              {loading ? 'Procesando...' : (isRegisterMode ? 'Registrarse' : 'Iniciar Sesión')}
             </button>
             <button
-              onClick={handleRegisterClick}
-              className="bg-neutral-gray hover:bg-gray-700 text-neutral-light font-bold py-3 px-6 rounded-lg text-xl transition duration-300 transform hover:scale-105"
+              type="button"
+              onClick={() => {
+                setIsRegisterMode(!isRegisterMode); // Alterna el modo
+                setError(''); // Limpiar errores al cambiar de modo
+                setEmail(''); // Opcional: limpiar campos al cambiar de modo
+                setPassword('');
+                setFullName('');
+              }}
+              className="text-neutral-light text-sm hover:text-copper-rose-accent transition duration-200"
+              disabled={loading}
             >
-              Registrarse
+              {isRegisterMode
+                ? '¿Ya tienes una cuenta? Iniciar Sesión'
+                : '¿No tienes una cuenta? Regístrate'}
             </button>
           </div>
-        )}
-
-        {view === 'login' && (
-          <div className="animate-slideInFromRight">
-            <h2 className="text-3xl font-bold text-center mb-6 text-neutral-light">Iniciar Sesión</h2>
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              {loginError && (
-                <p className="text-error-red text-center text-sm mb-4">{loginError}</p>
-              )}
-              <div>
-                <label htmlFor="emailOrUser" className="block text-neutral-light text-lg font-medium mb-2">
-                  Correo Electrónico o Usuario
-                </label>
-                <input
-                  type="text"
-                  id="emailOrUser"
-                  className="w-full p-3 rounded-lg bg-gray-700 text-neutral-light border border-gray-600 focus:outline-none focus:ring-2 focus:ring-action-blue"
-                  placeholder="tu.correo@example.com"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="block text-neutral-light text-lg font-medium mb-2">
-                  Contraseña
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  className="w-full p-3 rounded-lg bg-gray-700 text-neutral-light border border-gray-600 focus:outline-none focus:ring-2 focus:ring-action-blue"
-                  placeholder="********"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-success-green hover:bg-green-700 text-neutral-light font-bold py-3 px-6 rounded-lg text-xl transition duration-300 transform hover:scale-105"
-                disabled={isLoadingLogin}
-              >
-                {isLoadingLogin ? 'Cargando...' : 'Entrar'}
-              </button>
-              <a href="#" className="block text-center text-action-blue hover:underline mt-4">
-                ¿Olvidaste tu contraseña?
-              </a>
-            </form>
-            <button
-              onClick={handleBackClick}
-              className="mt-6 w-full text-neutral-gray hover:text-neutral-light transition-colors duration-200 text-lg"
-            >
-              &larr; Volver
-            </button>
-          </div>
-        )}
-
-        {view === 'register' && (
-          <div className="animate-slideInFromLeft">
-            <h2 className="text-3xl font-bold text-center mb-6 text-neutral-light">Registrarse en Label</h2>
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
-              {registerError && (
-                <p className="text-error-red text-center text-sm mb-4">{registerError}</p>
-              )}
-              <div>
-                <label htmlFor="fullName" className="block text-neutral-light text-lg font-medium mb-2">
-                  Nombre Completo
-                </label>
-                <input
-                  type="text"
-                  id="fullName"
-                  className="w-full p-3 rounded-lg bg-gray-700 text-neutral-light border border-gray-600 focus:outline-none focus:ring-2 focus:ring-action-blue"
-                  placeholder="Jhosber Fermín"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="regUsername" className="block text-neutral-light text-lg font-medium mb-2">
-                  Nombre de Usuario
-                </label>
-                <input
-                  type="text"
-                  id="regUsername"
-                  className="w-full p-3 rounded-lg bg-gray-700 text-neutral-light border border-gray-600 focus:outline-none focus:ring-2 focus:ring-action-blue"
-                  placeholder="jhosber.dev"
-                  value={regUsername}
-                  onChange={(e) => setRegUsername(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="regEmail" className="block text-neutral-light text-lg font-medium mb-2">
-                  Correo Electrónico
-                </label>
-                <input
-                  type="email"
-                  id="regEmail"
-                  className="w-full p-3 rounded-lg bg-gray-700 text-neutral-light border border-gray-600 focus:outline-none focus:ring-2 focus:ring-action-blue"
-                  placeholder="tu.correo@example.com"
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="regPassword" className="block text-neutral-light text-lg font-medium mb-2">
-                  Contraseña
-                </label>
-                <input
-                  type="password"
-                  id="regPassword"
-                  className="w-full p-3 rounded-lg bg-gray-700 text-neutral-light border border-gray-600 focus:outline-none focus:ring-2 focus:ring-action-blue"
-                  placeholder="********"
-                  value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="confirmPassword" className="block text-neutral-light text-lg font-medium mb-2">
-                  Confirmar Contraseña
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  className="w-full p-3 rounded-lg bg-gray-700 text-neutral-light border border-gray-600 focus:outline-none focus:ring-2 focus:ring-action-blue"
-                  placeholder="********"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-copper-rose-accent hover:bg-yellow-700 text-deep-night-blue font-bold py-3 px-6 rounded-lg text-xl transition duration-300 transform hover:scale-105"
-                disabled={isLoadingRegister}
-              >
-                {isLoadingRegister ? 'Creando Cuenta...' : 'Crear Cuenta'}
-              </button>
-              <p className="text-center text-sm text-neutral-gray mt-4">
-                Al registrarte, aceptas nuestros{' '}
-                <a href="#" className="text-action-blue hover:underline">
-                  Términos y Condiciones
-                </a>{' '}
-                y nuestra{' '}
-                <a href="#" className="text-action-blue hover:underline">
-                  Política de Privacidad
-                </a>.
-              </p>
-            </form>
-            <button
-              onClick={handleBackClick}
-              className="mt-6 w-full text-neutral-gray hover:text-neutral-light transition-colors duration-200 text-lg"
-            >
-              &larr; Volver
-            </button>
-          </div>
-        )}
+        </form>
       </div>
     </div>
   );
-}
+};
 
 export default AccessModal;

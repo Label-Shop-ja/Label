@@ -1,6 +1,6 @@
 // C:\Proyectos\Label\frontend\src\App.jsx
 import React, { useState, useEffect } from 'react'; // Necesitamos useEffect para el loading
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom'; // Importa Routes y Route, NO Router
 
 import AccessModal from './components/AccessModal';
 import Header from './components/Header';

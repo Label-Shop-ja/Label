@@ -1,6 +1,6 @@
 // C:\Proyectos\Label\frontend\src\context\AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../api/axiosInstance';
 
 // 1. Crear el Contexto de Autenticación
 const AuthContext = createContext(null);
@@ -14,7 +14,7 @@ export const useAuth = () => {
   return context;
 };
 
-// Configuración base de Axios
+// Configuración base de axiosInstance
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api';
 
 export const AuthProvider = ({ children }) => {
@@ -29,8 +29,8 @@ export const AuthProvider = ({ children }) => {
     }
     try {
       // Configurar el token para esta petición de perfil
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      const response = await axios.get(`${API_URL}/users/profile`);
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      const response = await axiosInstance.get(`${API_URL}/users/profile`);
       return response.data; // Devuelve los datos del perfil
     } catch (error) {
       console.error("Error al obtener perfil del usuario:", error.response?.data?.message || error.message);
@@ -71,11 +71,11 @@ export const AuthProvider = ({ children }) => {
 
   // --- Funciones para interactuar con la API de autenticación ---
 
-  const login = async (emailOrUser, password) => {
+  const login = async (email, password) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        emailOrUser,
+      const response = await axiosInstance.post(`${API_URL}/auth/login`, {
+        email,
         password,
       });
 
@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/auth/register`, userData);
+      const response = await axiosInstance.post(`${API_URL}/auth/register`, userData);
 
       const { token } = response.data; // Solo necesitamos el token inicialmente
       localStorage.setItem('token', token);
@@ -140,7 +140,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    delete axios.defaults.headers.common['Authorization']; // Eliminar el header de autorización
+    delete axiosInstance.defaults.headers.common['Authorization']; // Eliminar el header de autorización
   };
 
   const authContextValue = {

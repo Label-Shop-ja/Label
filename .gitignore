@@ -1,19 +1,33 @@
-# Ignorar la carpeta de dependencias de Node
+# Node modules
 node_modules/
 
-# Ignorar archivos de registro de npm
+# Log files
+*.log
 npm-debug.log*
-.npm/
+yarn-debug.log*
+yarn-error.log*
 
-# Ignorar la carpeta de compilación de Vite
-dist/
-
-# Ignorar archivos específicos de VS Code
-.vscode/
-
-# Ignorar archivos de caché
-.cache/
-
-# Ignorar archivos de variables de entorno locales (si los usas)
+# Environment variables
 .env
 .env.local
+.env.*.local
+
+# npm/yarn cache
+.npm/
+.yarn-cache/
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# Build outputs
+dist/
+build/
+
+# Vite cache
+.vite/
+
+# Any other files you want to ignore
+# ...
