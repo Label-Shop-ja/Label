@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import axiosInstance from '../api/axiosInstance';
 
 // 1. Crear el Contexto de Autenticación
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 // 2. Crear un Hook Personalizado para usar el Contexto
 export const useAuth = () => {
