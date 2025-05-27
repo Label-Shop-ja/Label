@@ -4,33 +4,41 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const productRoutes = require('./routes/productRoutes');
+const transactionRoutes = require('C:/Proyectos/Label/backend/routes/transactionRoutes'); // Ruta completa por seguridad
+const saleRoutes = require('./routes/saleRoutes');
+const clientRoutes = require('./routes/clientRoutes');
+const statsRoutes = require('./routes/statsRoutes'); // Asegúrate de que esta línea esté aquí
 
-require('dotenv').config(); // Carga las variables de entorno desde .env
+require('dotenv').config();
+
+console.log('Valor de MONGO_URI en server.js:', process.env.MONGO_URI);
 
 const app = express();
 
 // Conectar a la base de datos
 connectDB();
 
-// Middleware para parsear el cuerpo de las peticiones en formato JSON
+// Middleware
 app.use(express.json());
 
-// Configuración de CORS para permitir solicitudes desde tu frontend
-// ¡IMPORTANTE! Asegúrate de que 'http://localhost:5173' coincida con la URL de tu frontend
+// Configuración de CORS
 app.use(cors({
-  origin: 'http://localhost:5173', // <--- ¡Esta es la corrección más importante!
-  credentials: true // Permite el envío de cookies o encabezados de autorización si los usas
+  origin: 'http://localhost:5173',
+  credentials: true
 }));
 
-// Definición de Rutas API
-app.use('/api/users', userRoutes); // Rutas para operaciones de usuarios
-app.use('/api/auth', authRoutes);   // Rutas para autenticación (registro, login)
+// Rutas
+app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/sales', saleRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/stats', statsRoutes); // Asegúrate de que esta línea esté aquí
 
-// Puerto en el que escuchará el servidor. Tomará el valor de la variable de entorno PORT,
-// o 5000 si no está definida (común en desarrollo).
 const PORT = process.env.PORT || 5000;
 
-// Iniciar el servidor
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
