@@ -1,17 +1,19 @@
 // C:\Proyectos\Label\frontend\src\components\InventoryPage.jsx
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '../api/axiosInstance';
-import { FaPlusSquare, FaEdit, FaTrash } from 'react-icons/fa'; // Iconos
+import { FaPlusSquare, FaEdit, FaTrash, FaTimesCircle, FaSave } from 'react-icons/fa'; // Iconos
 
 const InventoryPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false); // Nuevo estado para mostrar/ocultar formulario de edición
+  const [editingProduct, setEditingProduct] = useState(null); // Nuevo estado para el producto que se está editando
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
-    category: '', // <--- ¡AÑADIMOS ESTE CAMPO!
+    category: '',
     price: '',
     stock: '',
   });
@@ -45,31 +47,43 @@ const InventoryPage = () => {
     }));
   };
 
+  // --- Manejar cambios en el formulario de edición de producto ---
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditingProduct((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   // --- Manejar el envío del formulario de nuevo producto ---
   const handleAddProduct = async (e) => {
     e.preventDefault();
     setError(''); // Limpiar errores previos
     try {
       // Validar campos requeridos antes de enviar
-      if (!newProduct.name || !newProduct.category || !newProduct.price || !newProduct.stock) { // <--- ¡Category es ahora requerido!
+      if (!newProduct.name || !newProduct.category || !newProduct.price || !newProduct.stock) {
         setError('Por favor, ingresa todos los campos requeridos: nombre, categoría, precio y stock.');
         return;
       }
 
-      if (isNaN(newProduct.price) || parseFloat(newProduct.price) <= 0) {
+      const parsedPrice = parseFloat(newProduct.price);
+      const parsedStock = parseInt(newProduct.stock, 10); // Base 10 para enteros
+
+      if (isNaN(parsedPrice) || parsedPrice <= 0) {
         setError('El precio debe ser un número positivo.');
         return;
       }
 
-      if (isNaN(newProduct.stock) || parseInt(newProduct.stock) < 0) {
+      if (isNaN(parsedStock) || parsedStock < 0) {
         setError('El stock debe ser un número no negativo.');
         return;
       }
 
       const response = await axiosInstance.post('/products', {
         ...newProduct,
-        price: parseFloat(newProduct.price), // Asegurar que se envía como número
-        stock: parseInt(newProduct.stock),   // Asegurar que se envía como entero
+        price: parsedPrice, // Asegurar que se envía como número
+        stock: parsedStock,  // Asegurar que se envía como entero
       });
       setProducts((prev) => [response.data, ...prev]); // Añadir el nuevo producto al principio de la lista
       setNewProduct({ // Limpiar el formulario
@@ -85,6 +99,79 @@ const InventoryPage = () => {
       console.error('Error al añadir producto:', err);
       const errorMessage = err.response?.data?.message || 'Error al añadir producto.';
       setError(errorMessage);
+    }
+  };
+
+  // --- Manejar clic en el botón de Editar ---
+  const handleEditClick = (product) => {
+    // Al hacer clic en editar, pre-rellenar el formulario de edición
+    setEditingProduct({
+        ...product,
+        price: parseFloat(product.price).toFixed(2), // Formatear para el input de tipo number
+        stock: parseInt(product.stock, 10), // Asegurar que sea entero
+    });
+    setShowEditForm(true); // Mostrar el formulario de edición
+    setShowAddForm(false); // Asegurarse de que el formulario de añadir esté oculto
+    setError(''); // Limpiar cualquier error
+  };
+
+  // --- Manejar el envío del formulario de actualización de producto ---
+  const handleUpdateProduct = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      if (!editingProduct.name || !editingProduct.category || !editingProduct.price || !editingProduct.stock) {
+        setError('Por favor, ingresa todos los campos requeridos para actualizar: nombre, categoría, precio y stock.');
+        return;
+      }
+
+      const parsedPrice = parseFloat(editingProduct.price);
+      const parsedStock = parseInt(editingProduct.stock, 10);
+
+      if (isNaN(parsedPrice) || parsedPrice <= 0) {
+        setError('El precio debe ser un número positivo.');
+        return;
+      }
+
+      if (isNaN(parsedStock) || parsedStock < 0) {
+        setError('El stock debe ser un número no negativo.');
+        return;
+      }
+
+      const response = await axiosInstance.put(`/products/${editingProduct._id}`, {
+        ...editingProduct,
+        price: parsedPrice,
+        stock: parsedStock,
+      });
+
+      // Actualizar la lista de productos con el producto modificado
+      setProducts((prev) =>
+        prev.map((p) => (p._id === response.data._id ? response.data : p))
+      );
+      setShowEditForm(false); // Ocultar el formulario después de actualizar
+      setEditingProduct(null); // Limpiar el producto en edición
+      setError('');
+    } catch (err) {
+      console.error('Error al actualizar producto:', err);
+      const errorMessage = err.response?.data?.message || 'Error al actualizar producto.';
+      setError(errorMessage);
+    }
+  };
+
+  // --- Manejar la eliminación de un producto ---
+  const handleDeleteProduct = async (productId) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+      setError('');
+      try {
+        await axiosInstance.delete(`/products/${productId}`);
+        // Filtrar el producto eliminado de la lista
+        setProducts((prev) => prev.filter((p) => p._id !== productId));
+        setError('');
+      } catch (err) {
+        console.error('Error al eliminar producto:', err);
+        const errorMessage = err.response?.data?.message || 'Error al eliminar producto.';
+        setError(errorMessage);
+      }
     }
   };
 
@@ -107,17 +194,25 @@ const InventoryPage = () => {
         </div>
       )}
 
-      <div className="mb-8">
+      <div className="mb-8 flex space-x-4">
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
+          onClick={() => { setShowAddForm(!showAddForm); setShowEditForm(false); setEditingProduct(null); }}
           className="bg-action-blue hover:bg-blue-700 text-neutral-light font-bold py-3 px-6 rounded-lg text-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
         >
           <FaPlusSquare className="mr-2" /> {showAddForm ? 'Ocultar Formulario' : 'Añadir Nuevo Producto'}
         </button>
+        {showEditForm && (
+            <button
+                onClick={() => { setShowEditForm(false); setEditingProduct(null); setError(''); }}
+                className="bg-neutral-gray-500 hover:bg-neutral-gray-600 text-neutral-light font-bold py-3 px-6 rounded-lg text-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
+            >
+                <FaTimesCircle className="mr-2" /> Cancelar Edición
+            </button>
+        )}
       </div>
 
       {showAddForm && (
-        <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8">
+        <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700">
           <h3 className="text-2xl font-semibold text-neutral-light mb-4">Añadir Nuevo Producto</h3>
           <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -162,7 +257,7 @@ const InventoryPage = () => {
                 name="price"
                 value={newProduct.price}
                 onChange={handleInputChange}
-                step="0.01" // Permite decimales para el precio
+                step="0.01"
                 className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
                 required
               />
@@ -191,6 +286,82 @@ const InventoryPage = () => {
         </div>
       )}
 
+      {showEditForm && editingProduct && (
+        <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700">
+          <h3 className="text-2xl font-semibold text-neutral-light mb-4">Editar Producto: {editingProduct.name}</h3>
+          <form onSubmit={handleUpdateProduct} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="editName" className="block text-neutral-light text-sm font-bold mb-2">Nombre del Producto:</label>
+              <input
+                type="text"
+                id="editName"
+                name="name"
+                value={editingProduct.name}
+                onChange={handleEditFormChange}
+                className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="editCategory" className="block text-neutral-light text-sm font-bold mb-2">Categoría:</label>
+              <input
+                type="text"
+                id="editCategory"
+                name="category"
+                value={editingProduct.category}
+                onChange={handleEditFormChange}
+                className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                required
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label htmlFor="editDescription" className="block text-neutral-light text-sm font-bold mb-2">Descripción (Opcional):</label>
+              <textarea
+                id="editDescription"
+                name="description"
+                value={editingProduct.description}
+                onChange={handleEditFormChange}
+                className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal h-24"
+              />
+            </div>
+            <div>
+              <label htmlFor="editPrice" className="block text-neutral-light text-sm font-bold mb-2">Precio ($):</label>
+              <input
+                type="number"
+                id="editPrice"
+                name="price"
+                value={editingProduct.price}
+                onChange={handleEditFormChange}
+                step="0.01"
+                className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="editStock" className="block text-neutral-light text-sm font-bold mb-2">Stock:</label>
+              <input
+                type="number"
+                id="editStock"
+                name="stock"
+                value={editingProduct.stock}
+                onChange={handleEditFormChange}
+                className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                required
+              />
+            </div>
+            <div className="md:col-span-2 text-right">
+              <button
+                type="submit"
+                className="bg-action-blue hover:bg-blue-700 text-neutral-light font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center float-right"
+              >
+                <FaSave className="mr-2" /> Actualizar Producto
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+
       <h3 className="text-3xl font-semibold text-neutral-light mb-6 border-b border-neutral-gray-200 pb-3">Lista de Productos</h3>
 
       {products.length === 0 ? (
@@ -207,11 +378,16 @@ const InventoryPage = () => {
                 <p className="text-neutral-light mb-3"><span className="font-semibold">Stock:</span> {product.stock}</p>
               </div>
               <div className="flex justify-end gap-2 mt-4">
-                {/* Botones de Editar y Eliminar (funcionalidad futura) */}
-                <button className="bg-neutral-gray-200 text-dark-charcoal px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-gray-300 transition duration-200 opacity-50 cursor-not-allowed flex items-center">
+                <button
+                  onClick={() => handleEditClick(product)}
+                  className="bg-neutral-gray-200 text-dark-charcoal px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-gray-300 transition duration-200 flex items-center"
+                >
                   <FaEdit className="mr-1"/> Editar
                 </button>
-                <button className="bg-red-600 text-neutral-light px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition duration-200 opacity-50 cursor-not-allowed flex items-center">
+                <button
+                  onClick={() => handleDeleteProduct(product._id)}
+                  className="bg-red-600 text-neutral-light px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition duration-200 flex items-center"
+                >
                   <FaTrash className="mr-1"/> Eliminar
                 </button>
               </div>
