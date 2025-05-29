@@ -1,15 +1,23 @@
 // C:\Proyectos\Label\frontend\src\components\InventoryPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axiosInstance from '../api/axiosInstance';
-import { FaPlusSquare, FaEdit, FaTrash, FaTimesCircle, FaSave } from 'react-icons/fa'; // Iconos
+import { FaPlusSquare, FaEdit, FaTrash, FaTimesCircle, FaSave, FaSearch, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
 
 const InventoryPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false); // Nuevo estado para mostrar/ocultar formulario de edición
-  const [editingProduct, setEditingProduct] = useState(null); // Nuevo estado para el producto que se está editando
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todas las Categorías');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [availableCategories, setAvailableCategories] = useState([]);
+
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
@@ -18,170 +26,54 @@ const InventoryPage = () => {
     stock: '',
   });
 
-  // --- Cargar productos al montar el componente ---
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await axiosInstance.get('/products');
-        setProducts(response.data);
-        setError('');
-      } catch (err) {
-        console.error('Error al cargar productos:', err);
-        const errorMessage = err.response?.data?.message || 'Error al cargar productos';
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
 
+      const queryParams = new URLSearchParams();
+      if (searchTerm) {
+        queryParams.append('name', searchTerm);
+      }
+      if (selectedCategory && selectedCategory !== 'Todas las Categorías') {
+        queryParams.append('category', selectedCategory);
+      }
+      queryParams.append('page', currentPage);
+      queryParams.append('limit', limit);
+
+      const response = await axiosInstance.get(`/products?${queryParams.toString()}`);
+
+      setProducts(response.data.products);
+      setTotalPages(response.data.pagination.totalPages);
+      setError('');
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Error al cargar productos.';
+      setError(errorMessage);
+      setProducts([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, selectedCategory, currentPage, limit]);
+
+  useEffect(() => {
     fetchProducts();
+  }, [fetchProducts]);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await axiosInstance.get('/products?limit=99999');
+      const categories = [...new Set(response.data.products.map(p => p.category))];
+      setAvailableCategories(['Todas las Categorías', ...categories.sort()]);
+    } catch (err) {
+    }
   }, []);
 
-  // --- Manejar cambios en el formulario de nuevo producto ---
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewProduct((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
-  // --- Manejar cambios en el formulario de edición de producto ---
-  const handleEditFormChange = (e) => {
-    const { name, value } = e.target;
-    setEditingProduct((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // --- Manejar el envío del formulario de nuevo producto ---
-  const handleAddProduct = async (e) => {
-    e.preventDefault();
-    setError(''); // Limpiar errores previos
-    try {
-      // Validar campos requeridos antes de enviar
-      if (!newProduct.name || !newProduct.category || !newProduct.price || !newProduct.stock) {
-        setError('Por favor, ingresa todos los campos requeridos: nombre, categoría, precio y stock.');
-        return;
-      }
-
-      const parsedPrice = parseFloat(newProduct.price);
-      const parsedStock = parseInt(newProduct.stock, 10); // Base 10 para enteros
-
-      if (isNaN(parsedPrice) || parsedPrice <= 0) {
-        setError('El precio debe ser un número positivo.');
-        return;
-      }
-
-      if (isNaN(parsedStock) || parsedStock < 0) {
-        setError('El stock debe ser un número no negativo.');
-        return;
-      }
-
-      const response = await axiosInstance.post('/products', {
-        ...newProduct,
-        price: parsedPrice, // Asegurar que se envía como número
-        stock: parsedStock,  // Asegurar que se envía como entero
-      });
-      setProducts((prev) => [response.data, ...prev]); // Añadir el nuevo producto al principio de la lista
-      setNewProduct({ // Limpiar el formulario
-        name: '',
-        description: '',
-        category: '',
-        price: '',
-        stock: '',
-      });
-      setShowAddForm(false); // Ocultar el formulario después de agregar
-      setError(''); // Limpiar cualquier error previo
-    } catch (err) {
-      console.error('Error al añadir producto:', err);
-      const errorMessage = err.response?.data?.message || 'Error al añadir producto.';
-      setError(errorMessage);
-    }
-  };
-
-  // --- Manejar clic en el botón de Editar ---
-  const handleEditClick = (product) => {
-    // Al hacer clic en editar, pre-rellenar el formulario de edición
-    setEditingProduct({
-        ...product,
-        price: parseFloat(product.price).toFixed(2), // Formatear para el input de tipo number
-        stock: parseInt(product.stock, 10), // Asegurar que sea entero
-    });
-    setShowEditForm(true); // Mostrar el formulario de edición
-    setShowAddForm(false); // Asegurarse de que el formulario de añadir esté oculto
-    setError(''); // Limpiar cualquier error
-  };
-
-  // --- Manejar el envío del formulario de actualización de producto ---
-  const handleUpdateProduct = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      if (!editingProduct.name || !editingProduct.category || !editingProduct.price || !editingProduct.stock) {
-        setError('Por favor, ingresa todos los campos requeridos para actualizar: nombre, categoría, precio y stock.');
-        return;
-      }
-
-      const parsedPrice = parseFloat(editingProduct.price);
-      const parsedStock = parseInt(editingProduct.stock, 10);
-
-      if (isNaN(parsedPrice) || parsedPrice <= 0) {
-        setError('El precio debe ser un número positivo.');
-        return;
-      }
-
-      if (isNaN(parsedStock) || parsedStock < 0) {
-        setError('El stock debe ser un número no negativo.');
-        return;
-      }
-
-      const response = await axiosInstance.put(`/products/${editingProduct._id}`, {
-        ...editingProduct,
-        price: parsedPrice,
-        stock: parsedStock,
-      });
-
-      // Actualizar la lista de productos con el producto modificado
-      setProducts((prev) =>
-        prev.map((p) => (p._id === response.data._id ? response.data : p))
-      );
-      setShowEditForm(false); // Ocultar el formulario después de actualizar
-      setEditingProduct(null); // Limpiar el producto en edición
-      setError('');
-    } catch (err) {
-      console.error('Error al actualizar producto:', err);
-      const errorMessage = err.response?.data?.message || 'Error al actualizar producto.';
-      setError(errorMessage);
-    }
-  };
-
-  // --- Manejar la eliminación de un producto ---
-  const handleDeleteProduct = async (productId) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-      setError('');
-      try {
-        await axiosInstance.delete(`/products/${productId}`);
-        // Filtrar el producto eliminado de la lista
-        setProducts((prev) => prev.filter((p) => p._id !== productId));
-        setError('');
-      } catch (err) {
-        console.error('Error al eliminar producto:', err);
-        const errorMessage = err.response?.data?.message || 'Error al eliminar producto.';
-        setError(errorMessage);
-      }
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-full min-h-screen">
-        <p className="text-xl text-action-blue">Cargando productos...</p>
-      </div>
-    );
-  }
+  // ... (el resto de tu código de InventoryPage.jsx) ...
 
   return (
     <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen">
@@ -194,17 +86,18 @@ const InventoryPage = () => {
         </div>
       )}
 
-      <div className="mb-8 flex space-x-4">
+      {/* Botones de Añadir/Ocultar y Cancelar Edición */}
+      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
         <button
-          onClick={() => { setShowAddForm(!showAddForm); setShowEditForm(false); setEditingProduct(null); }}
-          className="bg-action-blue hover:bg-blue-700 text-neutral-light font-bold py-3 px-6 rounded-lg text-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
+          onClick={() => { setShowAddForm(!showAddForm); setShowEditForm(false); setEditingProduct(null); setError(''); }}
+          className="bg-action-blue hover:bg-blue-700 text-neutral-light font-bold py-3 px-6 rounded-lg text-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center"
         >
           <FaPlusSquare className="mr-2" /> {showAddForm ? 'Ocultar Formulario' : 'Añadir Nuevo Producto'}
         </button>
         {showEditForm && (
             <button
                 onClick={() => { setShowEditForm(false); setEditingProduct(null); setError(''); }}
-                className="bg-neutral-gray-500 hover:bg-neutral-gray-600 text-neutral-light font-bold py-3 px-6 rounded-lg text-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
+                className="bg-neutral-gray-500 hover:bg-neutral-gray-600 text-neutral-light font-bold py-3 px-6 rounded-lg text-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50 flex items-center justify-center"
             >
                 <FaTimesCircle className="mr-2" /> Cancelar Edición
             </button>
@@ -361,11 +254,47 @@ const InventoryPage = () => {
         </div>
       )}
 
+      {/* --- Sección de Búsqueda y Filtro --- */}
+      <form onSubmit={(e) => { e.preventDefault(); }}
+            className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 flex flex-col md:flex-row items-center gap-4">
+        <div className="relative flex-grow w-full md:w-auto">
+          <input
+            type="text"
+            placeholder="Buscar por nombre..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-4 pr-10 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal pl-10"
+          />
+          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-gray-400" />
+        </div>
+
+        <div className="w-full md:w-auto">
+          <label htmlFor="categoryFilter" className="sr-only">Filtrar por Categoría:</label>
+          <select
+            id="categoryFilter"
+            value={selectedCategory}
+            onChange={(e) => {
+              console.log('onChange del select de categoría. Valor:', e.target.value); // DEBUG
+              setSelectedCategory(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+          >
+            {availableCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+      </form>
+      {/* --- Fin Sección de Búsqueda y Filtro --- */}
 
       <h3 className="text-3xl font-semibold text-neutral-light mb-6 border-b border-neutral-gray-200 pb-3">Lista de Productos</h3>
 
-      {products.length === 0 ? (
-        <p className="text-neutral-gray-300 text-lg">No hay productos registrados. ¡Añade uno!</p>
+      {products.length === 0 && !loading ? (
+        <p className="text-neutral-gray-300 text-lg">No hay productos que coincidan con la búsqueda o el filtro. ¡Intenta añadir uno!</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
@@ -395,6 +324,28 @@ const InventoryPage = () => {
           ))}
         </div>
       )}
+
+      {/* --- Controles de Paginación --- */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center space-x-2 mt-8 text-neutral-light">
+          <button
+            onClick={goToPrevPage}
+            disabled={currentPage === 1}
+            className="bg-action-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+          >
+            <FaAngleLeft />
+          </button>
+          <span className="text-lg">Página {currentPage} de {totalPages}</span>
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className="bg-action-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+          >
+            <FaAngleRight />
+          </button>
+        </div>
+      )}
+      {/* --- Fin Controles de Paginación --- */}
     </div>
   );
 };

@@ -1,12 +1,12 @@
-// C:\Proyectos\Label\frontend\src\components\PosPage.jsx
-import React, { useState, useEffect, useRef } from 'react';
+// C:\Proyect// C:\Proyectos\Label\frontend\src\components\PosPage.jsx
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import { FaSearch, FaPlusCircle, FaMinusCircle, FaTimesCircle, FaDollarSign } from 'react-icons/fa'; // Iconos
 
 const PosPage = () => {
   const [products, setProducts] = useState([]); // Todos los productos del inventario
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState([]); // Resultados de búsqueda filtrados localmente
   const [saleItems, setSaleItems] = useState([]); // Productos en el carrito de venta
   const [totalAmount, setTotalAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -17,23 +17,27 @@ const PosPage = () => {
 
   const searchInputRef = useRef(null); // Ref para enfocar el campo de búsqueda
 
-  // --- Cargar todos los productos al inicio ---
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const response = await axiosInstance.get('/products');
-        setProducts(response.data);
-      } catch (err) {
-        console.error('Error al cargar productos:', err);
-        setError('Error al cargar productos para el POS.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
+  // --- Función para cargar todos los productos del inventario (para POS) ---
+  const fetchAllProductsForPOS = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      // Pedimos un límite muy alto para asegurarnos de obtener todos los productos
+      const response = await axiosInstance.get('/products?limit=99999');
+      setProducts(response.data.products);
+    } catch (err) {
+      console.error('Error al cargar productos para el POS:', err);
+      setError('Error al cargar productos para el POS.');
+      setProducts([]); // Asegurarse de que 'products' sea un array vacío en caso de error
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // --- Cargar todos los productos al inicio del componente ---
+  useEffect(() => {
+    fetchAllProductsForPOS();
+  }, [fetchAllProductsForPOS]);
 
   // --- Calcular el total de la venta cada vez que cambian los items en el carrito ---
   useEffect(() => {
@@ -44,7 +48,8 @@ const PosPage = () => {
     setTotalAmount(calculateTotal);
   }, [saleItems]);
 
-  // --- Manejar búsqueda de productos ---
+  // --- Manejar búsqueda de productos localmente (sobre el array 'products') ---
+  // Este efecto se ejecuta cada vez que searchTerm o products cambian
   useEffect(() => {
     if (searchTerm.length > 0) {
       const filtered = products.filter(product =>
@@ -53,7 +58,7 @@ const PosPage = () => {
       );
       setSearchResults(filtered);
     } else {
-      setSearchResults([]);
+      setSearchResults([]); // No hay término de búsqueda, no hay resultados filtrados específicos
     }
   }, [searchTerm, products]);
 
@@ -65,7 +70,6 @@ const PosPage = () => {
     const existingItem = saleItems.find((item) => item.product._id === product._id);
 
     if (existingItem) {
-      // Verificar si hay stock suficiente antes de incrementar
       if (existingItem.quantity + 1 > product.stock) {
         setError(`No hay suficiente stock para ${product.name}. Stock disponible: ${product.stock}`);
         return;
@@ -78,7 +82,6 @@ const PosPage = () => {
         )
       );
     } else {
-      // Verificar si hay stock antes de añadir por primera vez
       if (1 > product.stock) {
         setError(`No hay suficiente stock para ${product.name}. Stock disponible: ${product.stock}`);
         return;
@@ -86,7 +89,7 @@ const PosPage = () => {
       setSaleItems([...saleItems, { product, quantity: 1, price: product.price }]);
     }
     setSearchTerm(''); // Limpiar búsqueda después de añadir
-    setSearchResults([]); // Limpiar resultados de búsqueda
+    // searchResults se limpia automáticamente gracias al useEffect de búsqueda
     searchInputRef.current.focus(); // Volver a enfocar el campo de búsqueda
   };
 
@@ -99,17 +102,16 @@ const PosPage = () => {
         .map((item) => {
           if (item.product._id === productId) {
             const newQuantity = item.quantity + delta;
-            if (newQuantity <= 0) return null; // Eliminar si la cantidad es 0 o menos
-            // Verificar stock al incrementar
+            if (newQuantity <= 0) return null;
             if (delta > 0 && newQuantity > item.product.stock) {
               setError(`No hay suficiente stock para ${item.product.name}. Stock disponible: ${item.product.stock}`);
-              return item; // No actualizar si no hay stock
+              return item;
             }
             return { ...item, quantity: newQuantity };
           }
           return item;
         })
-        .filter(Boolean) // Eliminar los items que son null
+        .filter(Boolean)
     );
   };
 
@@ -147,9 +149,8 @@ const PosPage = () => {
       setSearchTerm('');
       setCustomerName('');
       setPaymentMethod('cash');
-      // Opcional: Volver a cargar la lista de productos para reflejar los stocks actualizados
-      const updatedProductsResponse = await axiosInstance.get('/products');
-      setProducts(updatedProductsResponse.data);
+      // Volver a cargar la lista de productos para reflejar los stocks actualizados
+      fetchAllProductsForPOS(); // Usamos la misma función para recargar
       searchInputRef.current.focus(); // Volver a enfocar el campo de búsqueda
     } catch (err) {
       console.error('Error al procesar la venta:', err);
@@ -186,7 +187,8 @@ const PosPage = () => {
             placeholder="Buscar producto por nombre o categoría..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full py-3 px-4 pl-10 bg-dark-charcoal text-neutral-light border border-neutral-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-action-blue text-lg"
+            // Aseguramos que el texto sea visible con neutral-light
+            className="w-full py-3 px-4 pl-10 bg-dark-charcoal text-gray-900 leading-tight border border-neutral-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-action-blue text-lg"
           />
           <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-gray-300" size={20} />
         </div>
@@ -195,31 +197,46 @@ const PosPage = () => {
           <p className="text-xl text-action-blue text-center">Cargando productos...</p>
         ) : (
           <div className="flex-1 overflow-y-auto pr-2"> {/* pr-2 para espacio del scrollbar */}
-            {searchTerm.length > 0 && searchResults.length === 0 && (
-              <p className="text-neutral-gray-300 text-lg text-center mt-4">No se encontraron productos para "{searchTerm}".</p>
-            )}
-            {searchTerm.length === 0 && products.length === 0 && (
-                <p className="text-neutral-gray-300 text-lg text-center mt-4">No hay productos en el inventario. Añade algunos desde la sección de Inventario.</p>
-            )}
-            {searchTerm.length > 0 && searchResults.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {searchResults.map((product) => (
-                  <div
-                    key={product._id}
-                    className="bg-dark-charcoal p-4 rounded-lg shadow flex justify-between items-center border border-action-blue-light cursor-pointer hover:bg-neutral-gray-800 transition duration-200"
-                    onClick={() => addProductToSale(product)}
-                  >
-                    <div>
-                      <p className="text-xl font-semibold text-neutral-light">{product.name}</p>
-                      <p className="text-sm text-neutral-gray-300">{product.category} - Stock: {product.stock}</p>
+            {searchTerm.length > 0 ? ( // Si hay un término de búsqueda
+              searchResults.length === 0 ? (
+                <p className="text-neutral-gray-300 text-lg text-center mt-4">No se encontraron productos para "{searchTerm}".</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {searchResults.map((product) => (
+                    <div
+                      key={product._id}
+                      className="bg-dark-charcoal p-4 rounded-lg shadow flex justify-between items-center border border-action-blue-light cursor-pointer hover:bg-neutral-gray-800 transition duration-200"
+                      onClick={() => addProductToSale(product)}
+                    >
+                      <div>
+                        <p className="text-xl font-semibold text-neutral-light">{product.name}</p>
+                        <p className="text-sm text-neutral-gray-300">{product.category} - Stock: {product.stock}</p>
+                      </div>
+                      <p className="text-2xl font-bold text-copper-rose-accent">${product.price.toFixed(2)}</p>
                     </div>
-                    <p className="text-2xl font-bold text-copper-rose-accent">${product.price.toFixed(2)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-            {searchTerm.length === 0 && products.length > 0 && (
-                 <p className="text-neutral-gray-300 text-lg text-center mt-4">Comienza a escribir para buscar productos.</p>
+                  ))}
+                </div>
+              )
+            ) : ( // Si el término de búsqueda está vacío, mostrar todos los productos
+              products.length === 0 ? (
+                <p className="text-neutral-gray-300 text-lg text-center mt-4">No hay productos en el inventario. Añade algunos desde la sección de Inventario.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {products.map((product) => ( // Mapeamos el array 'products' completo aquí
+                    <div
+                      key={product._id}
+                      className="bg-dark-charcoal p-4 rounded-lg shadow flex justify-between items-center border border-action-blue-light cursor-pointer hover:bg-neutral-gray-800 transition duration-200"
+                      onClick={() => addProductToSale(product)}
+                    >
+                      <div>
+                        <p className="text-xl font-semibold text-neutral-light">{product.name}</p>
+                        <p className="text-sm text-neutral-gray-300">{product.category} - Stock: {product.stock}</p>
+                      </div>
+                      <p className="text-2xl font-bold text-copper-rose-accent">${product.price.toFixed(2)}</p>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
           </div>
         )}
@@ -271,6 +288,7 @@ const PosPage = () => {
               name="paymentMethod"
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
+              // Corrección aquí: text-neutral-light para que el texto del select sea visible
               className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
             >
               <option value="cash">Efectivo</option>
@@ -289,6 +307,7 @@ const PosPage = () => {
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="Ej: Juan Pérez"
+              // Aseguramos que el texto sea visible con neutral-light
               className="shadow appearance-none border border-neutral-gray-200 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
             />
           </div>
