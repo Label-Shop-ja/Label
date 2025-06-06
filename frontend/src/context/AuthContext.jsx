@@ -1,6 +1,6 @@
 // C:\Proyectos\Label\frontend\src\context\AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axiosInstance from '../api/axiosInstance';
+import axiosInstance from '../api/axiosInstance'; // axiosInstance ya tiene la baseURL configurada
 
 // 1. Crear el Contexto de Autenticación
 export const AuthContext = createContext(null);
@@ -14,9 +14,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Configuración base de axiosInstance
-const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api';
-
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
@@ -28,9 +25,9 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
     try {
-      // Configurar el token para esta petición de perfil
+      // Configurar el token para esta petición de perfil en la instancia de Axios
       axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      const response = await axiosInstance.get(`${API_URL}/users/profile`);
+      const response = await axiosInstance.get('/users/profile'); // <-- Ruta relativa
       return response.data; // Devuelve los datos del perfil
     } catch (error) {
       console.error("Error al obtener perfil del usuario:", error.response?.data?.message || error.message);
@@ -45,17 +42,15 @@ export const AuthProvider = ({ children }) => {
     const loadAuthStatus = async () => {
       try {
         const storedToken = localStorage.getItem('token');
-        // No cargamos el 'user' directamente de localStorage aquí,
-        // sino que lo obtenemos del backend para asegurar que esté fresco y el token sea válido.
         if (storedToken) {
           const fetchedUser = await fetchUserProfile(storedToken);
           if (fetchedUser) {
             setUser(fetchedUser);
             setIsAuthenticated(true);
-            // Almacenar el usuario recién obtenido en localStorage (opcional, pero consistente)
+            // No es estrictamente necesario guardar el usuario en localStorage aquí,
+            // pero lo mantengo por consistencia si decides usarlo en algún otro lugar.
+            // La "verdadera" fuente de datos del usuario es el backend a través de fetchUserProfile.
             localStorage.setItem('user', JSON.stringify(fetchedUser));
-          } else {
-            // Si fetchUserProfile falló (token inválido/expirado), ya habrá llamado a logout()
           }
         }
       } catch (error) {
@@ -74,28 +69,26 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const response = await axiosInstance.post(`${API_URL}/auth/login`, {
+      const response = await axiosInstance.post('/auth/login', { // <-- Ruta relativa
         email,
         password,
       });
 
-      const { token } = response.data; // Solo necesitamos el token inicialmente
+      const { token } = response.data;
       localStorage.setItem('token', token);
 
-      // Obtener el perfil del usuario con el nuevo token
       const fetchedUser = await fetchUserProfile(token);
       if (fetchedUser) {
         setUser(fetchedUser);
         setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(fetchedUser)); // Guardar el user en localStorage
+        localStorage.setItem('user', JSON.stringify(fetchedUser));
       } else {
-        // Esto no debería ocurrir si el login fue exitoso y el token es válido
-        logout(); // Limpiar por seguridad
+        logout();
         throw new Error('No se pudo obtener el perfil del usuario después del login.');
       }
 
       setLoading(false);
-      return fetchedUser; // Devolver los datos del usuario completo
+      return fetchedUser;
     } catch (error) {
       setLoading(false);
       const errorMessage = error.response && error.response.data && error.response.data.message
@@ -108,20 +101,19 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     setLoading(true);
     try {
-      const response = await axiosInstance.post(`${API_URL}/auth/register`, userData);
+      const response = await axiosInstance.post('/auth/register', userData); // <-- Ruta relativa
 
-      const { token } = response.data; // Solo necesitamos el token inicialmente
+      const { token } = response.data;
       localStorage.setItem('token', token);
 
-      // Obtener el perfil del usuario con el nuevo token
       const fetchedUser = await fetchUserProfile(token);
       if (fetchedUser) {
         setUser(fetchedUser);
         setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(fetchedUser)); // Guardar el user en localStorage
+        localStorage.setItem('user', JSON.stringify(fetchedUser));
       } else {
         logout();
-        throw new Error('No se pudo obtener el perfil del usuario después del registro.');
+        throw new new Error('No se pudo obtener el perfil del usuario después del registro.');
       }
 
       setLoading(false);
@@ -140,7 +132,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    delete axiosInstance.defaults.headers.common['Authorization']; // Eliminar el header de autorización
+    delete axiosInstance.defaults.headers.common['Authorization'];
   };
 
   const authContextValue = {

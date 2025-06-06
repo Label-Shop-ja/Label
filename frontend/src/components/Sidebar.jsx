@@ -17,40 +17,47 @@ function Sidebar() {
       </div>
       <nav className="flex-1">
         <ul>
-          <li className="mb-2"> {/* Reducimos el mb para mejor espaciado con padding en NavLink */}
-            <NavLink to="/" className={getNavLinkClass} end> {/* 'end' para que solo active si la ruta es EXACTAMENTE '/' */}
+          <li className="mb-2">
+            {/* Ruta relativa: "." significa la ruta actual del padre (/dashboard) */}
+            <NavLink to="." className={getNavLinkClass} end>
               <span className="mr-3 text-2xl">📊</span> Dashboard
             </NavLink>
           </li>
           <li className="mb-2">
-            <NavLink to="/inventario" className={getNavLinkClass}>
+            {/* Ruta relativa: "inventario" se resolverá como /dashboard/inventario */}
+            <NavLink to="inventario" className={getNavLinkClass}>
               <span className="mr-3 text-2xl">🏷️</span> Inventario y Catálogo
             </NavLink>
           </li>
           <li className="mb-2">
-            <NavLink to="/finanzas" className={getNavLinkClass}>
+            {/* Ruta relativa: "finanzas" se resolverá como /dashboard/finanzas */}
+            <NavLink to="finanzas" className={getNavLinkClass}>
               <span className="mr-3 text-2xl">💰</span> Gestión Financiera
             </NavLink>
           </li>
           <li className="mb-2">
-            <NavLink to="/pos" className={getNavLinkClass}>
+            {/* Ruta relativa: "pos" se resolverá como /dashboard/pos */}
+            <NavLink to="pos" className={getNavLinkClass}>
               <span className="mr-3 text-2xl">🛒</span> Punto de Venta (POS)
             </NavLink>
           </li>
           <li className="mb-2">
-            <NavLink to="/clientes" className={getNavLinkClass}>
+            {/* Ruta relativa: "clientes" se resolverá como /dashboard/clientes */}
+            <NavLink to="clientes" className={getNavLinkClass}>
               <span className="mr-3 text-2xl">👥</span> Clientes y Proveedores
             </NavLink>
           </li>
           <li className="mb-2">
-            <NavLink to="/estadisticas" className={getNavLinkClass}>
+            {/* Ruta relativa: "estadisticas" se resolverá como /dashboard/estadisticas */}
+            <NavLink to="estadisticas" className={getNavLinkClass}>
               <span className="mr-3 text-2xl">📈</span> Estadísticas y Reportes
             </NavLink>
           </li>
           {/* Espaciador para empujar Ajustes al final si es necesario */}
           <li className="flex-grow"></li>
           <li>
-            <NavLink to="/ajustes" className={getNavLinkClass}>
+            {/* Ruta relativa: "ajustes" se resolverá como /dashboard/ajustes */}
+            <NavLink to="ajustes" className={getNavLinkClass}>
               <span className="mr-3 text-2xl">⚙️</span> Ajustes
             </NavLink>
           </li>
