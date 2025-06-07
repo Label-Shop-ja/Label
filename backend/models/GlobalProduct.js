@@ -1,6 +1,8 @@
 // C:\Proyectos\Label\backend\models\GlobalProduct.js
 const mongoose = require('mongoose');
 
+console.log('Cargando modelo GlobalProduct...');
+
 const globalProductSchema = mongoose.Schema(
   {
     name: {
