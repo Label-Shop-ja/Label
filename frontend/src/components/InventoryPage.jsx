@@ -1,8 +1,8 @@
 // C:\Proyectos\Label\frontend\src\components\InventoryPage.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react'; // Importar useRef
 import axiosInstance from '../api/axiosInstance';
 // Importamos iconos de lucide-react para un aspecto más profesional
-import { PlusSquare, Edit, Trash2, XCircle, Save, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { PlusSquare, Edit, Trash2, XCircle, Save, Search, ChevronLeft, ChevronRight, Loader2, Info } from 'lucide-react'; // Agregué Info para tooltip
 
 const InventoryPage = () => {
     const [products, setProducts] = useState([]);
@@ -22,6 +22,13 @@ const InventoryPage = () => {
     const [limit, setLimit] = useState(10);
     const [availableCategories, setAvailableCategories] = useState([]);
 
+    // --- Nuevos estados para la funcionalidad de sugerencias de productos globales ---
+    const [globalProductSuggestions, setGlobalProductSuggestions] = useState([]);
+    const [showGlobalSuggestions, setShowGlobalSuggestions] = useState(false);
+    const [noGlobalSuggestionsFound, setNoGlobalSuggestionsFound] = useState(false);
+    const debounceTimeoutRef = useRef(null); // Ref para el timeout de debounce
+    // --- Fin nuevos estados ---
+
     // Actualización del estado inicial para incluir los nuevos campos
     const [newProduct, setNewProduct] = useState({
         name: '',
@@ -29,11 +36,11 @@ const InventoryPage = () => {
         category: '',
         price: '',
         stock: '',
-        costPrice: '', // Nuevo campo: costo unitario
-        sku: '',       // Nuevo campo: SKU
-        unitOfMeasure: 'unidad', // Nuevo campo: unidad de medida, con valor por defecto
-        brand: '',     // Nuevo campo: marca
-        supplier: '',  // Nuevo campo: proveedor
+        costPrice: '',
+        sku: '',
+        unitOfMeasure: 'unidad',
+        brand: '',
+        supplier: '',
     });
 
     // Definir las opciones para la unidad de medida (debe coincidir con el enum del backend)
@@ -90,14 +97,11 @@ const InventoryPage = () => {
 
     const fetchCategories = useCallback(async () => {
         try {
-            // Trae un número suficiente de productos para asegurar que todas las categorías sean recolectadas
-            // O idealmente, el backend debería proveer un endpoint /categories
             const response = await axiosInstance.get('/products?limit=1000'); // Aumentar el límite para cubrir más productos
             const categories = [...new Set(response.data.products.map(p => p.category))];
             setAvailableCategories(['Todas las Categorías', ...categories.sort()]);
         } catch (err) {
             console.error("Error al cargar categorías:", err.response?.data?.message || err.message);
-            // No mostramos un error visible en la UI por la carga de categorías si no es crítico
         }
     }, []);
 
@@ -105,28 +109,82 @@ const InventoryPage = () => {
         fetchCategories();
     }, [fetchCategories]);
 
+    // --- Lógica para la búsqueda de productos globales (sugerencias) ---
+    const fetchGlobalProductSuggestions = useCallback(async (nameTerm) => {
+        if (nameTerm.trim().length < 2) { // Solo buscar si hay al menos 2 caracteres
+            setGlobalProductSuggestions([]);
+            setShowGlobalSuggestions(false);
+            setNoGlobalSuggestionsFound(false);
+            return;
+        }
+
+        try {
+            const response = await axiosInstance.get(`/globalproducts?searchTerm=${nameTerm}`);
+            if (response.data.length > 0) {
+                setGlobalProductSuggestions(response.data);
+                setShowGlobalSuggestions(true);
+                setNoGlobalSuggestionsFound(false);
+            } else {
+                setGlobalProductSuggestions([]);
+                setShowGlobalSuggestions(false);
+                setNoGlobalSuggestionsFound(true); // Indicar que no se encontraron sugerencias
+                setTimeout(() => setNoGlobalSuggestionsFound(false), 3000); // Ocultar mensaje después de 3 segundos
+            }
+        } catch (err) {
+            console.error("Error al buscar sugerencias de productos globales:", err);
+            setGlobalProductSuggestions([]);
+            setShowGlobalSuggestions(false);
+            setNoGlobalSuggestionsFound(false);
+        }
+    }, []);
+
     // Manejador para el cambio de inputs del formulario de añadir/editar
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        // Para el formulario de añadir
+
         if (showAddForm) {
             setNewProduct(prev => ({ ...prev, [name]: value }));
-        }
-        // Para el formulario de edición
-        else if (showEditForm) {
+
+            // Lógica de debounce para la búsqueda de sugerencias solo para el campo 'name'
+            if (name === 'name') {
+                if (debounceTimeoutRef.current) {
+                    clearTimeout(debounceTimeoutRef.current);
+                }
+                debounceTimeoutRef.current = setTimeout(() => {
+                    fetchGlobalProductSuggestions(value);
+                }, 300); // Esperar 300ms después de que el usuario deja de escribir
+            }
+        } else if (showEditForm) {
             setEditingProduct(prev => ({ ...prev, [name]: value }));
         }
-        setError(''); // Limpia el error al empezar a escribir
-        setSuccessMessage(''); // Limpia mensajes de éxito al empezar a escribir
+        setError('');
+        setSuccessMessage('');
+    };
+
+    // --- Manejador para seleccionar una sugerencia de producto global ---
+    const handleSelectGlobalProduct = (suggestedProduct) => {
+        setNewProduct({
+            ...newProduct, // Mantenemos los campos de precio, stock, costo, etc., que son propios del usuario
+            name: suggestedProduct.name,
+            description: suggestedProduct.description || '',
+            category: suggestedProduct.category || '',
+            sku: suggestedProduct.sku || '',
+            unitOfMeasure: suggestedProduct.unitOfMeasure || 'unidad',
+            brand: suggestedProduct.brand || '',
+            supplier: suggestedProduct.supplier || '',
+        });
+        setGlobalProductSuggestions([]); // Limpiar sugerencias
+        setShowGlobalSuggestions(false); // Ocultar el cuadro de sugerencias
+        setNoGlobalSuggestionsFound(false); // Limpiar mensaje de no coincidencia
     };
 
     // Manejador para el envío del formulario de añadir producto
     const handleAddProduct = async (e) => {
         e.preventDefault();
-        setError(''); // Limpiar errores antes de intentar la operación
-        setSuccessMessage(''); // Limpiar mensajes de éxito
+        setError('');
+        setSuccessMessage('');
 
-        // Validación básica en frontend - ahora incluye los nuevos campos requeridos
+        // Validación de campos requeridos (ahora incluye los nuevos)
         if (!newProduct.name || !newProduct.category || !newProduct.price || newProduct.stock === '' ||
             newProduct.costPrice === '' || !newProduct.sku || !newProduct.unitOfMeasure) {
             displayMessage('Por favor, completa todos los campos obligatorios: Nombre, Categoría, Precio de Venta, Costo, SKU, Unidad de Medida y Stock.', 'error');
@@ -148,14 +206,14 @@ const InventoryPage = () => {
         try {
             setLoading(true);
             const response = await axiosInstance.post('/products', newProduct);
-            displayMessage('Producto añadido exitosamente.', 'success'); // Mensaje de éxito
-            setProducts(prev => [response.data, ...prev]); // Añadir el nuevo producto al inicio
+            displayMessage('Producto añadido exitosamente.', 'success');
+            setProducts(prev => [response.data, ...prev]);
             // Resetear formulario, incluyendo los nuevos campos con sus valores por defecto si aplica
             setNewProduct({
                 name: '', description: '', category: '', price: '', stock: '',
                 costPrice: '', sku: '', unitOfMeasure: 'unidad', brand: '', supplier: ''
             });
-            setShowAddForm(false); // Ocultar formulario después de añadir
+            setShowAddForm(false);
             fetchCategories(); // Refrescar categorías por si se añadió una nueva
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Error al añadir producto. Por favor, inténtalo de nuevo.';
@@ -187,11 +245,11 @@ const InventoryPage = () => {
     const handleUpdateProduct = async (e) => {
         e.preventDefault();
         if (!editingProduct || !editingProduct._id) return;
-        setError(''); // Limpiar errores antes de intentar la operación
-        setSuccessMessage(''); // Limpiar mensajes de éxito
+        setError('');
+        setSuccessMessage('');
 
         // Validación básica en frontend para el producto editado - ahora incluye nuevos campos
-        if (!editingProduct.name || !editingProduct.category || !editingProduct.price || editingProduct.stock === '' ||
+        if (!editingProduct.name || !editingProduct.category || !editingProduct.product || editingProduct.stock === '' ||
             editingProduct.costPrice === '' || !editingProduct.sku || !editingProduct.unitOfMeasure) {
             displayMessage('Por favor, completa todos los campos obligatorios: Nombre, Categoría, Precio de Venta, Costo, SKU, Unidad de Medida y Stock.', 'error');
             return;
@@ -212,10 +270,10 @@ const InventoryPage = () => {
         try {
             setLoading(true);
             const response = await axiosInstance.put(`/products/${editingProduct._id}`, editingProduct);
-            displayMessage('Producto actualizado exitosamente.', 'success'); // Mensaje de éxito
+            displayMessage('Producto actualizado exitosamente.', 'success');
             setProducts(prev => prev.map(p => (p._id === editingProduct._id ? response.data : p)));
-            setEditingProduct(null); // Limpiar producto en edición
-            setShowEditForm(false); // Ocultar formulario
+            setEditingProduct(null);
+            setShowEditForm(false);
             fetchCategories(); // Refrescar categorías por si se cambió una categoría existente
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Error al actualizar producto. Por favor, inténtalo de nuevo.';
@@ -229,8 +287,8 @@ const InventoryPage = () => {
     const confirmDeleteProduct = (productId) => {
         setProductToDelete(productId);
         setShowConfirmModal(true);
-        setError(''); // Limpia cualquier error previo
-        setSuccessMessage(''); // Limpia cualquier mensaje de éxito previo
+        setError('');
+        setSuccessMessage('');
     };
 
     // Manejador para la eliminación real del producto
@@ -242,7 +300,7 @@ const InventoryPage = () => {
             setError('');
             setSuccessMessage('');
             await axiosInstance.delete(`/products/${productToDelete}`);
-            displayMessage('Producto eliminado exitosamente.', 'success'); // Mensaje de éxito
+            displayMessage('Producto eliminado exitosamente.', 'success');
             // Actualiza la lista de productos filtrando el eliminado
             setProducts(prev => prev.filter(p => p._id !== productToDelete));
             // Si eliminamos el último producto de una página, intentar ir a la página anterior
@@ -251,8 +309,8 @@ const InventoryPage = () => {
             } else {
                 fetchProducts(); // Refrescar productos para recalcular paginación
             }
-            setShowConfirmModal(false); // Cierra el modal de confirmación
-            setProductToDelete(null); // Limpiar el ID del producto a eliminar
+            setShowConfirmModal(false);
+            setProductToDelete(null);
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Error al eliminar producto. Por favor, inténtalo de nuevo.';
             displayMessage(errorMessage, 'error');
@@ -317,7 +375,19 @@ const InventoryPage = () => {
             {/* Botones de Añadir/Ocultar y Cancelar Edición */}
             <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
                 <button
-                    onClick={() => { setShowAddForm(!showAddForm); setShowEditForm(false); setEditingProduct(null); setError(''); setSuccessMessage(''); }}
+                    onClick={() => {
+                        setShowAddForm(!showAddForm);
+                        setShowEditForm(false);
+                        setEditingProduct(null);
+                        setError('');
+                        setSuccessMessage('');
+                        setGlobalProductSuggestions([]); // Limpiar sugerencias al abrir/cerrar
+                        setNoGlobalSuggestionsFound(false); // Limpiar mensaje
+                        setNewProduct({ // Resetear formulario al abrir/cerrar
+                            name: '', description: '', category: '', price: '', stock: '',
+                            costPrice: '', sku: '', unitOfMeasure: 'unidad', brand: '', supplier: ''
+                        });
+                    }}
                     className="bg-action-blue hover:bg-blue-700 text-neutral-light font-bold py-3 px-6 rounded-lg text-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center"
                 >
                     <PlusSquare size={24} className="mr-2" /> {showAddForm ? 'Ocultar Formulario' : 'Añadir Nuevo Producto'}
@@ -336,9 +406,17 @@ const InventoryPage = () => {
                 <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 animate-fade-in-down">
                     <h3 className="text-2xl font-semibold text-neutral-light mb-4 text-copper-rose-accent">Añadir Nuevo Producto</h3>
                     <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Nombre del Producto */}
-                        <div>
-                            <label htmlFor="name" className="block text-neutral-light text-sm font-bold mb-2">Nombre del Producto:</label>
+                        {/* Nombre del Producto (Ahora con sugerencias) */}
+                        <div className="relative"> {/* Contenedor para posicionar las sugerencias */}
+                            <label htmlFor="name" className="block text-neutral-light text-sm font-bold mb-2">
+                                Nombre del Producto:
+                                <span className="relative inline-block ml-2 group">
+                                    <Info size={16} className="text-action-blue cursor-pointer" />
+                                    <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 w-48 p-2 bg-neutral-gray-800 text-xs text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-normal text-center shadow-lg">
+                                        Empieza a escribir para buscar sugerencias del catálogo global.
+                                    </span>
+                                </span>
+                            </label>
                             <input
                                 type="text"
                                 id="name"
@@ -348,7 +426,33 @@ const InventoryPage = () => {
                                 className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500"
                                 placeholder="Ej. Camiseta Deportiva"
                                 required
+                                onBlur={() => setTimeout(() => setShowGlobalSuggestions(false), 100)} // Ocultar sugerencias al perder foco (con retardo)
+                                onFocus={() => {
+                                    if (newProduct.name.trim().length >= 2 && globalProductSuggestions.length > 0) {
+                                        setShowGlobalSuggestions(true);
+                                    }
+                                }}
                             />
+                            {/* Lista de sugerencias */}
+                            {showGlobalSuggestions && globalProductSuggestions.length > 0 && (
+                                <ul className="absolute z-20 w-full bg-neutral-gray-800 border border-neutral-gray-700 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto">
+                                    {globalProductSuggestions.map((suggestion) => (
+                                        <li
+                                            key={suggestion.sku}
+                                            className="px-4 py-2 cursor-pointer hover:bg-action-blue-light hover:text-white text-neutral-light border-b border-neutral-gray-700 last:border-b-0"
+                                            onClick={() => handleSelectGlobalProduct(suggestion)}
+                                        >
+                                            <p className="font-semibold">{suggestion.name}</p>
+                                            <p className="text-xs text-neutral-gray-400">SKU: {suggestion.sku} - Cat: {suggestion.category}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            {noGlobalSuggestionsFound && !showGlobalSuggestions && (
+                                <p className="text-red-400 text-sm mt-2 animate-fade-in-down">
+                                    No hay coincidencias. ¡Estás registrando un nuevo producto!
+                                </p>
+                            )}
                         </div>
                         {/* SKU */}
                         <div>
@@ -638,7 +742,7 @@ const InventoryPage = () => {
                 </div>
             )}
 
-            {/* --- Sección de Búsqueda y Filtro --- */}
+            {/* --- Sección de Búsqueda y Filtro Principal (para listar productos) --- */}
             <form onSubmit={(e) => { e.preventDefault(); }}
                 className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 flex flex-col md:flex-row items-center gap-4">
                 <div className="relative flex-grow w-full md:w-auto">
@@ -672,7 +776,7 @@ const InventoryPage = () => {
                     </select>
                 </div>
             </form>
-            {/* --- Fin Sección de Búsqueda y Filtro --- */}
+            {/* --- Fin Sección de Búsqueda y Filtro Principal --- */}
 
             <h3 className="text-3xl font-semibold text-neutral-light mb-6 border-b border-neutral-gray-700 pb-3">Lista de Productos</h3>
 
@@ -689,14 +793,14 @@ const InventoryPage = () => {
                         <div key={product._id} className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-action-blue-light flex flex-col justify-between transform transition duration-300 hover:scale-[1.02] hover:shadow-2xl">
                             <div>
                                 <h4 className="text-xl font-bold text-copper-rose-accent mb-2 truncate">{product.name}</h4>
-                                <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold text-action-blue">SKU:</span> {product.sku || 'N/A'}</p> {/* Mostrar SKU */}
+                                <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold text-action-blue">SKU:</span> {product.sku || 'N/A'}</p>
                                 {product.category && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold text-action-blue">Categoría:</span> <span className="bg-neutral-gray-700 text-neutral-light px-2 py-0.5 rounded-full text-xs font-medium">{product.category}</span></p>}
-                                {product.brand && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold text-action-blue">Marca:</span> {product.brand}</p>} {/* Mostrar Marca */}
-                                {product.supplier && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold text-action-blue">Proveedor:</span> {product.supplier}</p>} {/* Mostrar Proveedor */}
+                                {product.brand && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold text-action-blue">Marca:</span> {product.brand}</p>}
+                                {product.supplier && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold text-action-blue">Proveedor:</span> {product.supplier}</p>}
                                 {product.description && <p className="text-neutral-gray-300 mb-2 text-sm line-clamp-2">{product.description}</p>}
-                                <p className="text-neutral-light mb-1"><span className="font-semibold">Unidad:</span> {product.unitOfMeasure}</p> {/* Mostrar Unidad de Medida */}
+                                <p className="text-neutral-light mb-1"><span className="font-semibold">Unidad:</span> {product.unitOfMeasure}</p>
                                 <p className="text-neutral-light mb-1"><span className="font-semibold">Precio de Venta:</span> <span className="text-success-green font-bold text-lg">${parseFloat(product.price).toFixed(2)}</span></p>
-                                <p className="text-neutral-light mb-1"><span className="font-semibold">Costo Unitario:</span> <span className="text-yellow-400 font-bold">${parseFloat(product.costPrice).toFixed(2)}</span></p> {/* Mostrar Costo Unitario */}
+                                <p className="text-neutral-light mb-1"><span className="font-semibold">Costo Unitario:</span> <span className="text-yellow-400 font-bold">${parseFloat(product.costPrice).toFixed(2)}</span></p>
                                 <p className="text-neutral-light mb-3"><span className="font-semibold">Stock:</span> <span className={`${product.stock <= 5 ? 'text-red-400' : 'text-yellow-400'} font-bold`}>{product.stock} unidades</span></p>
                             </div>
                             <div className="flex justify-end gap-2 mt-4">

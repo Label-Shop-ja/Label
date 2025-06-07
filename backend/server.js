@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const { errorHandler } = require('./middleware/errorMiddleware'); // <--- Asegúrate de que esta línea exista
 
 // Importar rutas existentes
 const userRoutes = require('./routes/userRoutes');
@@ -13,7 +14,7 @@ const clientRoutes = require('./routes/clientRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 
 // Importar las nuevas rutas de productos globales
-const globalProductRoutes = require('./routes/globalProductRoutes'); // <--- NUEVA LÍNEA
+const globalProductRoutes = require('./routes/globalProductRoutes');
 
 require('dotenv').config(); // Cargar variables de entorno
 
@@ -41,7 +42,10 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/sales', saleRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/stats', statsRoutes);
-app.use('/api/globalproducts', globalProductRoutes); // <--- NUEVA LÍNEA: Usar las rutas de productos globales
+app.use('/api/globalproducts', globalProductRoutes); // <--- Rutas de productos globales
+
+// Middleware de manejo de errores personalizado - DEBE IR AL FINAL DE LAS RUTAS
+app.use(errorHandler); // <--- Asegúrate de que esta línea exista y esté aquí
 
 const PORT = process.env.PORT || 5000;
 
