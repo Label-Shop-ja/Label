@@ -2,15 +2,20 @@
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
+
+// Importar rutas existentes
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
-const transactionRoutes = require('./routes/transactionRoutes'); // ¡Ruta relativa! // Ruta completa por seguridad
+const transactionRoutes = require('./routes/transactionRoutes');
 const saleRoutes = require('./routes/saleRoutes');
 const clientRoutes = require('./routes/clientRoutes');
-const statsRoutes = require('./routes/statsRoutes'); // Asegúrate de que esta línea esté aquí
+const statsRoutes = require('./routes/statsRoutes');
 
-require('dotenv').config();
+// Importar las nuevas rutas de productos globales
+const globalProductRoutes = require('./routes/globalProductRoutes'); // <--- NUEVA LÍNEA
+
+require('dotenv').config(); // Cargar variables de entorno
 
 console.log('Valor de MONGO_URI en server.js:', process.env.MONGO_URI);
 
@@ -20,22 +25,23 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(express.json());
+app.use(express.json()); // Para requests con body en formato JSON
 
 // Configuración de CORS
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: 'http://localhost:5173', // Tu frontend local
   credentials: true
 }));
 
-// Rutas
+// Rutas de la API
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/sales', saleRoutes);
 app.use('/api/clients', clientRoutes);
-app.use('/api/stats', statsRoutes); // Asegúrate de que esta línea esté aquí
+app.use('/api/stats', statsRoutes);
+app.use('/api/globalproducts', globalProductRoutes); // <--- NUEVA LÍNEA: Usar las rutas de productos globales
 
 const PORT = process.env.PORT || 5000;
 
