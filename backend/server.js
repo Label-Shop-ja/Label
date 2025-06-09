@@ -2,7 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const { errorHandler } = require('./middleware/errorMiddleware'); // <--- Asegúrate de que esta línea exista
+const { errorHandler } = require('./middleware/errorMiddleware');
 
 // Importar rutas existentes
 const userRoutes = require('./routes/userRoutes');
@@ -12,9 +12,7 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const saleRoutes = require('./routes/saleRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const statsRoutes = require('./routes/statsRoutes');
-
-// Importar las nuevas rutas de productos globales
-const globalProductRoutes = require('./routes/globalProductRoutes');
+const globalProductRoutes = require('./routes/globalProductRoutes'); // Rutas de productos globales
 
 require('dotenv').config(); // Cargar variables de entorno
 
@@ -27,11 +25,12 @@ connectDB();
 
 // Middleware
 app.use(express.json()); // Para requests con body en formato JSON
+app.use(express.urlencoded({ extended: false }));
 
 // Configuración de CORS
 app.use(cors({
-  origin: 'http://localhost:5173', // Tu frontend local
-  credentials: true
+    origin: 'http://localhost:5173', // Tu frontend local
+    credentials: true
 }));
 
 // Rutas de la API
@@ -42,13 +41,14 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/sales', saleRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/stats', statsRoutes);
-app.use('/api/globalproducts', globalProductRoutes); // <--- Rutas de productos globales
+app.use('/api/globalproducts', globalProductRoutes);
 
 // Middleware de manejo de errores personalizado - DEBE IR AL FINAL DE LAS RUTAS
-app.use(errorHandler); // <--- Asegúrate de que esta línea exista y esté aquí
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
+    // No se programa la limpieza aquí, será manejada por un Cron Job externo (Render)
 });

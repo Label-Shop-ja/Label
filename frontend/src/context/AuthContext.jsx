@@ -1,6 +1,7 @@
 // C:\Proyectos\Label\frontend\src\context\AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axiosInstance, { setLogoutFunction } from '../api/axiosInstance';
+import { useNavigate } from 'react-router-dom'; // Asegúrate de que useNavigate esté importado
 
 export const AuthContext = createContext(null);
 
@@ -15,140 +16,105 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Se inicia como true
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // Usar useCallback para la función logout para que su referencia sea estable
-  // *** CAMBIO CLAVE: ELIMINADA la redirección directa (window.location.href) ***
+  // Función de cierre de sesión
+  // Ahora, esta función SÓLO limpia el estado local y localStorage.
+  // La redirección será manejada por los componentes de ruta protegida (ej. PrivateRoute o App.jsx)
   const logout = useCallback(() => {
     setIsAuthenticated(false);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    delete axiosInstance.defaults.headers.common['Authorization'];
-    // ¡Aquí ya NO se llama a window.location.href = '/'!
-    // React Router DOM se encargará de la redirección
-    // cuando isAuthenticated cambie a false en App.jsx o ProtectedRoute.jsx.
+    localStorage.removeItem('user'); // Siempre elimina el objeto 'user' completo
+    // Ya no se necesita delete axiosInstance.defaults.headers.common['Authorization']
+    // porque el interceptor de solicitud en axiosInstance.js lo gestiona dinámicamente.
+    // console.log('Sesión cerrada y datos de usuario limpiados.'); // Para depuración
   }, []);
 
   // Función auxiliar para obtener el perfil del usuario
-  const fetchUserProfile = async (token) => {
+  const fetchUserProfile = useCallback(async () => {
+    setLoading(true);
+    const userFromStorage = JSON.parse(localStorage.getItem('user'));
+    const token = userFromStorage ? userFromStorage.token : null;
+
     if (!token) {
-      return null;
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+      localStorage.removeItem('user'); // Asegúrate de limpiar si el token no existe
+      return;
     }
+
     try {
-      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // axiosInstance ya tiene el interceptor que adjunta el token por nosotros
       const response = await axiosInstance.get('/users/profile');
-      return response.data;
+      const { token: _, ...userDetails } = response.data; // Extrae userDetails sin el token
+      setUser(userDetails);
+      setIsAuthenticated(true);
     } catch (error) {
-      console.error("Error al obtener perfil del usuario (fetchUserProfile):", error.response?.data?.message || error.message);
-      // Si hay un error al obtener el perfil, asumimos token inválido/expirado o usuario no encontrado.
-      // El interceptor de Axios ya maneja el 'TokenExpiredError'. Aquí nos encargamos de otros errores.
-      logout(); // Llama a logout para limpiar sesión, PERO YA NO REDIRIGE DIRECTAMENTE.
-      return null;
+      console.error('Error al obtener perfil del usuario (fetchUserProfile):', error.message);
+      // Si hay un error (ej. 401 no detectado por interceptor de respuesta, o cualquier otro error),
+      // forzamos el logout para limpiar la sesión y el estado de autenticación.
+      logout();
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [logout]); // Dependencia en 'logout'
 
-  // Efecto para cargar el usuario desde localStorage y verificar el token al inicio
+  // Efecto para verificar la autenticación inicial al cargar la aplicación
   useEffect(() => {
-    const loadAuthStatus = async () => {
-      try {
-        const storedToken = localStorage.getItem('token');
-        if (storedToken) {
-          const fetchedUser = await fetchUserProfile(storedToken);
-          if (fetchedUser) {
-            setUser(fetchedUser);
-            setIsAuthenticated(true);
-            localStorage.setItem('user', JSON.stringify(fetchedUser));
-          } else {
-            // Si fetchUserProfile retorna null (token inválido/expirado, user no encontrado)
-            // y no fue manejado por el interceptor, logout se encarga de limpiar.
-            logout();
-          }
-        } else {
-          // Si no hay token en localStorage, simplemente no está autenticado, limpia por si acaso.
-          logout(); // Llama a logout para limpiar, PERO YA NO REDIRIGE DIRECTAMENTE.
-        }
-      } catch (error) {
-        console.error("Error en la carga inicial de autenticación (loadAuthStatus):", error);
-        logout(); // Asegurarse de limpiar si hay cualquier error inesperado
-      } finally {
-        setLoading(false); // La carga inicial SIEMPRE termina aquí
-      }
-    };
+    fetchUserProfile();
+  }, [fetchUserProfile]); // Dependencia en 'fetchUserProfile'
 
-    loadAuthStatus();
-  }, [logout]); // Dependencia en 'logout' para asegurar que la función actualizada se use si cambia.
-
-  // Registrar la función de logout con el interceptor de Axios
+  // Registrar la función de logout con el interceptor de Axios para que se llame en caso de 401/token expirado
   useEffect(() => {
     setLogoutFunction(logout);
-  }, [logout]); // Dependencia en 'logout' para asegurar que siempre esté la versión más reciente
+  }, [logout]);
 
-  // Funciones para interactuar con la API de autenticación (login y register)
-  // Estas funciones lanzan errores en caso de fallo, como se corrigió en el paso anterior.
-  const login = async (email, password) => {
-    setLoading(true); // Activa la carga al inicio de la operación
+  // Función de inicio de sesión
+  const login = useCallback(async (email, password) => {
+    setLoading(true);
     try {
-      const response = await axiosInstance.post('/auth/login', {
-        email,
-        password,
-      });
+      const response = await axiosInstance.post('/auth/login', { email, password });
+      // response.data debería contener { user: {..., token: '...' } }
+      // Asegúrate de que tu backend devuelve el user object con el token.
+      localStorage.setItem('user', JSON.stringify(response.data)); // Almacena el objeto 'user' completo
 
-      const { token } = response.data;
-      localStorage.setItem('token', token);
-
-      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      const fetchedUser = await fetchUserProfile(token);
-      if (fetchedUser) {
-        setUser(fetchedUser);
-        setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(fetchedUser));
-        return fetchedUser; // Devuelve el usuario si el login es exitoso
-      } else {
-        // Esto es un caso raro, pero si el perfil no se puede obtener después del login exitoso
-        logout();
-        throw new Error('No se pudo obtener el perfil del usuario después del login.');
-      }
+      // Extrae userDetails para el estado, sin el token
+      const { token: _, ...userDetails } = response.data;
+      setUser(userDetails);
+      setIsAuthenticated(true);
+      navigate('/dashboard'); // Navega al dashboard en login exitoso
+      return { success: true, user: userDetails };
     } catch (error) {
-      const errorMessage = error.response && error.response.data && error.response.data.message
-        ? error.response.data.message
-        : 'Error de red o del servidor';
-      throw new Error(errorMessage); // Lanza el error
+      const errorMessage = error.response?.data?.message || 'Error de inicio de sesión. Por favor, verifica tus credenciales.';
+      console.error('Error en login:', errorMessage);
+      return { success: false, message: errorMessage };
     } finally {
-        setLoading(false); // Asegura que loading se desactive, sin importar éxito o fallo
+      setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const register = async (userData) => {
-    setLoading(true); // Activa la carga al inicio de la operación
+  // Función de registro
+  const register = useCallback(async (userData) => {
+    setLoading(true);
     try {
-      const response = await axiosInstance.post('/auth/register', userData);
+      const response = await axiosInstance.post('/users/register', userData);
+      localStorage.setItem('user', JSON.stringify(response.data)); // Almacena el objeto 'user' completo
 
-      const { token } = response.data;
-      localStorage.setItem('token', token);
-
-      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      const fetchedUser = await fetchUserProfile(token);
-      if (fetchedUser) {
-        setUser(fetchedUser);
-        setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(fetchedUser));
-        return fetchedUser; // Devuelve el usuario si el registro es exitoso
-      } else {
-        logout();
-        throw new Error('No se pudo obtener el perfil del usuario después del registro.');
-      }
+      const { token: _, ...userDetails } = response.data;
+      setUser(userDetails);
+      setIsAuthenticated(true);
+      navigate('/dashboard');
+      return { success: true, user: userDetails };
     } catch (error) {
-      const errorMessage = error.response && error.response.data && error.response.data.message
-        ? error.response.data.message
-        : 'Error de red o del servidor';
-      throw new Error(errorMessage); // Lanza el error
+      const errorMessage = error.response?.data?.message || 'Error de registro. Por favor, inténtalo de nuevo.';
+      console.error('Error en register:', errorMessage);
+      return { success: false, message: errorMessage };
     } finally {
-        setLoading(false); // Asegura que loading se desactive, sin importar éxito o fallo
+      setLoading(false);
     }
-  };
+  }, [navigate]);
 
   const authContextValue = {
     isAuthenticated,
