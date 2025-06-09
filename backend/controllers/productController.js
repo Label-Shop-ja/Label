@@ -1,6 +1,7 @@
 // C:\Proyectos\Label\backend\controllers\productController.js
 const Product = require('../models/Product');
 const asyncHandler = require('express-async-handler');
+const GlobalProduct = require('../models/GlobalProduct'); // <-- Importamos GlobalProduct para actualizar lastUsedAt
 const { createGlobalProduct } = require('./globalProductController'); // Importamos la función para uso interno
 
 // @desc    Obtener todos los productos del usuario con búsqueda, filtro y paginación
@@ -34,12 +35,12 @@ const getProducts = asyncHandler(async (req, res) => {
     }
 
     // 4. Implementar filtrado por Marca (dropdown)
-    if (brand && brand !== 'Todas las Marcas') { // Asegúrate de que el frontend envíe 'Todas las Marcas'
+    if (brand && brand !== 'Todas las Marcas') {
         query.brand = brand;
     }
 
     // 5. Implementar filtrado por Proveedor (dropdown)
-    if (supplier && supplier !== 'Todos los Proveedores') { // Asegúrate de que el frontend envíe 'Todos los Proveedores'
+    if (supplier && supplier !== 'Todos los Proveedores') {
         query.supplier = supplier;
     }
 
@@ -83,12 +84,13 @@ const createProduct = asyncHandler(async (req, res) => {
     const { name, description, category, price, stock, costPrice, sku, unitOfMeasure, brand, supplier } = req.body;
 
     // Validaciones iniciales para campos requeridos, incluyendo SKU y Costo
-    if (!name || !category || !price || !stock || costPrice === undefined || !sku || !!unitOfMeasure) {
+    // ¡CORRECCIÓN: !unitOfMeasure en lugar de !!unitOfMeasure!
+    if (!name || !category || !price || !stock || costPrice === undefined || !sku || !unitOfMeasure) {
         res.status(400);
         throw new Error('Por favor, completa todos los campos obligatorios: Nombre, Categoría, Precio de Venta, Costo, SKU, Unidad de Medida y Stock.');
     }
 
-    // *** Validar y limpiar SKU al inicio ***
+    // Validar y limpiar SKU al inicio
     const cleanedSku = String(sku).trim();
     if (cleanedSku === '') {
         res.status(400);
@@ -135,19 +137,34 @@ const createProduct = asyncHandler(async (req, res) => {
         supplier: supplier || '',
     });
 
-    // *** Integración con el Catálogo Global (Registro Exponencial Unificado) ***
+    // Integración con el Catálogo Global (Registro Exponencial Unificado)
+    // Al crear un producto, intentamos actualizar el lastUsedAt del GlobalProduct asociado
     try {
-        await createGlobalProduct({
+        const globalProductData = {
             name,
             description: description || '',
             category,
-            sku: cleanedSku, // Envía el SKU limpio (se hará uppercase en el globalProductController)
+            sku: cleanedSku,
             unitOfMeasure,
             brand: brand || '',
             supplier: supplier || '',
-        });
+        };
+        
+        // Llamamos a createGlobalProduct para asegurar que exista y obtener el producto global
+        const newOrExistingGlobalProduct = await createGlobalProduct(globalProductData);
+
+        // Si el producto global ya existía o se acaba de crear, actualizamos su lastUsedAt
+        if (newOrExistingGlobalProduct) {
+            await GlobalProduct.findByIdAndUpdate(
+                newOrExistingGlobalProduct._id,
+                { lastUsedAt: Date.now() },
+                { new: true } // Opcional: para obtener el documento actualizado
+            );
+            console.log(`GlobalProduct SKU: ${newOrExistingGlobalProduct.sku} lastUsedAt actualizado en creación.`);
+        }
     } catch (globalProductError) {
-        console.error("Error al añadir/actualizar producto en el catálogo global:", globalProductError.message);
+        // En un entorno de producción, esto debería loguearse a un sistema de monitoreo.
+        console.error("Error al añadir/actualizar producto en el catálogo global o actualizar lastUsedAt en creación:", globalProductError.message);
     }
 
     res.status(201).json(product);
@@ -189,7 +206,7 @@ const updateProduct = asyncHandler(async (req, res) => {
         throw new Error('No autorizado para actualizar este producto');
     }
 
-    // *** Validar y limpiar SKU al inicio para la actualización ***
+    // Validar y limpiar SKU al inicio para la actualización
     const cleanedSku = String(sku).trim();
     if (cleanedSku === '') {
         res.status(400);
@@ -247,6 +264,24 @@ const updateProduct = asyncHandler(async (req, res) => {
         { new: true, runValidators: true }
     );
 
+    // Actualización de lastUsedAt para GlobalProduct durante la actualización
+    try {
+        const globalProduct = await GlobalProduct.findOne({ sku: cleanedSku.toUpperCase() });
+
+        if (globalProduct) {
+            await GlobalProduct.findByIdAndUpdate(
+                globalProduct._id,
+                { lastUsedAt: Date.now() },
+                { new: true }
+            );
+            console.log(`GlobalProduct SKU: ${globalProduct.sku} lastUsedAt actualizado durante la edición.`);
+        } else {
+            console.warn(`No se encontró GlobalProduct con SKU: ${cleanedSku.toUpperCase()} durante la actualización. No se actualizó lastUsedAt.`);
+        }
+    } catch (globalProductError) {
+        console.error("Error al actualizar lastUsedAt del GlobalProduct durante la edición:", globalProductError.message);
+    }
+
     res.status(200).json(updatedProduct);
 });
 
@@ -254,35 +289,21 @@ const updateProduct = asyncHandler(async (req, res) => {
 // @route   DELETE /api/products/:id
 // @access  Private
 const deleteProduct = asyncHandler(async (req, res) => {
-    console.log('Backend: DELETE /api/products/:id ruta alcanzada.'); // Log A
-    console.log(`Backend: ID de producto recibido: ${req.params.id}`); // Log B
-
+    // Los logs de depuración han sido eliminados ya que la funcionalidad es estable.
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-        console.warn(`Backend: Producto con ID ${req.params.id} no encontrado.`); // Log C
         res.status(404);
         throw new Error('Producto no encontrado');
     }
-    console.log(`Backend: Producto encontrado: ${product.name} (ID: ${product._id}).`); // Log D
 
-    if (!req.user || product.user.toString() !== req.user.id) { // Asegúrate de que req.user exista
-        console.warn(`Backend: Usuario ${req.user ? req.user.id : 'no autenticado'} no autorizado para eliminar producto ${product._id}.`); // Log E
+    if (!req.user || product.user.toString() !== req.user.id) {
         res.status(401);
         throw new Error('No autorizado para eliminar este producto');
     }
-    console.log(`Backend: Usuario ${req.user.id} autorizado para eliminación.`); // Log F
 
-    try {
-        console.log(`Backend: Intentando eliminar producto ${product.name} (ID: ${product._id}) de la base de datos.`); // Log G
-        await product.deleteOne(); // Mongoose 5.x y superior. Para 4.x se usaba .remove()
-        console.log(`Backend: Producto ${product._id} eliminado exitosamente de la base de datos.`); // Log H
-        res.status(200).json({ message: 'Producto eliminado exitosamente', id: req.params.id });
-    } catch (dbError) {
-        console.error(`Backend: Error al eliminar producto ${product._id} de la DB:`, dbError); // Log I
-        res.status(500); // Internal Server Error
-        throw new Error(`Error al eliminar producto de la base de datos: ${dbError.message}`);
-    }
+    await product.deleteOne();
+    res.status(200).json({ message: 'Producto eliminado exitosamente', id: req.params.id });
 });
 
 module.exports = {
