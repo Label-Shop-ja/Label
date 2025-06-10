@@ -1,49 +1,43 @@
-// C:\Proyectos\Label\backend\middleware\authMiddleware.js
+// E:\Proyectos\Label\backend\middleware\authMiddleware.js
 const jwt = require('jsonwebtoken');
-const asyncHandler = require('express-async-handler'); // Asegúrate de tenerlo instalado
-const User = require('../models/User'); // Asegúrate de que el modelo User está correctamente importado
+const asyncHandler = require('express-async-handler');
+const User = require('../models/User');
 
-const protect = async (req, res, next) => {
-  let token;
+const protect = asyncHandler(async (req, res, next) => { // Envuelve la función en asyncHandler directamente
+    let token;
 
-  // 1. Verificar si el token está en los headers de autorización
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      // Extraer el token del header "Bearer <TOKEN>"
-      token = req.headers.authorization.split(' ')[1];
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            token = req.headers.authorization.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            req.user = await User.findById(decoded.id).select('-password');
 
-      // 2. Verificar el token
-      // jwt.verify devuelve el payload decodificado del token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            if (!req.user) {
+                // Modificado para usar asyncHandler, lanzar error para que lo capture errorHandler
+                res.status(401);
+                throw new Error('No autorizado, usuario no encontrado.');
+            }
 
-      // 3. Buscar el usuario en la base de datos por el ID del token
-      // Seleccionamos los campos que queremos adjuntar a req.user (excluyendo la contraseña)
-      req.user = await User.findById(decoded.id).select('-password');
-
-      // Si el usuario no existe (por si fue borrado o el ID es inválido)
-      if (!req.user) {
-        return res.status(401).json({ message: 'No autorizado, usuario no encontrado.' });
-      }
-
-      // 4. Pasar al siguiente middleware o a la función de la ruta
-      next();
-    } catch (error) {
-      console.error('Error en el middleware de autenticación:', error);
-      if (error.name === 'JsonWebTokenError') {
-        return res.status(401).json({ message: 'No autorizado, token inválido.' });
-      }
-      if (error.name === 'TokenExpiredError') {
-        return res.status(401).json({ message: 'No autorizado, token expirado.' });
-      }
-      // Para cualquier otro error de JWT o error inesperado
-      res.status(401).json({ message: 'No autorizado, token fallido.' });
+            next();
+        } catch (error) {
+            console.error('Error en el middleware de autenticación:', error);
+            if (error.name === 'JsonWebTokenError') {
+                res.status(401);
+                throw new Error('No autorizado, token inválido.');
+            }
+            if (error.name === 'TokenExpiredError') {
+                res.status(401);
+                throw new Error('No autorizado, token expirado.');
+            }
+            res.status(401); // Para cualquier otro error de JWT o inesperado
+            throw new Error('No autorizado, token fallido.');
+        }
     }
-  }
 
-  // Si no se encuentra un token en los headers (o no comienza con 'Bearer')
-  if (!token) {
-    res.status(401).json({ message: 'No autorizado, no hay token.' });
-  }
-};
+    if (!token) {
+        res.status(401); // Establecer el status antes de lanzar el error
+        throw new Error('No autorizado, no hay token.');
+    }
+});
 
-module.exports = { protect };
+module.exports = protect; // <-- ¡Cambiado! Exportamos la función 'protect' directamente

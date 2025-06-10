@@ -83,7 +83,7 @@ const PosPage = () => {
       );
     } else {
       if (1 > product.stock) {
-        setError(`No hay suficiente stock para ${product.name}. Stock disponible: ${product.stock}`);
+        setError(`No hay suficiente ${product.name} para vender. Stock disponible: ${product.stock}`);
         return;
       }
       setSaleItems([...saleItems, { product, quantity: 1, price: product.price }]);

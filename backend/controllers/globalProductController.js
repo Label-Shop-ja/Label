@@ -6,7 +6,8 @@ const asyncHandler = require('express-async-handler');
 //          Esta función es llamada internamente por productController cuando un usuario crea un producto.
 // @access  Internal (no es una ruta API directa)
 const createGlobalProduct = async (productData) => {
-    const { name, description, category, sku, unitOfMeasure, brand, supplier } = productData;
+    // Añadimos imageUrl al destructuring para poder recibirlo desde productController
+    const { name, description, category, sku, unitOfMeasure, brand, supplier, imageUrl } = productData;
 
     // Asegurarse de que el SKU esté limpio y en mayúsculas para la búsqueda.
     const cleanedSku = String(sku).trim().toUpperCase();
@@ -15,12 +16,22 @@ const createGlobalProduct = async (productData) => {
         let globalProduct = await GlobalProduct.findOne({ sku: cleanedSku });
 
         if (globalProduct) {
-            // Si el producto global ya existe, simplemente lo devolvemos.
-            // La actualización de `lastUsedAt` se maneja en el `productController`
-            // o a través del middleware `pre('save')` en el modelo `GlobalProduct`.
+            // Si el producto global ya existe, lo actualizamos con la nueva información,
+            // incluyendo la imageUrl si viene.
+            globalProduct.name = name;
+            globalProduct.description = description || '';
+            globalProduct.category = category;
+            globalProduct.unitOfMeasure = unitOfMeasure;
+            globalProduct.brand = brand || '';
+            globalProduct.supplier = supplier || '';
+            // Solo actualizamos imageUrl si se proporciona una nueva (no si es undefined o null)
+            globalProduct.imageUrl = imageUrl !== undefined && imageUrl !== null ? imageUrl : globalProduct.imageUrl;
+            globalProduct.lastUsedAt = Date.now(); // Aseguramos que se actualice el lastUsedAt con cada uso
+
+            await globalProduct.save(); // Guardar los cambios actualizados
             return globalProduct;
         } else {
-            // Si no existe, creamos un nuevo producto global
+            // Si no existe, creamos un nuevo producto global, incluyendo imageUrl
             globalProduct = await GlobalProduct.create({
                 name,
                 description: description || '',
@@ -29,6 +40,7 @@ const createGlobalProduct = async (productData) => {
                 unitOfMeasure,
                 brand: brand || '',
                 supplier: supplier || '',
+                imageUrl: imageUrl || undefined, // Guardamos la URL, si no viene, Mongoose usará el default del modelo
                 lastUsedAt: Date.now(), // Se establece la primera vez que se usa
             });
             console.log(`Nuevo GlobalProduct creado: ${globalProduct.sku}`);
@@ -42,7 +54,7 @@ const createGlobalProduct = async (productData) => {
 
 // @desc    Obtener todas las categorías únicas del catálogo global
 // @route   GET /api/globalproducts/categories
-// @access  Private (o se podría hacer pública si el catálogo global no requiere autenticación para esto)
+// @access  Private
 const getGlobalProductCategories = asyncHandler(async (req, res) => {
     try {
         const categories = await GlobalProduct.distinct('category');

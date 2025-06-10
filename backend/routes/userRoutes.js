@@ -2,12 +2,12 @@
 const express = require('express');
 const router = express.Router();
 // Importamos el controlador de usuario que contendrá la lógica
-const { getAllUsers, getMyProfile } = require('../controllers/userController'); // Aquí estamos asumiendo que ya tienes o vas a tener getMyProfile
-const { protect } = require('../middleware/authMiddleware'); // El middleware de protección
+const { getAllUsers, getMyProfile } = require('../controllers/userController');
+// Importamos el middleware de protección. ¡Ahora lo importamos directamente!
+const protect = require('../middleware/authMiddleware');
 
 // Ruta para obtener el perfil del usuario autenticado
-// Esto es lo que reemplazará a /api/auth/me
-router.get('/profile', protect, getMyProfile); // ¡NUEVA RUTA para el perfil del usuario!
+router.get('/profile', protect, getMyProfile); // RUTA para el perfil del usuario
 
 // Ejemplo: Ruta para obtener todos los usuarios (requiere un middleware de rol en un caso real)
 router.get('/', protect, getAllUsers);

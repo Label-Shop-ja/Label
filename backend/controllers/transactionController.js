@@ -21,7 +21,7 @@ const createTransaction = asyncHandler(async (req, res) => {
     throw new Error('Por favor, ingresa todos los campos requeridos: descripción, monto, tipo, categoría.');
   }
 
-  if (isNaN(amount) || amount <= 0) { // Validar que el monto sea un número positivo
+  if (isNaN(amount) || amount <= 0) {
       res.status(400);
       throw new Error('El monto debe ser un número positivo.');
   }
@@ -34,7 +34,7 @@ const createTransaction = asyncHandler(async (req, res) => {
   const transaction = await Transaction.create({
     user: req.user.id,
     description,
-    amount: Number(amount), // Asegurarse de que se guarda como número
+    amount: Number(amount),
     type,
     category,
   });
@@ -78,14 +78,14 @@ const updateTransaction = asyncHandler(async (req, res) => {
     throw new Error('No autorizado para actualizar esta transacción');
   }
 
-  if (isNaN(amount) || amount <= 0) { // Validar que el monto sea un número positivo
+  if (isNaN(amount) || amount <= 0) {
       res.status(400);
       throw new Error('El monto debe ser un número positivo.');
   }
 
   const updatedTransaction = await Transaction.findByIdAndUpdate(
     req.params.id,
-    { description, amount: Number(amount), type, category }, // Asegurarse de que se guarda como número
+    { description, amount: Number(amount), type, category },
     { new: true, runValidators: true }
   );
 
@@ -121,7 +121,6 @@ const getFinancialSummary = asyncHandler(async (req, res) => {
   const incomeTransactions = await Transaction.find({ user: userId, type: 'income' });
   const expenseTransactions = await Transaction.find({ user: userId, type: 'expense' });
 
-  // Aseguramos que 'amount' sea un número válido antes de sumar
   const totalIncome = incomeTransactions.reduce((acc, trans) => acc + (typeof trans.amount === 'number' ? trans.amount : 0), 0);
   const totalExpense = expenseTransactions.reduce((acc, trans) => acc + (typeof trans.amount === 'number' ? trans.amount : 0), 0);
   const netBalance = totalIncome - totalExpense;
@@ -146,7 +145,6 @@ const getFinancialSummary = asyncHandler(async (req, res) => {
     expenseByCategory,
   });
 });
-
 
 module.exports = {
   getTransactions,
