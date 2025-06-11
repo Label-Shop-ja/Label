@@ -1,6 +1,6 @@
 // C:\Proyectos\Label\backend\controllers\statsController.js
 const Sale = require('../models/Sale');
-const Product = require('../models/Product');
+const Product = require('../models/productModel'); // <-- ¡Cambiar a 'productModel' con 'p' minúscula!
 const Client = require('../models/Client');
 const asyncHandler = require('express-async-handler');
 

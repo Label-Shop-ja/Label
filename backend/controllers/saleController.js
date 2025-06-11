@@ -1,6 +1,6 @@
 // C:\Proyectos\Label\backend\controllers\saleController.js
 const Sale = require('../models/Sale');
-const Product = require('../models/Product'); // Necesario para actualizar stock
+const Product = require('../models/productModel'); // <-- ¡Cambiar a 'productModel' con 'p' minúscula! // Necesario para actualizar stock
 const Transaction = require('../models/Transaction'); // Necesario para crear ingresos
 const asyncHandler = require('express-async-handler');
 
