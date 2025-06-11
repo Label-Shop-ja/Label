@@ -1,61 +1,81 @@
+// C:\Proyectos\Label\frontend\src\components\InventoryPage.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import axiosInstance from '../api/axiosInstance';
-import ProductModal from './ProductModal';
-import { PlusSquare, Edit, Trash2, XCircle, Save, Search, ChevronLeft, ChevronRight, Loader2, Info, Upload, ChevronDown, ChevronUp, Plus, X } from 'lucide-react'; // Changed Minus to X
+import axiosInstance from '../api/axiosInstance'; // Importa la instancia de Axios
+import ProductModal from './ProductModal'; // Importa el componente ProductModal
+import { PlusSquare, Edit, Trash2, XCircle, Save, Search, ChevronLeft, ChevronRight, Loader2, Info, Upload, ChevronDown, ChevronUp, Plus, X } from 'lucide-react'; // Íconos de Lucide React
 
 const InventoryPage = () => {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [editingProduct, setEditingProduct] = useState(null);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [productToDelete, setProductToDelete] = useState(null);
+    // Estados principales para la gestión de productos y la interfaz de usuario
+    const [products, setProducts] = useState([]); // Lista de productos obtenidos
+    const [loading, setLoading] = useState(true); // Estado de carga de la página
+    const [error, setError] = useState(''); // Mensajes de error para el usuario
+    const [successMessage, setSuccessMessage] = useState(''); // Mensajes de éxito para el usuario
+    const [showAddModal, setShowAddModal] = useState(false); // Control de visibilidad del modal para añadir producto
+    const [showEditModal, setShowEditModal] = useState(false); // Control de visibilidad del modal para editar producto
+    const [editingProduct, setEditingProduct] = useState(null); // Producto seleccionado para edición
+    const [showConfirmModal, setShowConfirmModal] = useState(false); // Control de visibilidad del modal de confirmación de eliminación
+    const [productToDelete, setProductToDelete] = useState(null); // ID del producto seleccionado para eliminar
 
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('Todas las Categorías');
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [limit] = useState(10); // Fixed limit for pagination
+    // Estados para filtros y paginación
+    const [searchTerm, setSearchTerm] = useState(''); // Término de búsqueda en la tabla
+    const [selectedCategory, setSelectedCategory] = useState('Todas las Categorías'); // Categoría seleccionada para filtrar
+    const [currentPage, setCurrentPage] = useState(1); // Página actual de la paginación
+    const [totalPages, setTotalPages] = useState(1); // Número total de páginas
+    const [limit] = useState(10); // Límite fijo de productos por página
 
-    const [availableCategories, setAvailableCategories] = useState([]);
-    const [availableBrands, setAvailableBrands] = useState(['Todas las Marcas']);
-    const [selectedBrand, setSelectedBrand] = useState('Todas las Marcas');
-    const [availableSuppliers, setAvailableSuppliers] = useState(['Todos los Proveedores']);
-    const [selectedSupplier, setSelectedSupplier] = useState('Todos los Proveedores');
-    const [availableVariantColors, setAvailableVariantColors] = useState(['Todos los Colores']);
-    const [selectedVariantColor, setSelectedVariantColor] = useState('Todos los Colores');
-    const [availableVariantSizes, setAvailableVariantSizes] = useState(['Todas las Tallas']);
-    const [selectedVariantSize, setSelectedVariantSize] = useState('Todas las Tallas');
+    // Estados para opciones de filtro dinámicas (obtenidas de los productos existentes)
+    const [availableCategories, setAvailableCategories] = useState([]); // Opciones de categoría para el filtro
+    const [availableBrands, setAvailableBrands] = useState(['Todas las Marcas']); // Opciones de marca para el filtro
+    const [selectedBrand, setSelectedBrand] = useState('Todas las Marcas'); // Marca seleccionada
+    const [availableSuppliers, setAvailableSuppliers] = useState(['Todos los Proveedores']); // Opciones de proveedor para el filtro
+    const [selectedSupplier, setSelectedSupplier] = useState('Todos los Proveedores'); // Proveedor seleccionado
+    const [availableVariantColors, setAvailableVariantColors] = useState(['Todos los Colores']); // Colores de variante para el filtro
+    const [selectedVariantColor, setSelectedVariantColor] = useState('Todos los Colores'); // Color de variante seleccionado
+    const [availableVariantSizes, setAvailableVariantSizes] = useState(['Todas las Tallas']); // Tallas de variante para el filtro
+    const [selectedVariantSize, setSelectedVariantSize] = useState('Todas las Tallas'); // Talla de variante seleccionada
 
-    const [globalProductSuggestions, setGlobalProductSuggestions] = useState([]);
-    const [showGlobalSuggestions, setShowGlobalSuggestions] = useState(false);
-    const [noGlobalSuggestionsFound, setNoGlobalSuggestionsFound] = useState(false);
-    const debounceTimeoutRef = useRef(null);
+    // Estados para sugerencias de productos globales (para autocompletado al añadir)
+    const [globalProductSuggestions, setGlobalProductSuggestions] = useState([]); // Sugerencias de productos desde el catálogo global
+    const [showGlobalSuggestions, setShowGlobalSuggestions] = useState(false); // Visibilidad de la lista de sugerencias
+    const [noGlobalSuggestionsFound, setNoGlobalSuggestionsFound] = useState(false); // Indica si no se encontraron sugerencias
+    const debounceTimeoutRef = useRef(null); // Referencia para el temporizador de debounce en la búsqueda de sugerencias
 
+    // Estado para el SKU autogenerado del producto principal (si el usuario no lo introduce)
     const [autoGeneratedSku, setAutoGeneratedSku] = useState('');
 
-    const [imageFile, setImageFile] = useState(null);
-    const [imagePreviewUrl, setImagePreviewUrl] = useState('');
-    const [isUploadingMainImage, setIsUploadingMainImage] = useState(false); // Loading state for main image
-    const [variantImageUploading, setVariantImageUploading] = useState({}); // Loading states for variant images by index
+    // Estados para la carga y previsualización de imágenes
+    const [imageFile, setImageFile] = useState(null); // Archivo de imagen local para el producto principal
+    const [imagePreviewUrl, setImagePreviewUrl] = useState(''); // URL de previsualización de la imagen principal
+    const [isUploadingMainImage, setIsUploadingMainImage] = useState(false); // Estado de carga para la imagen principal
+    const [variantImageUploading, setVariantImageUploading] = useState({}); // Estados de carga para imágenes de variantes por índice
 
+    // Estado para controlar la visibilidad de las opciones avanzadas en los modales de añadir/editar
     const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
-    // State for individual field errors
+    // Estado para errores de validación de campos individuales del formulario
     const [formErrors, setFormErrors] = useState({});
 
+    // Estados para los datos del producto nuevo y el producto que se está editando
     const [newProduct, setNewProduct] = useState({
         name: '', description: '', category: '', price: '', stock: '',
         costPrice: '', sku: '', unitOfMeasure: 'unidad', brand: '', supplier: '', imageUrl: '',
-        color: '', size: '', material: '', variants: []
+        color: '', size: '', material: '', variants: [],
+        // --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA PRODUCTO PRINCIPAL ---
+        isPerishable: false,        // Indica si el producto es perecedero (true/false)
+        reorderThreshold: 0,        // Umbral de stock para alerta de stock bajo (número)
+        optimalMaxStock: 0,         // Stock óptimo máximo para alerta de stock alto (número, para perecederos)
+        shelfLifeDays: 0,           // Días de vida útil (número, para perecederos)
+        // --- FIN NUEVOS CAMPOS ---
     });
 
+    // Opciones predefinidas para la unidad de medida
     const unitOfMeasureOptions = ['unidad', 'kg', 'litro', 'metro', 'paquete', 'caja', 'docena', 'otro'];
 
-    // Displays a message to the user, either success or error, and clears it after 5 seconds.
+    // --- NUEVOS ESTADOS PARA ALERTAS DE STOCK ---
+    const [lowStockAlerts, setLowStockAlerts] = useState([]); // Lista de productos/variantes con stock bajo
+    const [highStockAlerts, setHighStockAlerts] = useState([]); // Lista de productos/variantes con stock alto (perecederos)
+
+    // Función auxiliar para mostrar mensajes de éxito o error al usuario
     const displayMessage = (msg, type) => {
         if (type === 'success') {
             setSuccessMessage(msg);
@@ -64,51 +84,63 @@ const InventoryPage = () => {
             setError(msg);
             setSuccessMessage('');
         }
+        // Los mensajes se borran automáticamente después de 5 segundos
         setTimeout(() => {
             setSuccessMessage('');
             setError('');
         }, 5000);
     };
 
-    // Generates a unique SKU from a product name by cleaning, truncating, and adding a hash.
+    // Función para generar un SKU único a partir de un nombre, limpiando y añadiendo un hash
     const generateSkuFromName = useCallback((name) => {
         if (!name || name.trim() === '') {
             return '';
         }
         const cleanedName = name
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
-            .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Elimina acentos (ej. "ñ" -> "n")
+            .replace(/[^a-zA-Z0-9\s]/g, '') // Elimina caracteres especiales
             .trim()
             .toUpperCase()
             .split(/\s+/)
-            .slice(0, 4)
-            .join('-');
-        const hash = Math.random().toString(36).substring(2, 6).toUpperCase();
-        return `${cleanedName.substring(0, 15)}-${hash}`;
+            .slice(0, 4) // Toma las primeras 4 palabras
+            .join('-'); // Une las palabras con guiones
+        const hash = Math.random().toString(36).substring(2, 6).toUpperCase(); // Genera un hash aleatorio
+        return `${cleanedName.substring(0, 15)}-${hash}`; // Combina nombre limpiado y hash
     }, []);
 
-    // Validates individual form fields based on product type (main or variant) and sets error messages.
+    // Función para validar campos individuales del formulario y establecer mensajes de error
     const validateField = (name, value, currentProductState, index = null) => {
         let message = '';
-        const isVariantField = index !== null;
+        const isVariantField = index !== null; // Determina si el campo pertenece a una variante
 
         if (isVariantField) {
-            // Variant specific validations
+            // Validaciones específicas para campos de variantes
             if (name === 'name' && value.trim() === '') message = 'El nombre de la variante es obligatorio.';
+            // Si el SKU de la variante está vacío y no se auto-generó, mostrar error
             if (name === 'sku' && value.trim() === '' && !currentProductState.variants[index]?.autoGeneratedVariantSku) message = 'El SKU de la variante es obligatorio o se debe generar automáticamente.';
+            // Validaciones para campos numéricos de variante
             if ((name === 'price' || name === 'costPrice' || name === 'stock') && (value === '' || value === null || value === undefined)) message = 'Campo obligatorio.';
             else if ((name === 'price' || name === 'costPrice' || name === 'stock') && isNaN(Number(value))) message = 'Debe ser un número válido.';
             else if (name === 'price' && Number(value) <= 0) message = 'El precio debe ser positivo.';
             else if ((name === 'costPrice' || name === 'stock') && Number(value) < 0) message = 'Debe ser un número no negativo.';
             if (name === 'unitOfMeasure' && value.trim() === '') message = 'La unidad de medida es obligatoria.';
+
+            // --- VALIDACIONES PARA NUEVOS CAMPOS DE STOCK/PERECEDEROS DE VARIANTE ---
+            if (name === 'reorderThreshold' && (isNaN(Number(value)) || Number(value) < 0)) message = 'El umbral de reaprovisionamiento debe ser un número no negativo.';
+            // optimalMaxStock y shelfLifeDays solo se validan si la variante es perecedera
+            if (currentProductState.variants[index]?.isPerishable) {
+                if (name === 'optimalMaxStock' && (isNaN(Number(value)) || Number(value) < 0)) message = 'El stock óptimo máximo debe ser un número no negativo.';
+                if (name === 'shelfLifeDays' && (isNaN(Number(value)) || Number(value) < 0)) message = 'Los días de vida útil deben ser un número no negativo.';
+            }
+            // --- FIN VALIDACIONES ---
         } else {
-            // Main product specific validations
+            // Validaciones específicas para campos del producto principal
             if (name === 'name' && value.trim() === '') message = 'El nombre es obligatorio.';
             if (name === 'category' && value.trim() === '') message = 'La categoría es obligatoria.';
-            // SKU validation for main product (if no variants exist)
+            // Si el SKU del producto principal está vacío y no se auto-generó, mostrar error
             if (name === 'sku' && value.trim() === '' && !autoGeneratedSku && currentProductState.variants.length === 0) message = 'El SKU es obligatorio si no hay variantes y no se genera automáticamente.';
 
-            // Only validate price, stock, costPrice, unitOfMeasure if no variants exist
+            // Validar price, stock, costPrice, unitOfMeasure solo si no existen variantes
             if (currentProductState.variants.length === 0) {
                 if ((name === 'price' || name === 'costPrice' || name === 'stock') && (value === '' || value === null || value === undefined)) message = 'Campo obligatorio.';
                 else if ((name === 'price' || name === 'costPrice' || name === 'stock') && isNaN(Number(value))) message = 'Debe ser un número válido.';
@@ -116,35 +148,51 @@ const InventoryPage = () => {
                 else if ((name === 'costPrice' || name === 'stock') && Number(value) < 0) message = 'Debe ser un número no negativo.';
                 if (name === 'unitOfMeasure' && value.trim() === '') message = 'La unidad de medida es obligatoria.';
             }
+
+            // --- VALIDACIONES PARA NUEVOS CAMPOS DE STOCK/PERECEDEROS DE PRODUCTO PRINCIPAL ---
+            if (name === 'reorderThreshold' && (isNaN(Number(value)) || Number(value) < 0)) message = 'El umbral de reaprovisionamiento debe ser un número no negativo.';
+            // optimalMaxStock y shelfLifeDays solo se validan si el producto principal es perecedero
+            if (currentProductState.isPerishable) {
+                if (name === 'optimalMaxStock' && (isNaN(Number(value)) || Number(value) < 0)) message = 'El stock óptimo máximo debe ser un número no negativo.';
+                if (name === 'shelfLifeDays' && (isNaN(Number(value)) || Number(value) < 0)) message = 'Los días de vida útil deben ser un número no negativo.';
+            }
+            // --- FIN VALIDACIONES ---
         }
         return message;
     };
 
-    // Handles changes in main product input fields, including SKU auto-generation and global suggestions.
+    // Maneja los cambios en los campos de entrada del producto principal
     const handleInputChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type, checked } = e.target; // Desestructura 'type' y 'checked' para manejar checkboxes
+        // Ajusta el valor para el checkbox (booleano) o para otros tipos de input (valor directo)
+        const inputValue = type === 'checkbox' ? checked : value;
+
+        // Determina qué estado de producto (nuevo o en edición) se va a actualizar
         const targetStateSetter = showAddModal ? setNewProduct : setEditingProduct;
+        // Obtiene el estado actual del producto antes de la actualización
         const targetProductState = showAddModal ? newProduct : editingProduct;
 
-        targetStateSetter(prev => ({ ...prev, [name]: value }));
+        // Actualiza el estado del producto con el nuevo valor
+        targetStateSetter(prev => ({ ...prev, [name]: inputValue }));
 
-        // Validate and set error for the changed field
-        setFormErrors(prev => ({ ...prev, [name]: validateField(name, value, targetProductState) }));
+        // Valida el campo modificado y actualiza los errores del formulario
+        // Se pasa una copia del estado con el valor actual de `inputValue` para una validación precisa
+        setFormErrors(prev => ({ ...prev, [name]: validateField(name, inputValue, { ...targetProductState, [name]: inputValue }) }));
 
-        // Logic for SKU auto-generation and global product suggestions (only for add modal's 'name' field)
+        // Lógica para auto-generación de SKU y sugerencias de productos globales (solo para el campo 'name' en el modal de añadir)
         if (name === 'name' && showAddModal) {
-            if (value.trim().length >= 2) {
-                // If SKU is not manually entered, try to auto-generate
+            if (inputValue.trim().length >= 2) {
+                // Si el SKU no se ha introducido manualmente, intenta auto-generarlo
                 if (newProduct.sku.trim() === '') {
-                    setAutoGeneratedSku(generateSkuFromName(value));
+                    setAutoGeneratedSku(generateSkuFromName(inputValue));
                 }
-                // Debounce for global product suggestions to avoid excessive API calls
+                // Implementa debounce para las sugerencias de productos globales para evitar llamadas excesivas a la API
                 if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
                 debounceTimeoutRef.current = setTimeout(() => {
-                    fetchGlobalProductSuggestions(value);
+                    fetchGlobalProductSuggestions(inputValue);
                 }, 300);
             } else {
-                // Clear suggestions and auto-generated SKU if name is too short
+                // Limpia las sugerencias y el SKU auto-generado si el nombre es demasiado corto
                 setAutoGeneratedSku('');
                 setGlobalProductSuggestions([]);
                 setShowGlobalSuggestions(false);
@@ -152,47 +200,51 @@ const InventoryPage = () => {
             }
         }
 
-        // Logic to auto-generate SKU if SKU field is emptied and name exists (for both add and edit)
-        if (name === 'sku' && value.trim() === '') {
-            if (targetProductState.name.trim().length >= 2 && !globalProductSuggestions.length) {
-                setAutoGeneratedSku(generateSkuFromName(targetProductState.name));
+        // Lógica para auto-generar SKU si el campo SKU se vacía y el nombre del producto existe
+        if (name === 'sku' && inputValue.trim() === '') {
+            // Obtiene el nombre actual del producto del estado (ya actualizado)
+            const currentProductName = (showAddModal ? newProduct : editingProduct).name;
+            if (currentProductName.trim().length >= 2 && !globalProductSuggestions.length) {
+                setAutoGeneratedSku(generateSkuFromName(currentProductName));
             } else {
-                setAutoGeneratedSku(''); // Clear auto SKU if empty and name is too short or suggestions are active
+                setAutoGeneratedSku(''); // Limpia el SKU auto-generado si está vacío y el nombre es muy corto o hay sugerencias activas
             }
-        } else if (name === 'sku' && value.trim() !== '') {
-            setAutoGeneratedSku(''); // Clear auto SKU if user types manually into SKU field
+        } else if (name === 'sku' && inputValue.trim() !== '') {
+            setAutoGeneratedSku(''); // Limpia el SKU auto-generado si el usuario escribe manualmente en el campo SKU
         }
 
-        // If image URL field is edited, clear local file selection
+        // Si el campo de URL de imagen es editado, limpia cualquier selección de archivo local
         if (name === 'imageUrl') {
-            setImageFile(null); // Clear any file selected
-            setImagePreviewUrl(value); // Update preview to the entered URL
+            setImageFile(null); // Limpia cualquier archivo local seleccionado
+            setImagePreviewUrl(inputValue); // Actualiza la previsualización de la imagen con la URL introducida
         }
 
-        // Clear general messages on any input change
+        // Limpia los mensajes generales de éxito o error al cambiar cualquier input
         setError('');
         setSuccessMessage('');
     };
 
-    // Handles changes in variant product input fields, including variant SKU auto-generation.
+    // Maneja los cambios en los campos de entrada de las variantes del producto
     const handleVariantInputChange = (index, e) => {
-        const { name, value } = e.target;
-        const targetProductState = showAddModal ? newProduct : editingProduct;
-        const setTargetProductState = showAddModal ? setNewProduct : setEditingProduct;
+        const { name, value, type, checked } = e.target; // Desestructura 'type' y 'checked' para checkboxes
+        const inputValue = type === 'checkbox' ? checked : value; // Ajusta el valor para el checkbox
 
-        const updatedVariants = [...targetProductState.variants];
-        let updatedVariant = { ...updatedVariants[index], [name]: value };
+        const targetProductState = showAddModal ? newProduct : editingProduct; // Producto actual (nuevo o editando)
+        const setTargetProductState = showAddModal ? setNewProduct : setEditingProduct; // Setter del estado del producto
 
-        // SKU generation logic for variants
+        const updatedVariants = [...targetProductState.variants]; // Copia de las variantes
+        let updatedVariant = { ...updatedVariants[index], [name]: inputValue }; // Actualiza la variante específica
+
+        // Lógica de generación de SKU para variantes
         if (name === 'name') {
             if (!updatedVariant.sku || updatedVariant.sku.trim() === '') {
-                updatedVariant.autoGeneratedVariantSku = generateSkuFromName(value);
+                updatedVariant.autoGeneratedVariantSku = generateSkuFromName(inputValue);
             } else {
-                updatedVariant.autoGeneratedVariantSku = ''; // Clear auto SKU if user types manually
+                updatedVariant.autoGeneratedVariantSku = ''; // Limpia el SKU auto-generado si el usuario escribe manualmente
             }
         } else if (name === 'sku') {
-            if (value.trim() !== '') {
-                updatedVariant.autoGeneratedVariantSku = ''; // Clear auto SKU if user types manually
+            if (inputValue.trim() !== '') {
+                updatedVariant.autoGeneratedVariantSku = ''; // Limpia el SKU auto-generado si el usuario escribe manualmente
             } else {
                 if (updatedVariant.name && updatedVariant.name.trim() !== '') {
                     updatedVariant.autoGeneratedVariantSku = generateSkuFromName(updatedVariant.name);
@@ -202,83 +254,87 @@ const InventoryPage = () => {
             }
         }
 
-        updatedVariants[index] = updatedVariant;
-        setTargetProductState(prev => ({ ...prev, variants: updatedVariants }));
+        updatedVariants[index] = updatedVariant; // Asigna la variante actualizada de nuevo al array
+        setTargetProductState(prev => ({ ...prev, variants: updatedVariants })); // Actualiza el estado principal del producto
 
-        // Validate and set error for variant field
-        setFormErrors(prev => ({
-            ...prev,
-            [`variant-${index}-${name}`]: validateField(name, value, targetProductState, index)
-        }));
+        // Valida el campo de la variante y actualiza los errores del formulario
+        setFormErrors(prev => {
+            const tempProductState = { ...targetProductState, variants: updatedVariants }; // Estado temporal con variantes actualizadas
+            return {
+                ...prev,
+                [`variant-${index}-${name}`]: validateField(name, inputValue, tempProductState, index)
+            };
+        });
 
+        // Limpia los mensajes generales de éxito o error
         setError('');
         setSuccessMessage('');
     };
 
-    // Handles changes when a local image file is selected for the main product.
+    // Maneja los cambios cuando se selecciona un archivo de imagen local para el producto principal
     const handleImageFileChange = (e) => {
-        const file = e.target.files[0];
-        const targetStateSetter = showAddModal ? setNewProduct : setEditingProduct;
+        const file = e.target.files[0]; // Obtiene el archivo seleccionado
+        const targetStateSetter = showAddModal ? setNewProduct : setEditingProduct; // Determina qué estado actualizar
 
         if (file) {
-            setImageFile(file);
-            setImagePreviewUrl(URL.createObjectURL(file)); // Create a temporary URL for local file preview
-            targetStateSetter(prev => ({ ...prev, imageUrl: '' })); // Clear the URL text field if a file is selected
-            setError(''); // Clear any previous image errors
-            setFormErrors(prev => ({ ...prev, imageUrl: '' })); // Clear specific error for imageUrl
+            setImageFile(file); // Almacena el archivo
+            setImagePreviewUrl(URL.createObjectURL(file)); // Crea una URL temporal para previsualización local
+            targetStateSetter(prev => ({ ...prev, imageUrl: '' })); // Limpia el campo de texto de URL si se selecciona un archivo
+            setError(''); // Limpia cualquier error de imagen anterior
+            setFormErrors(prev => ({ ...prev, imageUrl: '' })); // Limpia el error específico para imageUrl
         } else {
-            setImageFile(null);
-            // If clearing the file input, and there's an existing URL in the product state, set it back as preview.
-            // Otherwise, clear the preview.
+            setImageFile(null); // No hay archivo seleccionado
+            // Si se borra la entrada de archivo, y hay una URL existente en el estado del producto, la establece de nuevo como previsualización.
+            // De lo contrario, limpia la previsualización.
             const currentProduct = showAddModal ? newProduct : editingProduct;
-            setImagePreviewUrl(currentProduct?.imageUrl || ''); // Retain existing URL if no new file
-            targetStateSetter(prev => ({ ...prev, imageUrl: currentProduct?.imageUrl || '' })); // Keep existing URL in state
+            setImagePreviewUrl(currentProduct?.imageUrl || ''); // Mantiene la URL existente si no hay archivo nuevo
+            targetStateSetter(prev => ({ ...prev, imageUrl: currentProduct?.imageUrl || '' })); // Mantiene la URL existente en el estado
         }
     };
 
-    // Handles changes when a local image file is selected for a variant.
+    // Maneja los cambios cuando se selecciona un archivo de imagen local para una variante
     const handleVariantImageFileChange = async (index, e) => {
         const file = e.target.files[0];
         if (file) {
-            setVariantImageUploading(prev => ({ ...prev, [index]: true }));
-            const result = await uploadImageToCloud(file, true, index); // Call the general upload function
-            setVariantImageUploading(prev => ({ ...prev, [index]: false }));
+            setVariantImageUploading(prev => ({ ...prev, [index]: true })); // Activa el estado de carga para esta variante
+            const result = await uploadImageToCloud(file, true, index); // Llama a la función general de subida de imagen
+            setVariantImageUploading(prev => ({ ...prev, [index]: false })); // Desactiva el estado de carga
             if (!result.success) {
                 setFormErrors(prev => ({
                     ...prev,
-                    [`variant-${index}-imageUrl`]: 'Error al subir imagen de variante.'
+                    [`variant-${index}-imageUrl`]: 'Error al subir imagen de variante.' // Muestra error si falla la subida
                 }));
             }
         }
     };
 
-    // Handles uploading image file or processing image URL to Cloudinary.
+    // Función principal para subir archivos de imagen o procesar URLs a Cloudinary
     const uploadImageToCloud = async (fileOrUrl, isVariant = false, variantIndex = null) => {
         const formData = new FormData();
         if (fileOrUrl instanceof File) {
-            formData.append('image', fileOrUrl); // 'image' is the field name Multer expects on the backend
+            formData.append('image', fileOrUrl); // 'image' es el nombre del campo que Multer espera en el backend
         } else if (typeof fileOrUrl === 'string' && fileOrUrl.trim() !== '') {
-            // If it's already a Cloudinary URL, skip re-uploading and just return it.
+            // Si la URL ya es de Cloudinary, no es necesario resubirla, simplemente la devuelve
             if (fileOrUrl.includes('res.cloudinary.com')) {
                 displayMessage('La imagen ya está alojada.', 'success');
                 return { success: true, url: fileOrUrl };
             }
-            formData.append('imageUrl', fileOrUrl); // If it's a new URL, send it to the backend for processing
+            formData.append('imageUrl', fileOrUrl); // Si es una nueva URL, la envía al backend para procesamiento
         } else {
-            return { success: true, url: '' }; // No valid file or URL to upload, or intent to clear image
+            return { success: true, url: '' }; // No hay archivo o URL válida para subir, o se intenta limpiar la imagen
         }
 
         try {
-            if (!isVariant) setIsUploadingMainImage(true); // Activate loading for main image
+            if (!isVariant) setIsUploadingMainImage(true); // Activa el estado de carga para la imagen principal
             const response = await axiosInstance.post('/upload', formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data' // Important for sending files
+                    'Content-Type': 'multipart/form-data' // Encabezado importante para enviar archivos
                 }
             });
             displayMessage('Imagen procesada y alojada exitosamente.', 'success');
             const uploadedUrl = response.data.imageUrl;
 
-            // Update the image URL in the corresponding state (main product or specific variant)
+            // Actualiza la URL de la imagen en el estado correspondiente (producto principal o variante específica)
             if (isVariant && variantIndex !== null) {
                 const targetStateSetter = showAddModal ? setNewProduct : setEditingProduct;
                 targetStateSetter(prev => {
@@ -288,15 +344,15 @@ const InventoryPage = () => {
                     }
                     return { ...prev, variants: updatedVariants };
                 });
-                setFormErrors(prev => ({ ...prev, [`variant-${variantIndex}-imageUrl`]: '' })); // Clear variant image error
-            } else { // It's the main product image
+                setFormErrors(prev => ({ ...prev, [`variant-${variantIndex}-imageUrl`]: '' })); // Limpia el error de imagen de variante
+            } else { // Es la imagen del producto principal
                 const targetStateSetter = showAddModal ? setNewProduct : setEditingProduct;
                 targetStateSetter(prev => ({ ...prev, imageUrl: uploadedUrl }));
-                setImagePreviewUrl(uploadedUrl); // Update main preview URL
-                setImageFile(null); // Clear local file after successful upload
-                setFormErrors(prev => ({ ...prev, imageUrl: '' })); // Clear main image error
+                setImagePreviewUrl(uploadedUrl); // Actualiza la URL de previsualización principal
+                setImageFile(null); // Limpia el archivo local después de una subida exitosa
+                setFormErrors(prev => ({ ...prev, imageUrl: '' })); // Limpia el error de imagen principal
             }
-            return { success: true, url: uploadedUrl }; // Return the Cloudinary URL
+            return { success: true, url: uploadedUrl }; // Devuelve la URL de Cloudinary
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Error al procesar la imagen. Por favor, inténtalo de nuevo.';
             displayMessage(errorMessage, 'error');
@@ -306,39 +362,39 @@ const InventoryPage = () => {
                 targetStateSetter(prev => {
                     const updatedVariants = [...prev.variants];
                     if (updatedVariants[variantIndex]) {
-                        updatedVariants[variantIndex] = { ...updatedVariants[variantIndex], imageUrl: '' }; // Clear URL if upload fails
+                        updatedVariants[variantIndex] = { ...updatedVariants[variantIndex], imageUrl: '' }; // Limpia la URL si la subida falla
                     }
                     return { ...prev, variants: updatedVariants };
                 });
             } else {
                 setFormErrors(prev => ({ ...prev, imageUrl: 'Error al subir imagen.' }));
                 const targetStateSetter = showAddModal ? setNewProduct : setEditingProduct;
-                targetStateSetter(prev => ({ ...prev, imageUrl: '' })); // Clear URL if upload fails
-                setImagePreviewUrl(''); // Clear main preview if upload fails
-                setImageFile(null); // Clear local file as it failed
+                targetStateSetter(prev => ({ ...prev, imageUrl: '' })); // Limpia la URL si la subida falla
+                setImagePreviewUrl(''); // Limpia la previsualización principal si la subida falla
+                setImageFile(null); // Limpia el archivo local si falla
             }
             return { success: false, error: errorMessage };
         } finally {
-            if (!isVariant) setIsUploadingMainImage(false); // Deactivate loading for main image
+            if (!isVariant) setIsUploadingMainImage(false); // Desactiva el estado de carga para la imagen principal
         }
     };
 
-    // Helper function to upload variant images to Cloudinary, used for clarity.
+    // Función auxiliar para subir imágenes de variantes a Cloudinary, utilizada para mayor claridad.
     const uploadVariantImageToCloud = async (fileOrUrl, variantIndex) => {
-        setVariantImageUploading(prev => ({ ...prev, [variantIndex]: true }));
-        const result = await uploadImageToCloud(fileOrUrl, true, variantIndex);
-        setVariantImageUploading(prev => ({ ...prev, [variantIndex]: false }));
+        setVariantImageUploading(prev => ({ ...prev, [variantIndex]: true })); // Activa el estado de carga de la variante
+        const result = await uploadImageToCloud(fileOrUrl, true, variantIndex); // Llama a la función principal de subida
+        setVariantImageUploading(prev => ({ ...prev, [variantIndex]: false })); // Desactiva el estado de carga
         return result;
     };
 
-    // Fetches products from the backend based on current filters and pagination.
+    // Obtiene productos del backend basados en los filtros y paginación actuales.
     const fetchProducts = useCallback(async () => {
         try {
-            setLoading(true);
+            setLoading(true); // Activa el estado de carga
             setError('');
             setSuccessMessage('');
 
-            const queryParams = new URLSearchParams();
+            const queryParams = new URLSearchParams(); // Construye los parámetros de la consulta
             if (searchTerm) queryParams.append('searchTerm', searchTerm);
             if (selectedCategory && selectedCategory !== 'Todas las Categorías') queryParams.append('category', selectedCategory);
             if (selectedBrand && selectedBrand !== 'Todas las Marcas') queryParams.append('brand', selectedBrand);
@@ -349,101 +405,96 @@ const InventoryPage = () => {
             queryParams.append('page', currentPage);
             queryParams.append('limit', limit);
 
-            const response = await axiosInstance.get(`/products?${queryParams.toString()}`);
+            const response = await axiosInstance.get(`/products?${queryParams.toString()}`); // Realiza la petición GET
 
-            setProducts(response.data.products);
-            setTotalPages(response.data.pagination.totalPages);
+            setProducts(response.data.products); // Actualiza la lista de productos
+            setTotalPages(response.data.pagination.totalPages); // Actualiza el total de páginas
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Error al cargar productos. Por favor, inténtalo de nuevo.';
-            displayMessage(errorMessage, 'error');
-            setProducts([]);
-            setTotalPages(1);
+            displayMessage(errorMessage, 'error'); // Muestra mensaje de error
+            setProducts([]); // Vacía la lista de productos
+            setTotalPages(1); // Restablece el total de páginas
         } finally {
-            setLoading(false);
+            setLoading(false); // Desactiva el estado de carga
         }
     }, [searchTerm, selectedCategory, selectedBrand, selectedSupplier, selectedVariantColor, selectedVariantSize, currentPage, limit]);
 
-    // Fetches all available categories, brands, suppliers, colors, and sizes for filter dropdowns.
+    // Obtiene todas las categorías, marcas, proveedores, colores y tallas disponibles para los filtros.
     const fetchFilterOptions = useCallback(async () => {
         try {
-            // Fetch all products to get all unique filter options (setting a very high limit)
+            // Obtener todos los productos para extraer opciones de filtro únicas (estableciendo un límite muy alto para asegurar todos los datos)
             const response = await axiosInstance.get('/products?limit=9999');
             const allProducts = response.data.products;
 
+            // Recolectar categorías únicas y ordenarlas
             const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))].sort();
             setAvailableCategories(['Todas las Categorías', ...categories]);
 
+            // Recolectar marcas únicas y ordenarlas
             const brands = [...new Set(allProducts.map(p => p.brand).filter(Boolean))].sort();
             setAvailableBrands(['Todas las Marcas', ...brands]);
 
+            // Recolectar proveedores únicos y ordenarlos
             const suppliers = [...new Set(allProducts.map(p => p.supplier).filter(Boolean))].sort();
             setAvailableSuppliers(['Todos los Proveedores', ...suppliers]);
 
             const colors = new Set();
             const sizes = new Set();
             allProducts.forEach(p => {
-                // Collect colors and sizes from variants first
+                // Recolectar colores y tallas de las variantes primero
                 if (p.variants && p.variants.length > 0) {
                     p.variants.forEach(v => {
                         if (v.color) colors.add(v.color);
                         if (v.size) sizes.add(v.size);
                     });
                 } else {
-                    // If no variants, collect from the main product attributes
+                    // Si no hay variantes, recolectar de los atributos del producto principal
                     if (p.color) colors.add(p.color);
                     if (p.size) sizes.add(p.size);
                 }
             });
-            setAvailableVariantColors(['Todos los Colores', ...Array.from(colors).sort()]);
-            setAvailableVariantSizes(['Todas las Tallas', ...Array.from(sizes).sort()]);
+            setAvailableVariantColors(['Todos los Colores', ...Array.from(colors).sort()]); // Convierte el Set a Array y ordena
+            setAvailableVariantSizes(['Todas las Tallas', ...Array.from(sizes).sort()]); // Convierte el Set a Array y ordena
 
         } catch (err) {
             console.error("Error al cargar opciones de filtro:", err.response?.data?.message || err.message);
         }
     }, []);
 
-    // Effect hook to fetch products and filter options on component mount and when dependencies change.
+    // Efecto para obtener productos y opciones de filtro al montar el componente y cuando las dependencias cambian.
     useEffect(() => {
         fetchProducts();
         fetchFilterOptions();
-    }, [fetchProducts, fetchFilterOptions]);
+        // Cargar alertas de stock al inicio del componente
+        fetchLowStockAlerts();
+        fetchHighStockAlerts();
+    }, [fetchProducts, fetchFilterOptions]); // Añadir las nuevas funciones de fetch al array de dependencias para que se ejecuten
 
+    // --- NUEVAS FUNCIONES PARA OBTENER ALERTAS DE STOCK DESDE EL BACKEND ---
 
-    // Fetches product suggestions from a global catalog based on the search term.
-    const fetchGlobalProductSuggestions = useCallback(async (nameTerm) => {
-        if (nameTerm.trim().length < 2) {
-            // If search term is too short, clear suggestions and related states
-            setGlobalProductSuggestions([]);
-            setShowGlobalSuggestions(false);
-            setNoGlobalSuggestionsFound(false);
-            setAutoGeneratedSku('');
-            return;
-        }
-
+    // Obtiene productos con stock bajo del backend.
+    const fetchLowStockAlerts = useCallback(async () => {
         try {
-            const response = await axiosInstance.get(`/globalproducts?searchTerm=${nameTerm}`);
-            if (response.data.length > 0) {
-                setGlobalProductSuggestions(response.data);
-                setShowGlobalSuggestions(true);
-                setNoGlobalSuggestionsFound(false);
-                setAutoGeneratedSku(''); // Clear auto SKU if suggestions are found
-            } else {
-                setGlobalProductSuggestions([]);
-                setShowGlobalSuggestions(false);
-                setNoGlobalSuggestionsFound(true);
-                setAutoGeneratedSku(generateSkuFromName(nameTerm)); // Auto-generate if no suggestions found
-                setTimeout(() => setNoGlobalSuggestionsFound(false), 3000); // Hide "no matches" message after 3 seconds
-            }
+            const response = await axiosInstance.get('/products/alerts/low-stock');
+            setLowStockAlerts(response.data); // Actualiza el estado con los productos en alerta de stock bajo
         } catch (err) {
-            console.error("Error al buscar sugerencias de productos globales:", err);
-            setGlobalProductSuggestions([]);
-            setShowGlobalSuggestions(false);
-            setNoGlobalSuggestionsFound(false);
-            setAutoGeneratedSku(generateSkuFromName(nameTerm)); // Auto-generate on error as well
+            console.error('Error al cargar alertas de stock bajo:', err.response?.data?.message || err.message);
+            // Solo se muestra el error en la consola para estas alertas, no en la UI principal
         }
-    }, [generateSkuFromName]);
+    }, []);
 
-    // Handles selecting a product from the global catalog suggestions.
+    // Obtiene productos con stock alto (perecederos) del backend.
+    const fetchHighStockAlerts = useCallback(async () => {
+        try {
+            const response = await axiosInstance.get('/products/alerts/high-stock');
+            setHighStockAlerts(response.data); // Actualiza el estado con los productos en alerta de stock alto
+        } catch (err) {
+            console.error('Error al cargar alertas de stock alto:', err.response?.data?.message || err.message);
+            // Solo se muestra el error en la consola para estas alertas
+        }
+    }, []);
+
+    // Maneja la selección de un producto desde las sugerencias del catálogo global.
     const handleSelectGlobalProduct = (suggestedProduct) => {
         setNewProduct({
             ...newProduct,
@@ -454,31 +505,90 @@ const InventoryPage = () => {
             unitOfMeasure: suggestedProduct.unitOfMeasure || 'unidad',
             brand: suggestedProduct.brand || '',
             supplier: suggestedProduct.supplier || '',
-            imageUrl: suggestedProduct.imageUrl || '', // Bring main suggestion image URL
-            color: suggestedProduct.color || '',    // Apply main product color
-            size: suggestedProduct.size || '',      // Apply main product size
-            material: suggestedProduct.material || '', // Apply main product material
-            variants: suggestedProduct.variants ? suggestedProduct.variants.map(v => ({ // Bring variants if it has them
+            imageUrl: suggestedProduct.imageUrl || '', // Trae la URL de imagen principal de la sugerencia
+            color: suggestedProduct.color || '',    // Aplica color de producto principal
+            size: suggestedProduct.size || '',      // Aplica talla/tamaño de producto principal
+            material: suggestedProduct.material || '', // Aplica material de producto principal
+            // --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA PRODUCTO PRINCIPAL (desde la sugerencia global) ---
+            isPerishable: suggestedProduct.isPerishable || false,
+            reorderThreshold: suggestedProduct.reorderThreshold || 0,
+            optimalMaxStock: suggestedProduct.optimalMaxStock || 0,
+            shelfLifeDays: suggestedProduct.shelfLifeDays || 0,
+            // --- FIN NUEVOS CAMPOS ---
+            variants: suggestedProduct.variants ? suggestedProduct.variants.map(v => ({ // Trae las variantes si el producto global las tiene
                 ...v,
-                // Regenerate variant SKU if it's empty, otherwise keep original
+                // Regenera el SKU de variante si está vacío, de lo contrario mantiene el original
                 autoGeneratedVariantSku: v.sku && v.sku.trim() !== '' ? '' : generateSkuFromName(v.name || ''),
+                // --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA VARIANTE (desde la sugerencia global) ---
+                isPerishable: v.isPerishable || false,
+                reorderThreshold: v.reorderThreshold || 0,
+                optimalMaxStock: v.optimalMaxStock || 0,
+                shelfLifeDays: v.shelfLifeDays || 0,
+                // --- FIN NUEVOS CAMPOS ---
             })) : [],
         });
-        setImageFile(null); // Clear any locally selected file after selection
-        setImagePreviewUrl(suggestedProduct.imageUrl || ''); // Set preview to main suggestion URL
-        setGlobalProductSuggestions([]); // Hide suggestions
+        setImageFile(null); // Limpia cualquier archivo seleccionado localmente después de la selección
+        setImagePreviewUrl(suggestedProduct.imageUrl || ''); // Establece la previsualización a la URL de la sugerencia principal
+        setGlobalProductSuggestions([]); // Oculta las sugerencias
         setShowGlobalSuggestions(false);
         setNoGlobalSuggestionsFound(false);
-        setAutoGeneratedSku(''); // Clear main auto-generated SKU
-        setFormErrors({}); // Clear any previous form errors on selection
+        setAutoGeneratedSku(''); // Limpia el SKU principal auto-generado
+        setFormErrors({}); // Limpia cualquier error de formulario anterior en la selección
     };
 
-    // Function to add a new empty variant to the product.
+    // Abre el modal para añadir un nuevo producto.
+    const openAddModal = () => {
+        setNewProduct({ // Reinicia el estado del nuevo producto a sus valores por defecto
+            name: '', description: '', category: '', price: '', stock: '',
+            costPrice: '', sku: '', unitOfMeasure: 'unidad', brand: '', supplier: '', imageUrl: '',
+            color: '', size: '', material: '', variants: [],
+            // --- NUEVOS CAMPOS DE STOCK/PERECEDEROS AL ABRIR MODAL DE AÑADIR ---
+            isPerishable: false,
+            reorderThreshold: 0,
+            optimalMaxStock: 0,
+            shelfLifeDays: 0,
+            // --- FIN NUEVOS CAMPOS ---
+        });
+        setImageFile(null); // Reinicia el archivo de imagen
+        setImagePreviewUrl(''); // Reinicia la previsualización de imagen
+        setAutoGeneratedSku(''); // Reinicia el SKU auto-generado
+        setFormErrors({}); // Limpia errores de formulario
+        setError(''); // Limpia mensajes de error
+        setSuccessMessage(''); // Limpia mensajes de éxito
+        setShowAddModal(true); // Muestra el modal de añadir
+        setShowAdvancedOptions(false); // Colapsa las opciones avanzadas por defecto
+    };
+
+    // Cierra cualquier modal abierto y reinicia los estados relacionados.
+    const closeModal = () => {
+        setShowAddModal(false); // Oculta el modal de añadir
+        setShowEditModal(false); // Oculta el modal de edición
+        setShowConfirmModal(false); // Oculta el modal de confirmación
+        setProductToDelete(null); // Limpia el producto a eliminar
+        setError(''); // Limpia mensajes de error
+        setSuccessMessage(''); // Limpia mensajes de éxito
+        setFormErrors({}); // Limpia errores de formulario
+        setShowAdvancedOptions(false); // Colapsa las opciones avanzadas
+        setImageFile(null); // Reinicia el archivo de imagen principal
+        setImagePreviewUrl(''); // Reinicia la URL de previsualización de imagen principal
+        setAutoGeneratedSku(''); // Reinicia el SKU autogenerado
+        setGlobalProductSuggestions([]); // Limpia sugerencias globales
+        setShowGlobalSuggestions(false);
+        setNoGlobalSuggestionsFound(false);
+    };
+
+    // Añade una nueva variante al producto actual (nuevo o en edición).
     const addVariant = () => {
         const newVariant = {
             name: '', sku: '', price: '', costPrice: '', stock: '',
             unitOfMeasure: 'unidad', imageUrl: '', color: '', size: '', material: '',
-            autoGeneratedVariantSku: '', // Initialize auto-generated SKU for the new variant
+            autoGeneratedVariantSku: '', // Inicializa el SKU auto-generado para la nueva variante
+            // --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA NUEVA VARIANTE ---
+            isPerishable: false,
+            reorderThreshold: 0,
+            optimalMaxStock: 0,
+            shelfLifeDays: 0,
+            // --- FIN NUEVOS CAMPOS ---
         };
         if (showAddModal) {
             setNewProduct(prev => ({ ...prev, variants: [...prev.variants, newVariant] }));
@@ -487,22 +597,22 @@ const InventoryPage = () => {
         }
     };
 
-    // Function to remove a variant by its index.
+    // Función para eliminar una variante por su índice.
     const removeVariant = (indexToRemove) => {
-        // Clear any specific form errors related to the removed variant
+        // Limpia cualquier error de formulario específico relacionado con la variante eliminada
         setFormErrors(prevErrors => {
             const newErrors = { ...prevErrors };
             Object.keys(newErrors).forEach(key => {
                 if (key.startsWith(`variant-${indexToRemove}-`)) {
-                    delete newErrors[key];
+                    delete newErrors[key]; // Elimina errores de la variante que se va a quitar
                 }
             });
-            // Adjust indices for errors of subsequent variants to maintain correctness
+            // Ajusta los índices para los errores de variantes subsiguientes para mantener la corrección
             const adjustedErrors = {};
             for (const key in newErrors) {
                 const parts = key.split('-');
                 if (parts[0] === 'variant' && parseInt(parts[1]) > indexToRemove) {
-                    const newIndex = parseInt(parts[1]) - 1;
+                    const newIndex = parseInt(parts[1]) - 1; // Decrementa el índice del error
                     adjustedErrors[`variant-${newIndex}-${parts[2]}`] = newErrors[key];
                 } else {
                     adjustedErrors[key] = newErrors[key];
@@ -514,31 +624,32 @@ const InventoryPage = () => {
         if (showAddModal) {
             setNewProduct(prev => ({
                 ...prev,
-                variants: prev.variants.filter((_, index) => index !== indexToRemove)
+                variants: prev.variants.filter((_, index) => index !== indexToRemove) // Filtra la variante
             }));
         } else if (showEditModal) {
             setEditingProduct(prev => ({
                 ...prev,
-                variants: prev.variants.filter((_, index) => index !== indexToRemove)
+                variants: prev.variants.filter((_, index) => index !== indexToRemove) // Filtra la variante
             }));
         }
     };
 
-    // Function to validate the entire product form (main product and all variants) before submission.
+    // Función para validar todo el formulario de producto (producto principal y todas las variantes) antes del envío.
     const validateForm = (productState, isNewProduct = true) => {
         let errors = {};
-        let isValid = true;
-        // Determine the final SKU for the main product based on user input or auto-generation
+        let isValid = true; // Indicador general de validez del formulario
+
+        // Determina el SKU final para el producto principal basado en la entrada del usuario o auto-generación
         const finalMainSku = isNewProduct ?
             (productState.sku.trim() === '' ? autoGeneratedSku : productState.sku) :
             productState.sku;
 
-        // Main product validations
+        // Validaciones del producto principal
         if (productState.name.trim() === '') { errors.name = 'El nombre es obligatorio.'; isValid = false; }
         if (productState.category.trim() === '') { errors.category = 'La categoría es obligatoria.'; isValid = false; }
 
         if (productState.variants.length === 0) {
-            // Only validate main product fields if no variants exist
+            // Solo valida campos del producto principal si no existen variantes
             if (finalMainSku.trim() === '') { errors.sku = 'El SKU es obligatorio si no hay variantes.'; isValid = false; }
             if (productState.price === '' || productState.price === null || productState.price === undefined) { errors.price = 'El precio de venta es obligatorio.'; isValid = false; }
             else if (isNaN(Number(productState.price)) || Number(productState.price) <= 0) { errors.price = 'El precio debe ser un número positivo.'; isValid = false; }
@@ -550,11 +661,18 @@ const InventoryPage = () => {
             else if (isNaN(Number(productState.stock)) || Number(productState.stock) < 0) { errors.stock = 'El stock debe ser un número no negativo.'; isValid = false; }
 
             if (productState.unitOfMeasure.trim() === '') { errors.unitOfMeasure = 'La unidad de medida es obligatoria.'; isValid = false; }
+
+            // Validaciones de nuevos campos para producto principal (sin variantes)
+            if (isNaN(Number(productState.reorderThreshold)) || Number(productState.reorderThreshold) < 0) { errors.reorderThreshold = 'El umbral de reaprovisionamiento debe ser un número no negativo.'; isValid = false; }
+            if (productState.isPerishable) { // Solo valida si el producto es perecedero
+                if (isNaN(Number(productState.optimalMaxStock)) || Number(productState.optimalMaxStock) < 0) { errors.optimalMaxStock = 'El stock óptimo máximo debe ser un número no negativo.'; isValid = false; }
+                if (isNaN(Number(productState.shelfLifeDays)) || Number(productState.shelfLifeDays) < 0) { errors.shelfLifeDays = 'Los días de vida útil deben ser un número no negativo.'; isValid = false; }
+            }
         }
 
-        // Variant validations
+        // Validaciones de variantes
         productState.variants.forEach((variant, index) => {
-            const variantPrefix = `variant-${index}-`;
+            const variantPrefix = `variant-${index}-`; // Prefijo para errores de variante
             const finalVariantSku = variant.sku.trim() === '' ? variant.autoGeneratedVariantSku : variant.sku;
 
             if (variant.name.trim() === '') { errors[`${variantPrefix}name`] = 'El nombre de la variante es obligatorio.'; isValid = false; }
@@ -570,63 +688,77 @@ const InventoryPage = () => {
             else if (isNaN(Number(variant.stock)) || Number(variant.stock) < 0) { errors[`${variantPrefix}stock`] = 'El stock debe ser no negativo.'; isValid = false; }
 
             if (variant.unitOfMeasure.trim() === '') { errors[`${variantPrefix}unitOfMeasure`] = 'La unidad de medida es obligatoria.'; isValid = false; }
+
+            // Validaciones de nuevos campos para variantes
+            if (isNaN(Number(variant.reorderThreshold)) || Number(variant.reorderThreshold) < 0) { errors[`${variantPrefix}reorderThreshold`] = 'El umbral de reaprovisionamiento debe ser un número no negativo.'; isValid = false; }
+            if (variant.isPerishable) { // Solo valida si la variante es perecedera
+                if (isNaN(Number(variant.optimalMaxStock)) || Number(variant.optimalMaxStock) < 0) { errors[`${variantPrefix}optimalMaxStock`] = 'El stock óptimo máximo debe ser un número no negativo.'; isValid = false; }
+                if (isNaN(Number(variant.shelfLifeDays)) || Number(variant.shelfLifeDays) < 0) { errors[`${variantPrefix}shelfLifeDays`] = 'Los días de vida útil deben ser un número no negativo.'; isValid = false; }
+            }
         });
 
-        setFormErrors(errors);
-        return isValid;
+        setFormErrors(errors); // Actualiza el estado de errores del formulario
+        return isValid; // Devuelve la validez general del formulario
     };
 
-
-    // Handles form submission for adding a new product.
+    // Maneja el envío del formulario para añadir un nuevo producto.
     const handleAddProduct = async (e) => {
-        e.preventDefault();
-        setError('');
-        setSuccessMessage('');
+        e.preventDefault(); // Previene el comportamiento por defecto del formulario
+        setError(''); // Limpia mensajes de error previos
+        setSuccessMessage(''); // Limpia mensajes de éxito previos
 
-        // Validate the entire form before proceeding
+        // Valida el formulario completo antes de proceder con el envío
         const isValid = validateForm(newProduct, true);
         if (!isValid) {
             displayMessage('Por favor, corrige los errores en el formulario.', 'error');
-            return;
+            return; // Detiene la ejecución si hay errores de validación
         }
 
-        setLoading(true); // Activate general loading state
+        setLoading(true); // Activa el estado de carga general
 
         let uploadedMainImageUrl = '';
-        // If there's a main image file selected OR a URL entered in the form, try to upload/process it.
+        // Si hay un archivo de imagen principal seleccionado O una URL introducida en el formulario, intentar subirlo/procesarlo.
         if (imageFile || (newProduct.imageUrl && newProduct.imageUrl.trim() !== '')) {
             const uploadResult = await uploadImageToCloud(imageFile || newProduct.imageUrl);
             if (!uploadResult.success) {
-                setLoading(false); // Deactivate loading if image upload fails
-                return; // Stop the process if image upload fails
+                setLoading(false); // Desactiva la carga si la subida de imagen falla
+                return; // Detiene el proceso si la subida de imagen falla
             }
             uploadedMainImageUrl = uploadResult.url;
         }
 
-        // Determine the final SKU for the main product (user input or auto-generated)
-        const finalMainSku = newProduct.sku.trim() === '' ? (autoGeneratedSku || undefined) : newProduct.sku;
+        // Determina el SKU final para el producto principal (entrada del usuario o auto-generado)
+        // Asegura que SKU sea siempre un string (incluso si está vacío o undefined)
+        const finalMainSku = newProduct.sku.trim() === '' ? (autoGeneratedSku || '') : newProduct.sku;
 
-        // Construct the product object to send to the backend.
-        // If variants exist, main product's price, stock, costPrice, unitOfMeasure, color, size, material
-        // are set to undefined to avoid overwriting the model, as these are managed by variants.
+        // Construye el objeto de producto para enviar al backend.
+        // Si existen variantes, los campos de precio, stock, etc. del producto principal se establecen a 0 o cadena vacía.
+        // Esto es necesario para que Mongoose no marque estos campos como "required" si el producto tiene variantes
+        // y estos valores se gestionan a nivel de variante.
         const productToSend = {
             ...newProduct,
-            sku: finalMainSku || '', // Ensure SKU is always a string, even if finalMainSku is empty/undefined
-            imageUrl: uploadedMainImageUrl || '', // Ensure imageUrl is always a string
-            // If no variants, ensure price, stock, costPrice are numbers (0 if empty string). Otherwise, undefined.
-            price: (newProduct.variants.length > 0) ? undefined : (newProduct.price === '' ? 0 : Number(newProduct.price)),
-            stock: (newProduct.variants.length > 0) ? undefined : (newProduct.stock === '' ? 0 : Number(newProduct.stock)),
-            costPrice: (newProduct.variants.length > 0) ? undefined : (newProduct.costPrice === '' ? 0 : Number(newProduct.costPrice)),
-            // Ensure unitOfMeasure, color, size, material are empty strings if no variants and left empty by user
-            unitOfMeasure: (newProduct.variants.length > 0) ? undefined : (newProduct.unitOfMeasure || 'unidad'),
-            color: (newProduct.variants.length > 0) ? undefined : (newProduct.color || ''),
-            size: (newProduct.variants.length > 0) ? undefined : (newProduct.size || ''),
-            material: (newProduct.variants.length > 0) ? undefined : (newProduct.material || ''),
+            sku: finalMainSku, // SKU final del producto principal
+            imageUrl: uploadedMainImageUrl, // URL de la imagen principal final
+            // --- CORRECCIÓN CRÍTICA: Si existen variantes, los campos `required` del producto principal deben ser 0 o '' ---
+            price: newProduct.variants.length > 0 ? 0 : (newProduct.price === '' ? 0 : Number(newProduct.price)),
+            stock: newProduct.variants.length > 0 ? 0 : (newProduct.stock === '' ? 0 : Number(newProduct.stock)),
+            costPrice: newProduct.variants.length > 0 ? 0 : (newProduct.costPrice === '' ? 0 : Number(newProduct.costPrice)),
+            unitOfMeasure: newProduct.variants.length > 0 ? 'unidad' : (newProduct.unitOfMeasure || 'unidad'),
+            color: newProduct.variants.length > 0 ? '' : (newProduct.color || ''),
+            size: newProduct.variants.length > 0 ? '' : (newProduct.size || ''),
+            material: newProduct.variants.length > 0 ? '' : (newProduct.material || ''),
+            // --- FIN CORRECCIÓN ---
+            // Nuevos campos de stock/perecederos para producto principal
+            isPerishable: Boolean(newProduct.isPerishable), // Convierte a booleano
+            reorderThreshold: Number(newProduct.reorderThreshold) || 0, // Asegura que sea número, por defecto 0
+            optimalMaxStock: Number(newProduct.optimalMaxStock) || 0, // Asegura que sea número, por defecto 0
+            shelfLifeDays: Number(newProduct.shelfLifeDays) || 0, // Asegura que sea número, por defecto 0
         };
-        // Map variants to ensure correct data types and final SKU for each variant.
+
+        // Mapea las variantes para asegurar tipos de datos correctos y SKU final para cada variante.
         productToSend.variants = newProduct.variants.map(variant => ({
             name: variant.name,
-            sku: (variant.sku.trim() === '' ? variant.autoGeneratedVariantSku : variant.sku) || '', // Asegura que siempre sea un string
+            sku: (variant.sku.trim() === '' ? variant.autoGeneratedVariantSku : variant.sku) || '', // SKU final de la variante
             price: Number(variant.price),
             costPrice: Number(variant.costPrice),
             stock: Number(variant.stock),
@@ -635,105 +767,126 @@ const InventoryPage = () => {
             color: variant.color || '',
             size: variant.size || '',
             material: variant.material || '',
+            // Nuevos campos para variantes
+            isPerishable: Boolean(variant.isPerishable),
+            reorderThreshold: Number(variant.reorderThreshold) || 0,
+            optimalMaxStock: Number(variant.optimalMaxStock) || 0,
+            shelfLifeDays: Number(variant.shelfLifeDays) || 0,
         }));
 
         try {
-            const response = await axiosInstance.post('/products', productToSend);
+            const response = await axiosInstance.post('/products', productToSend); // Petición POST para añadir producto
 
-            displayMessage('Producto añadido exitosamente.', 'success');
-            setProducts(prev => [response.data, ...prev]); // Add new product to the beginning of the list
-            // Reset all form states to clear the modal for next use
+            displayMessage('Producto añadido exitosamente.', 'success'); // Muestra mensaje de éxito
+            setProducts(prev => [response.data, ...prev]); // Añade el nuevo producto al principio de la lista
+            // Reinicia todos los estados del formulario para limpiar el modal para el siguiente uso
             setNewProduct({
                 name: '', description: '', category: '', price: '', stock: '',
                 costPrice: '', sku: '', unitOfMeasure: 'unidad', brand: '', supplier: '', imageUrl: '',
-                color: '', size: '', material: '', variants: []
+                color: '', size: '', material: '', variants: [],
+                isPerishable: false, reorderThreshold: 0, optimalMaxStock: 0, shelfLifeDays: 0 // Reinicia nuevos campos
             });
-            setImageFile(null); // Reset main image file input
-            setImagePreviewUrl(''); // Reset main image preview
+            setImageFile(null); // Reinicia el archivo de imagen principal
+            setImagePreviewUrl(''); // Reinicia la previsualización de imagen principal
             setAutoGeneratedSku('');
-            setShowAddModal(false); // Hide the modal
-            setShowAdvancedOptions(false); // Collapse advanced options
-            setFormErrors({}); // Clear all form errors
-            fetchFilterOptions(); // Refresh filter options in case new categories/brands were added
+            setShowAddModal(false); // Oculta el modal
+            setShowAdvancedOptions(false); // Colapsa las opciones avanzadas
+            setFormErrors({}); // Limpia todos los errores de formulario
+            fetchFilterOptions(); // Actualiza las opciones de filtro en caso de que se hayan añadido nuevas categorías/marcas
+            fetchLowStockAlerts(); // Vuelve a obtener alertas de stock bajo
+            fetchHighStockAlerts(); // Vuelve a obtener alertas de stock alto
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Error al añadir producto. Por favor, inténtalo de nuevo.';
-            displayMessage(errorMessage, 'error');
+            displayMessage(errorMessage, 'error'); // Muestra mensaje de error
         } finally {
-            setLoading(false); // Deactivate general loading state
+            setLoading(false); // Desactiva el estado de carga general
         }
     };
 
-    // Handles the click event for editing a product, populating the edit form.
+    // Maneja el clic en "Editar" para cargar los datos del producto en el modal de edición.
     const handleEditClick = (product) => {
         setEditingProduct({
             ...product,
-            // Format numeric fields to fixed 2 decimal places for consistency in input fields
+            // Asegura que los campos numéricos se formateen a 2 decimales o cadena vacía si no están definidos
             price: product.price !== undefined && product.price !== null ? parseFloat(product.price).toFixed(2) : '',
             costPrice: product.costPrice !== undefined && product.costPrice !== null ? parseFloat(product.costPrice).toFixed(2) : '',
-            unitOfMeasure: product.unitOfMeasure || 'unidad', // Default to 'unidad' if not set
-            brand: product.brand || '', // Ensure brand exists or is empty string
-            supplier: product.supplier || '', // Ensure supplier exists or is empty string
-            description: product.description || '', // Ensure description exists or is empty string
-            imageUrl: product.imageUrl || '', // Ensure imageUrl exists or is empty string
-            color: product.color || '',    // Populate main product color
-            size: product.size || '',       // Populate main product size
-            material: product.material || '', // Populate main product material
-            variants: product.variants ? product.variants.map(v => ({ // Map variants to ensure fields and auto-generate SKU
+            unitOfMeasure: product.unitOfMeasure || 'unidad', // Usa valor por defecto si es nulo
+            brand: product.brand || '',
+            supplier: product.supplier || '',
+            description: product.description || '',
+            imageUrl: product.imageUrl || '',
+            color: product.color || '',
+            size: product.size || '',
+            material: product.material || '',
+            // --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA PRODUCTO PRINCIPAL (al cargar para edición) ---
+            isPerishable: product.isPerishable || false,
+            reorderThreshold: product.reorderThreshold || 0,
+            optimalMaxStock: product.optimalMaxStock || 0,
+            shelfLifeDays: product.shelfLifeDays || 0,
+            // --- FIN NUEVOS CAMPOS ---
+            variants: product.variants ? product.variants.map(v => ({
                 ...v,
                 price: parseFloat(v.price).toFixed(2),
                 costPrice: parseFloat(v.costPrice).toFixed(2),
+                stock: Number(v.stock), // Ensure stock is a number for editing
                 unitOfMeasure: v.unitOfMeasure || 'unidad',
                 color: v.color || '',
                 size: v.size || '',
                 material: v.material || '',
                 imageUrl: v.imageUrl || '',
-                // If variant SKU exists, do not auto-generate. If not, auto-generate.
+                // Si el SKU de la variante existe, no auto-generar. Si no, auto-generar.
                 autoGeneratedVariantSku: v.sku && v.sku.trim() !== '' ? '' : generateSkuFromName(v.name || ''),
-            })) : [],
+                // --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA VARIANTE (al cargar para edición) ---
+                isPerishable: v.isPerishable || false,
+                reorderThreshold: v.reorderThreshold || 0,
+                optimalMaxStock: v.optimalMaxStock || 0,
+                shelfLifeDays: v.shelfLifeDays || 0,
+                // --- FIN NUEVOS CAMPOS ---
+            })) : [], // Mapea las variantes existentes, aplicando formato y valores por defecto
         });
-        setImageFile(null); // Clear any pending local file selection for the main image
-        setImagePreviewUrl(product.imageUrl || ''); // Set the image preview to the existing product's image URL
-        setShowEditModal(true); // Show the edit modal
-        setShowAddModal(false); // Ensure add modal is hidden
-        setError(''); // Clear any previous error messages
-        setSuccessMessage(''); // Clear any previous success messages
-        setFormErrors({}); // Clear all form errors when opening edit form
+        setImageFile(null); // Limpia cualquier selección de archivo local pendiente para la imagen principal
+        setImagePreviewUrl(product.imageUrl || ''); // Establece la previsualización de la imagen a la URL existente del producto
+        setShowEditModal(true); // Muestra el modal de edición
+        setShowAddModal(false); // Asegura que el modal de añadir esté oculto
+        setError(''); // Limpia cualquier mensaje de error anterior
+        setSuccessMessage(''); // Limpia cualquier mensaje de éxito anterior
+        setFormErrors({}); // Limpia todos los errores de formulario al abrir el formulario de edición
     };
 
-    // Handles form submission for updating an existing product.
+    // Maneja el envío del formulario para actualizar un producto existente.
     const handleUpdateProduct = async (e) => {
-        e.preventDefault();
-        if (!editingProduct || !editingProduct._id) return; // Ensure a product is selected for editing
+        e.preventDefault(); // Previene el comportamiento por defecto del formulario
+        if (!editingProduct || !editingProduct._id) return; // Asegura que un producto esté seleccionado para edición
 
-        setError('');
-        setSuccessMessage('');
+        setError(''); // Limpia mensajes de error previos
+        setSuccessMessage(''); // Limpia mensajes de éxito previos
 
-        // Validate the entire form before proceeding
-        const isValid = validateForm(editingProduct, false); // Pass `false` for isNewProduct
+        // Valida el formulario completo antes de proceder con el envío
+        const isValid = validateForm(editingProduct, false); // Pasa `false` para indicar que no es un producto nuevo
         if (!isValid) {
             displayMessage('Por favor, corrige los errores en el formulario.', 'error');
-            return;
+            return; // Detiene la ejecución si hay errores de validación
         }
 
-        setLoading(true); // Activate general loading state
+        setLoading(true); // Activa el estado de carga general
 
-        let uploadedMainImageUrl = editingProduct.imageUrl; // Start with the current imageUrl from the editingProduct state
+        let uploadedMainImageUrl = editingProduct.imageUrl; // Comienza con la URL de imagen actual del estado editingProduct
 
-        // Logic to handle main product image updates:
+        // Lógica para manejar las actualizaciones de la imagen principal del producto:
         if (imageFile) {
-            // Case 1: A new local file was selected. Upload it.
+            // Caso 1: Se seleccionó un nuevo archivo local. Subirlo a Cloudinary.
             const uploadResult = await uploadImageToCloud(imageFile);
             if (!uploadResult.success) {
                 setLoading(false);
-                return; // Stop the process if upload fails
+                return; // Detiene el proceso si la subida falla
             }
             uploadedMainImageUrl = uploadResult.url;
         } else if (editingProduct.imageUrl === '') {
-            // Case 2: The imageUrl text field was explicitly cleared by the user, and no new file was selected.
-            // Set to undefined to effectively remove the image from the product on the backend.
-            uploadedMainImageUrl = undefined;
+            // Caso 2: El campo de texto imageUrl fue limpiado explícitamente por el usuario, y no se seleccionó un nuevo archivo.
+            // Establecer a cadena vacía para que el backend la elimine o la guarde como vacía.
+            uploadedMainImageUrl = '';
         } else if (uploadedMainImageUrl && !uploadedMainImageUrl.includes('res.cloudinary.com')) {
-            // Case 3: A new URL was pasted into the imageUrl field, and it's not yet a Cloudinary URL. Upload it.
+            // Caso 3: Se pegó una nueva URL en el campo imageUrl, y aún no es una URL de Cloudinary. Subirla.
             const uploadResult = await uploadImageToCloud(uploadedMainImageUrl);
             if (!uploadResult.success) {
                 setLoading(false);
@@ -741,29 +894,33 @@ const InventoryPage = () => {
             }
             uploadedMainImageUrl = uploadResult.url;
         }
-        // If none of the above, it means no change to the image or the existing URL is already Cloudinary.
-        // In this case, `uploadedMainImageUrl` already holds the correct `editingProduct.imageUrl` value.
+        // Si no se cumple ninguna de las anteriores, significa que no hay cambios en la imagen o la URL existente ya es de Cloudinary.
+        // En este caso, `uploadedMainImageUrl` ya contiene el valor correcto de `editingProduct.imageUrl`.
 
 
-        // Construct the product object to send to the backend for update.
-        // Similar to add, if variants exist, main product's granular fields are set to undefined.
+        // Construye el objeto de producto para enviar al backend para la actualización.
         const productToSend = {
             ...editingProduct,
-            imageUrl: uploadedMainImageUrl || '', // Ensure imageUrl is always a string
-            // If no variants, ensure price, stock, costPrice are numbers (0 if empty string). Otherwise, undefined.
-            price: (editingProduct.variants.length > 0) ? undefined : (editingProduct.price === '' ? 0 : Number(editingProduct.price)),
-            stock: (editingProduct.variants.length > 0) ? undefined : (editingProduct.stock === '' ? 0 : Number(editingProduct.stock)),
-            costPrice: (editingProduct.variants.length > 0) ? undefined : (editingProduct.costPrice === '' ? 0 : Number(editingProduct.costPrice)),
-            // Ensure unitOfMeasure, color, size, material are empty strings if no variants and left empty by user
-            unitOfMeasure: (editingProduct.variants.length > 0) ? undefined : (editingProduct.unitOfMeasure || 'unidad'),
-            color: (editingProduct.variants.length > 0) ? undefined : (editingProduct.color || ''),
-            size: (editingProduct.variants.length > 0) ? undefined : (editingProduct.size || ''),
-            material: (editingProduct.variants.length > 0) ? undefined : (editingProduct.material || ''),
+            imageUrl: uploadedMainImageUrl, // URL de la imagen principal final
+            // --- CORRECCIÓN CRÍTICA: Si existen variantes, los campos `required` del producto principal deben ser 0 o '' ---
+            price: editingProduct.variants.length > 0 ? 0 : (editingProduct.price === '' ? 0 : Number(editingProduct.price)),
+            stock: editingProduct.variants.length > 0 ? 0 : (editingProduct.stock === '' ? 0 : Number(editingProduct.stock)),
+            costPrice: editingProduct.variants.length > 0 ? 0 : (editingProduct.costPrice === '' ? 0 : Number(editingProduct.costPrice)),
+            unitOfMeasure: editingProduct.variants.length > 0 ? 'unidad' : (editingProduct.unitOfMeasure || 'unidad'),
+            color: editingProduct.variants.length > 0 ? '' : (editingProduct.color || ''),
+            size: editingProduct.variants.length > 0 ? '' : (editingProduct.size || ''),
+            material: editingProduct.variants.length > 0 ? '' : (editingProduct.material || ''),
+            // --- FIN CORRECCIÓN ---
+            // Nuevos campos de stock/perecederos para producto principal
+            isPerishable: Boolean(editingProduct.isPerishable),
+            reorderThreshold: Number(editingProduct.reorderThreshold) || 0,
+            optimalMaxStock: Number(editingProduct.optimalMaxStock) || 0,
+            shelfLifeDays: Number(editingProduct.shelfLifeDays) || 0,
         };
-        // Ensure variants are mapped with their finalized SKUs and existing `_id` if they are not new.
+        // Asegura que las variantes se mapeen con sus SKUs finalizados y sus `_id` existentes si no son nuevas.
         productToSend.variants = editingProduct.variants.map(variant => ({
             name: variant.name,
-            sku: (variant.sku.trim() === '' ? variant.autoGeneratedVariantSku : variant.sku) || '', // Asegura que siempre sea un string
+            sku: (variant.sku.trim() === '' ? variant.autoGeneratedVariantSku : variant.sku) || '', // SKU final de la variante
             price: Number(variant.price),
             costPrice: Number(variant.costPrice),
             stock: Number(variant.stock),
@@ -772,28 +929,34 @@ const InventoryPage = () => {
             color: variant.color || '',
             size: variant.size || '',
             material: variant.material || '',
-            ...(variant._id && { _id: variant._id }) // Only include `_id` if it exists (for existing variants)
+            // Nuevos campos para variantes
+            isPerishable: Boolean(variant.isPerishable),
+            reorderThreshold: Number(variant.reorderThreshold) || 0,
+            optimalMaxStock: Number(variant.optimalMaxStock) || 0,
+            shelfLifeDays: Number(variant.shelfLifeDays) || 0,
+            ...(variant._id && { _id: variant._id }) // Solo incluye `_id` si existe (para variantes existentes)
         }));
 
-
         try {
-            const response = await axiosInstance.put(`/products/${editingProduct._id}`, productToSend);
+            const response = await axiosInstance.put(`/products/${editingProduct._id}`, productToSend); // Petición PUT para actualizar producto
 
-            displayMessage('Producto actualizado exitosamente.', 'success');
-            // Update the product list by replacing the old product with the updated one
+            displayMessage('Producto actualizado exitosamente.', 'success'); // Muestra mensaje de éxito
+            // Actualiza la lista de productos reemplazando el producto antiguo con el actualizado
             setProducts(prev => prev.map(p => (p._id === editingProduct._id ? response.data : p)));
-            setEditingProduct(null); // Clear the editing product state
-            setImageFile(null); // Reset main image file input
-            setImagePreviewUrl(''); // Reset main image preview
-            setShowEditModal(false); // Hide the edit modal
-            setShowAdvancedOptions(false); // Collapse advanced options
-            setFormErrors({}); // Clear all form errors
-            fetchFilterOptions(); // Refresh filter options in case product attributes changed
+            setEditingProduct(null); // Limpia el estado del producto en edición
+            setImageFile(null); // Reinicia el archivo de imagen principal
+            setImagePreviewUrl(''); // Reinicia la previsualización de imagen principal
+            setShowEditModal(false); // Oculta el modal de edición
+            setShowAdvancedOptions(false); // Colapsa las opciones avanzadas
+            setFormErrors({}); // Limpia todos los errores de formulario
+            fetchFilterOptions(); // Actualiza las opciones de filtro en caso de que los atributos del producto hayan cambiado
+            fetchLowStockAlerts(); // Vuelve a obtener alertas de stock bajo
+            fetchHighStockAlerts(); // Vuelve a obtener alertas de stock alto
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Error al actualizar producto. Por favor, inténtalo de nuevo.';
-            displayMessage(errorMessage, 'error');
+            displayMessage(errorMessage, 'error'); // Muestra mensaje de error
         } finally {
-            setLoading(false); // Deactivate general loading state
+            setLoading(false); // Desactiva el estado de carga general
         }
     };
 
@@ -835,6 +998,9 @@ const InventoryPage = () => {
 
             setShowConfirmModal(false); // Hide the confirmation modal
             setProductToDelete(null); // Clear the ID of the product to be deleted
+            fetchFilterOptions(); // Refresh filter options
+            fetchLowStockAlerts(); // Refresh low stock alerts
+            fetchHighStockAlerts(); // Refresh high stock alerts
 
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Error al eliminar producto. Por favor, inténtalo de nuevo.';
@@ -854,11 +1020,12 @@ const InventoryPage = () => {
         setCurrentPage(prev => Math.min(totalPages, prev + 1));
     };
 
+    // JSX para renderizar el componente de la página de inventario
     return (
-        <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen font-inter"> {/* Applied font-inter */}
+        <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen font-inter"> {/* Aplicado font-inter */}
             <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Gestión de Inventario</h2>
 
-            {/* Success Message Display */}
+            {/* Visualización de Mensaje de Éxito */}
             {successMessage && (
                 <div className="bg-green-700 bg-opacity-30 border border-green-500 text-green-300 px-4 py-3 rounded relative mb-6 animate-fade-in-down" role="alert">
                     <strong className="font-bold">¡Éxito!</strong>
@@ -866,7 +1033,7 @@ const InventoryPage = () => {
                 </div>
             )}
 
-            {/* Error Message Display */}
+            {/* Visualización de Mensaje de Error */}
             {error && (
                 <div className="bg-red-700 bg-opacity-30 border border-red-500 text-red-300 px-4 py-3 rounded relative mb-6 animate-fade-in-down" role="alert">
                     <strong className="font-bold">¡Error!</strong>
@@ -874,11 +1041,11 @@ const InventoryPage = () => {
                 </div>
             )}
 
-            {/* Confirmation Modal for Deletion */}
+            {/* Modal de Confirmación para Eliminación */}
             <div
                 className={`fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 transition-opacity duration-300 ${showConfirmModal ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
                 onClick={(e) => {
-                    e.stopPropagation(); // Prevent closing when clicking background
+                    e.stopPropagation(); // Previene el cierre al hacer clic en el fondo
                     setShowConfirmModal(false);
                     setProductToDelete(null);
                     setError('');
@@ -887,7 +1054,7 @@ const InventoryPage = () => {
             >
                 <div
                     className={`bg-deep-night-blue p-8 rounded-lg shadow-2xl text-neutral-light max-w-sm w-full text-center border border-neutral-gray-700 transform transition-transform duration-300 ${showConfirmModal ? 'scale-100' : 'scale-95'}`}
-                    onClick={(e) => e.stopPropagation()} // Prevent modal from closing when clicking inside
+                    onClick={(e) => e.stopPropagation()} // Previene el cierre del modal al hacer clic dentro
                 >
                     <h3 className="text-xl font-bold mb-4 text-copper-rose-accent">Confirmar Eliminación</h3>
                     <p className="mb-6 text-neutral-gray-300">¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer.</p>
@@ -916,9 +1083,9 @@ const InventoryPage = () => {
                 </div>
             </div>
 
-            {/* --- Search, Filter, and Add Product Section --- */}
+            {/* --- Sección de Búsqueda, Filtros y Añadir Producto --- */}
             <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-center">
-                {/* Consolidated Search Input */}
+                {/* Campo de Búsqueda Consolidado */}
                 <div className="relative col-span-full mb-4 md:mb-0">
                     <input
                         type="text"
@@ -926,7 +1093,7 @@ const InventoryPage = () => {
                         value={searchTerm}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
-                            setCurrentPage(1); // Reset to first page on new search
+                            setCurrentPage(1); // Reinicia a la primera página con cada nueva búsqueda
                         }}
                         className="shadow appearance-none border border-neutral-gray-700 rounded-full w-full py-2 px-4 pl-10 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light"
                     />
@@ -936,7 +1103,7 @@ const InventoryPage = () => {
                             size={20}
                             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer hover:text-gray-300"
                             onClick={() => {
-                                // Clear search term and all filters, then re-fetch products
+                                // Limpia el término de búsqueda y todos los filtros, luego vuelve a cargar los productos
                                 setSearchTerm('');
                                 setCurrentPage(1);
                                 setSelectedCategory('Todas las Categorías');
@@ -944,20 +1111,20 @@ const InventoryPage = () => {
                                 setSelectedSupplier('Todos los Proveedores');
                                 setSelectedVariantColor('Todos los Colores');
                                 setSelectedVariantSize('Todas las Tallas');
-                                // A direct call to fetchProducts is not needed here as state changes will trigger useEffect.
+                                // Una llamada directa a fetchProducts no es necesaria aquí ya que los cambios de estado activarán useEffect.
                             }}
                         />
                     )}
                 </div>
 
-                {/* Filter Dropdowns - Responsive layout */}
+                {/* Desplegables de Filtro - Diseño Responsivo */}
                 <select
                     id="categoryFilter"
                     value={selectedCategory}
                     onChange={(e) => {
                         setSelectedCategory(e.target.value);
-                        setCurrentPage(1); // Reset to first page on filter change
-                        // fetchProducts() will be triggered by useEffect due to dependency change
+                        setCurrentPage(1); // Reinicia a la primera página al cambiar el filtro
+                        // fetchProducts() se activará por useEffect debido al cambio de dependencia
                     }}
                     className="shadow appearance-none border border-neutral-gray-700 rounded-full w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light"
                 >
@@ -972,7 +1139,7 @@ const InventoryPage = () => {
                     onChange={(e) => {
                         setSelectedBrand(e.target.value);
                         setCurrentPage(1);
-                        // fetchProducts() will be triggered by useEffect due to dependency change
+                        // fetchProducts() se activará por useEffect debido al cambio de dependencia
                     }}
                     className="shadow appearance-none border border-neutral-gray-700 rounded-full w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light"
                 >
@@ -987,7 +1154,7 @@ const InventoryPage = () => {
                     onChange={(e) => {
                         setSelectedSupplier(e.target.value);
                         setCurrentPage(1);
-                        // fetchProducts() will be triggered by useEffect due to dependency change
+                        // fetchProducts() se activará por useEffect debido al cambio de dependencia
                     }}
                     className="shadow appearance-none border border-neutral-gray-700 rounded-full w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light"
                 >
@@ -1002,7 +1169,7 @@ const InventoryPage = () => {
                     onChange={(e) => {
                         setSelectedVariantColor(e.target.value);
                         setCurrentPage(1);
-                        // fetchProducts() will be triggered by useEffect due to dependency change
+                        // fetchProducts() se activará por useEffect debido al cambio de dependencia
                     }}
                     className="shadow appearance-none border border-neutral-gray-700 rounded-full w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light"
                 >
@@ -1017,7 +1184,7 @@ const InventoryPage = () => {
                     onChange={(e) => {
                         setSelectedVariantSize(e.target.value);
                         setCurrentPage(1);
-                        // fetchProducts() will be triggered by useEffect due to dependency change
+                        // fetchProducts() se activará por useEffect debido al cambio de dependencia
                     }}
                     className="shadow appearance-none border border-neutral-gray-700 rounded-full w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light"
                 >
@@ -1026,27 +1193,28 @@ const InventoryPage = () => {
                     ))}
                 </select>
 
-                {/* Add New Product Button */}
+                {/* Botón para Añadir Nuevo Producto */}
                 <button
                     onClick={() => {
-                        // Reset all states relevant to adding a new product before opening the modal
+                        // Reinicia todos los estados relevantes para añadir un nuevo producto antes de abrir el modal
                         setShowAddModal(true);
-                        setShowEditModal(false); // Ensure edit modal is closed
-                        setEditingProduct(null); // Clear any product being edited
-                        setError(''); // Clear general error message
-                        setSuccessMessage(''); // Clear general success message
-                        setGlobalProductSuggestions([]); // Clear global suggestions
-                        setNoGlobalSuggestionsFound(false); // Reset "no suggestions found" message
-                        setAutoGeneratedSku(''); // Clear auto-generated SKU
-                        setImageFile(null); // Clear selected main image file
-                        setImagePreviewUrl(''); // Clear main image preview URL
-                        setShowAdvancedOptions(false); // Collapse advanced options by default
-                        setNewProduct({ // Reset new product form fields to initial state
+                        setShowEditModal(false); // Asegura que el modal de edición esté cerrado
+                        setEditingProduct(null); // Limpia cualquier producto que se esté editando
+                        setError(''); // Limpia mensajes de error generales
+                        setSuccessMessage(''); // Limpia mensajes de éxito generales
+                        setGlobalProductSuggestions([]); // Limpia sugerencias globales
+                        setNoGlobalSuggestionsFound(false); // Reinicia el mensaje de "no se encontraron sugerencias"
+                        setAutoGeneratedSku(''); // Limpia el SKU auto-generado
+                        setImageFile(null); // Limpia el archivo de imagen principal seleccionado
+                        setImagePreviewUrl(''); // Limpia la URL de previsualización de imagen principal
+                        setShowAdvancedOptions(false); // Colapsa las opciones avanzadas por defecto
+                        setNewProduct({ // Reinicia los campos del formulario de nuevo producto a su estado inicial
                             name: '', description: '', category: '', price: '', stock: '',
                             costPrice: '', sku: '', unitOfMeasure: 'unidad', brand: '', supplier: '', imageUrl: '',
-                            color: '', size: '', material: '', variants: []
+                            color: '', size: '', material: '', variants: [],
+                            isPerishable: false, reorderThreshold: 0, optimalMaxStock: 0, shelfLifeDays: 0 // Reinicia nuevos campos
                         });
-                        setFormErrors({}); // Clear all form-specific validation errors
+                        setFormErrors({}); // Limpia todos los errores de validación específicos del formulario
                     }}
                     type="button"
                     className="col-span-full md:col-span-1 lg:col-span-2 xl:col-span-1 bg-action-blue hover:bg-blue-700 text-neutral-light font-bold py-3 px-6 rounded-lg text-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center w-full mt-4 md:mt-0"
@@ -1055,11 +1223,76 @@ const InventoryPage = () => {
                 </button>
             </div>
 
-            {/* --- Add Product Modal --- */}
+            {/* --- SECCIÓN DE ALERTAS DE STOCK --- */}
+            {(lowStockAlerts.length > 0 || highStockAlerts.length > 0) && (
+                <div className="mb-6 p-4 border border-yellow-600 rounded-md bg-yellow-900 bg-opacity-20 shadow-inner">
+                    <h3 className="text-xl font-bold text-yellow-300 mb-3 flex items-center">
+                        <Info size={20} className="mr-2" /> Alertas de Inventario
+                    </h3>
+
+                    {/* Alertas de Stock Bajo */}
+                    {lowStockAlerts.length > 0 && (
+                        <div className="mb-4">
+                            <h4 className="text-lg font-semibold text-neutral-light flex items-center mb-2">
+                                <ChevronDown size={16} className="mr-1" /> Stock Bajo:
+                            </h4>
+                            <ul className="list-disc pl-5 text-neutral-light">
+                                {lowStockAlerts.map(alert => (
+                                    <li key={alert._id} className="mb-1">
+                                        <span className="font-bold">{alert.name}</span>
+                                        {alert.isMainProduct ? (
+                                            ` (SKU: ${alert.sku}) - Stock: ${alert.stock} (Umbral: ${alert.reorderThreshold})`
+                                        ) : (
+                                            <>
+                                                : {alert.variantsInAlert.map((v, idx) => (
+                                                    <span key={v._id || idx} className="block ml-4">
+                                                        - {v.name} (SKU: {v.sku}) - Stock: {v.stock} (Umbral: {v.reorderThreshold})
+                                                    </span>
+                                                ))}
+                                            </>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Alertas de Stock Alto / Riesgo de Pérdida (Perecederos) */}
+                    {highStockAlerts.length > 0 && (
+                        <div>
+                            <h4 className="text-lg font-semibold text-neutral-light flex items-center mb-2">
+                                <ChevronUp size={16} className="mr-1" /> Stock Alto / Riesgo de Pérdida (Perecederos):
+                            </h4>
+                            <ul className="list-disc pl-5 text-neutral-light">
+                                {highStockAlerts.map(alert => (
+                                    <li key={alert._id} className="mb-1">
+                                        <span className="font-bold">{alert.name}</span>
+                                        {alert.isMainProduct ? (
+                                            ` (SKU: ${alert.sku}) - Stock: ${alert.stock} (Óptimo Máx: ${alert.optimalMaxStock}, Vida Útil: ${alert.shelfLifeDays} días)`
+                                        ) : (
+                                            <>
+                                                : {alert.variantsInAlert.map((v, idx) => (
+                                                    <span key={v._id || idx} className="block ml-4">
+                                                        - {v.name} (SKU: {v.sku}) - Stock: {v.stock} (Óptimo Máx: {v.optimalMaxStock}, Vida Útil: {v.shelfLifeDays} días)
+                                                    </span>
+                                                ))}
+                                            </>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            )}
+            {/* --- FIN SECCIÓN DE ALERTAS DE STOCK --- */}
+
+
+            {/* --- Modal para Añadir Producto --- */}
             <ProductModal
                 isOpen={showAddModal}
                 onClose={() => {
-                    // Reset all relevant states when closing the add product modal
+                    // Reinicia todos los estados relevantes al cerrar el modal de añadir producto
                     setShowAddModal(false);
                     setError('');
                     setSuccessMessage('');
@@ -1072,13 +1305,14 @@ const InventoryPage = () => {
                     setNewProduct({
                         name: '', description: '', category: '', price: '', stock: '',
                         costPrice: '', sku: '', unitOfMeasure: 'unidad', brand: '', supplier: '', imageUrl: '',
-                        color: '', size: '', material: '', variants: []
+                        color: '', size: '', material: '', variants: [],
+                        isPerishable: false, reorderThreshold: 0, optimalMaxStock: 0, shelfLifeDays: 0 // Reinicia nuevos campos
                     });
                     setFormErrors({});
                 }}
                 title="Añadir Nuevo Producto"
             >
-                {/* Add Product Form */}
+                {/* Formulario para Añadir Producto */}
                 <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="relative">
                         <label htmlFor="name" className="block text-neutral-light text-sm font-bold mb-2">
@@ -1098,21 +1332,21 @@ const InventoryPage = () => {
                             onChange={handleInputChange}
                             className={`shadow appearance-none border ${formErrors.name ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
                             placeholder="Ej. Camiseta Deportiva"
-                            required // Product name is always required
-                            onBlur={() => setTimeout(() => setShowGlobalSuggestions(false), 100)} // Hide suggestions quickly on blur
-                            onFocus={() => { // Show suggestions on focus if there are any and name length is sufficient
+                            required // El nombre del producto siempre es requerido
+                            onBlur={() => setTimeout(() => setShowGlobalSuggestions(false), 100)} // Oculta sugerencias rápidamente al perder el foco
+                            onFocus={() => { // Muestra sugerencias al enfocar si hay alguna y el nombre es lo suficientemente largo
                                 if (newProduct.name.trim().length >= 2 && globalProductSuggestions.length > 0) {
                                     setShowGlobalSuggestions(true);
                                 }
                             }}
                         />
                         {formErrors.name && <p className="text-red-400 text-xs mt-1">{formErrors.name}</p>}
-                        {/* Global Product Suggestions List */}
+                        {/* Lista de Sugerencias de Productos Globales */}
                         {showGlobalSuggestions && globalProductSuggestions.length > 0 && (
                             <ul className="absolute z-20 w-full bg-neutral-gray-800 border border-neutral-gray-700 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto">
                                 {globalProductSuggestions.map((suggestion) => (
                                     <li
-                                        key={suggestion.sku || suggestion.name} // Unique key for each suggestion
+                                        key={suggestion.sku || suggestion.name} // Clave única para cada sugerencia
                                         className="px-4 py-2 cursor-pointer hover:bg-action-blue-light hover:text-white text-neutral-light border-b border-neutral-gray-700 last:border-b-0"
                                         onClick={() => handleSelectGlobalProduct(suggestion)}
                                     >
@@ -1125,7 +1359,7 @@ const InventoryPage = () => {
                                 ))}
                             </ul>
                         )}
-                        {/* Message when no global suggestions are found */}
+                        {/* Mensaje cuando no se encuentran sugerencias globales */}
                         {noGlobalSuggestionsFound && !showGlobalSuggestions && (
                             <p className="text-orange-400 text-sm mt-2 animate-fade-in-down">
                                 No hay coincidencias. <span className="text-success-green">¡Estás registrando un nuevo producto!</span>
@@ -1150,7 +1384,7 @@ const InventoryPage = () => {
                             onChange={handleInputChange}
                             placeholder={autoGeneratedSku || 'Ej. CAMI-DEP-AZUL-M'}
                             className={`shadow appearance-none border ${formErrors.sku ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                            disabled={newProduct.variants.length > 0} // SKU is disabled if variants exist, as variants have their own SKUs
+                            disabled={newProduct.variants.length > 0} // El SKU está deshabilitado si existen variantes, ya que las variantes tienen sus propios SKUs
                         />
                         {formErrors.sku && <p className="text-red-400 text-xs mt-1">{formErrors.sku}</p>}
                     </div>
@@ -1176,8 +1410,8 @@ const InventoryPage = () => {
                             value={newProduct.unitOfMeasure}
                             onChange={handleInputChange}
                             className={`shadow appearance-none border ${formErrors.unitOfMeasure ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
-                            required={newProduct.variants.length === 0} // Required only if no variants
-                            disabled={newProduct.variants.length > 0} // Disabled if variants exist
+                            required={newProduct.variants.length === 0} // Requerido solo si no hay variantes
+                            disabled={newProduct.variants.length > 0} // Deshabilitado si existen variantes
                         >
                             {unitOfMeasureOptions.map(unit => (
                                 <option key={unit} value={unit}>{unit}</option>
@@ -1222,8 +1456,8 @@ const InventoryPage = () => {
                             step="0.01"
                             className={`shadow appearance-none border ${formErrors.price ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
                             placeholder="Ej. 29.99"
-                            required={newProduct.variants.length === 0} // Required only if no variants
-                            disabled={newProduct.variants.length > 0} // Disabled if variants exist
+                            required={newProduct.variants.length === 0} // Requerido solo si no hay variantes
+                            disabled={newProduct.variants.length > 0} // Deshabilitado si existen variantes
                         />
                         {formErrors.price && <p className="text-red-400 text-xs mt-1">{formErrors.price}</p>}
                     </div>
@@ -1238,8 +1472,8 @@ const InventoryPage = () => {
                             step="0.01"
                             className={`shadow appearance-none border ${formErrors.costPrice ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
                             placeholder="Ej. 15.00"
-                            required={newProduct.variants.length === 0} // Required only if no variants
-                            disabled={newProduct.variants.length > 0} // Disabled if variants exist
+                            required={newProduct.variants.length === 0} // Requerido solo si no hay variantes
+                            disabled={newProduct.variants.length > 0} // Deshabilitado si existen variantes
                         />
                         {formErrors.costPrice && <p className="text-red-400 text-xs mt-1">{formErrors.costPrice}</p>}
                     </div>
@@ -1253,8 +1487,8 @@ const InventoryPage = () => {
                             onChange={handleInputChange}
                             className={`shadow appearance-none border ${formErrors.stock ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
                             placeholder="Ej. 100"
-                            required={newProduct.variants.length === 0} // Required only if no variants
-                            disabled={newProduct.variants.length > 0} // Disabled if variants exist
+                            required={newProduct.variants.length === 0} // Requerido solo si no hay variantes
+                            disabled={newProduct.variants.length > 0} // Deshabilitado si existen variantes
                         />
                         {formErrors.stock && <p className="text-red-400 text-xs mt-1">{formErrors.stock}</p>}
                     </div>
@@ -1271,15 +1505,15 @@ const InventoryPage = () => {
                         {formErrors.description && <p className="text-red-400 text-xs mt-1">{formErrors.description}</p>}
                     </div>
 
-                    {/* --- START OF ADVANCED OPTIONS SECTION (ADD) --- */}
+                    {/* --- INICIO DE LA SECCIÓN DE OPCIONES AVANZADAS (AÑADIR) --- */}
                     <div className="md:col-span-2 mt-4">
-                        {/* Info message for disabled fields when variants exist */}
+                        {/* Mensaje de información para campos deshabilitados cuando existen variantes */}
                         {newProduct.variants.length > 0 && (
                             <p className="text-yellow-400 text-sm mb-4">
                                 <Info size={16} className="inline-block mr-1" /> Los campos de Precio, Stock, Costo, SKU, Unidad de Medida, Color, Talla/Tamaño y Material del producto principal están deshabilitados porque este producto tiene variantes. Gestiona estos detalles en cada variante.
                             </p>
                         )}
-                        {/* Toggle button for advanced options */}
+                        {/* Botón para alternar opciones avanzadas */}
                         <button
                             type="button"
                             onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
@@ -1288,10 +1522,10 @@ const InventoryPage = () => {
                             <span>Opciones Avanzadas</span>
                             {showAdvancedOptions ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                         </button>
-                        {/* Collapsible advanced options content */}
+                        {/* Contenido colapsable de opciones avanzadas */}
                         {showAdvancedOptions && (
                             <div className="mt-4 border border-neutral-gray-700 rounded-lg p-4 bg-dark-charcoal animate-fade-in-down">
-                                {/* Main Product Attributes (Color, Size, Material) */}
+                                {/* Atributos del Producto Principal (Color, Talla, Material) */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                     <div>
                                         <label htmlFor="color" className="block text-neutral-light text-sm font-bold mb-2">Color (Producto Principal - Opcional):</label>
@@ -1303,7 +1537,7 @@ const InventoryPage = () => {
                                             onChange={handleInputChange}
                                             className={`shadow appearance-none border ${formErrors.color ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
                                             placeholder="Ej. Azul, Negro"
-                                            disabled={newProduct.variants.length > 0} // Disabled if variants exist
+                                            disabled={newProduct.variants.length > 0} // Deshabilitado si existen variantes
                                         />
                                         {formErrors.color && <p className="text-red-400 text-xs mt-1">{formErrors.color}</p>}
                                     </div>
@@ -1317,7 +1551,7 @@ const InventoryPage = () => {
                                             onChange={handleInputChange}
                                             className={`shadow appearance-none border ${formErrors.size ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
                                             placeholder="Ej. S, L, XL, 32GB"
-                                            disabled={newProduct.variants.length > 0} // Disabled if variants exist
+                                            disabled={newProduct.variants.length > 0} // Deshabilitado si existen variantes
                                         />
                                         {formErrors.size && <p className="text-red-400 text-xs mt-1">{formErrors.size}</p>}
                                     </div>
@@ -1331,17 +1565,93 @@ const InventoryPage = () => {
                                             onChange={handleInputChange}
                                             className={`shadow appearance-none border ${formErrors.material ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
                                             placeholder="Ej. Algodón, Plástico, Metal"
-                                            disabled={newProduct.variants.length > 0} // Disabled if variants exist
+                                            disabled={newProduct.variants.length > 0} // Deshabilitado si existen variantes
                                         />
                                         {formErrors.material && <p className="text-red-400 text-xs mt-1">{formErrors.material}</p>}
                                     </div>
                                 </div>
 
-                                {/* Section for main product image upload or URL */}
+                                {/* --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA PRODUCTO PRINCIPAL --- */}
+                                <div className="mb-6 border-t border-neutral-gray-700 pt-6 mt-6">
+                                    <h4 className="text-xl font-semibold text-neutral-light mb-3">Gestión de Stock Avanzada (Producto Principal):</h4>
+                                    <div className="flex items-center mb-4">
+                                        <input
+                                            type="checkbox"
+                                            id="isPerishable"
+                                            name="isPerishable"
+                                            checked={newProduct.isPerishable}
+                                            onChange={handleInputChange}
+                                            className="mr-2 h-5 w-5 text-action-blue rounded focus:ring-action-blue border-neutral-gray-600 bg-neutral-gray-700"
+                                            disabled={newProduct.variants.length > 0} // Deshabilitado si existen variantes
+                                        />
+                                        <label htmlFor="isPerishable" className="text-neutral-light text-base font-bold">¿Es Perecedero?</label>
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="reorderThreshold" className="block text-neutral-light text-sm font-bold mb-2">
+                                            Umbral de Reaprovisionamiento:
+                                            <span className="relative inline-block ml-2 group">
+                                                <Info size={16} className="text-action-blue cursor-pointer" />
+                                                <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 w-64 p-2 bg-neutral-gray-800 text-xs text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-normal text-center shadow-lg">
+                                                    El stock mínimo de este producto/variante para generar una alerta de "Stock Bajo".
+                                                </span>
+                                            </span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            id="reorderThreshold"
+                                            name="reorderThreshold"
+                                            value={newProduct.reorderThreshold}
+                                            onChange={handleInputChange}
+                                            className={`shadow appearance-none border ${formErrors.reorderThreshold ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                            placeholder="Ej. 10 (unidades para alertar stock bajo)"
+                                            disabled={newProduct.variants.length > 0}
+                                        />
+                                        {formErrors.reorderThreshold && <p className="text-red-400 text-xs mt-1">{formErrors.reorderThreshold}</p>}
+                                    </div>
+
+                                    {newProduct.isPerishable && ( // Campos condicionales para perecederos
+                                        <>
+                                            <div className="mt-4">
+                                                <label htmlFor="optimalMaxStock" className="block text-neutral-light text-sm font-bold mb-2">Stock Óptimo Máximo (Perecedero):</label>
+                                                <input
+                                                    type="number"
+                                                    id="optimalMaxStock"
+                                                    name="optimalMaxStock"
+                                                    value={newProduct.optimalMaxStock}
+                                                    onChange={handleInputChange}
+                                                    className={`shadow appearance-none border ${formErrors.optimalMaxStock ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                    placeholder="Ej. 50 (unidades para evitar excesos)"
+                                                    required={newProduct.isPerishable && newProduct.variants.length === 0}
+                                                    disabled={newProduct.variants.length > 0}
+                                                />
+                                                {formErrors.optimalMaxStock && <p className="text-red-400 text-xs mt-1">{formErrors.optimalMaxStock}</p>}
+                                            </div>
+                                            <div className="mt-4">
+                                                <label htmlFor="shelfLifeDays" className="block text-neutral-light text-sm font-bold mb-2">Vida Útil (en días - Perecedero):</label>
+                                                <input
+                                                    type="number"
+                                                    id="shelfLifeDays"
+                                                    name="shelfLifeDays"
+                                                    value={newProduct.shelfLifeDays}
+                                                    onChange={handleInputChange}
+                                                    className={`shadow appearance-none border ${formErrors.shelfLifeDays ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                    placeholder="Ej. 30 (días hasta caducidad)"
+                                                    required={newProduct.isPerishable && newProduct.variants.length === 0}
+                                                    disabled={newProduct.variants.length > 0}
+                                                />
+                                                {formErrors.shelfLifeDays && <p className="text-red-400 text-xs mt-1">{formErrors.shelfLifeDays}</p>}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                                {/* --- FIN NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA PRODUCTO PRINCIPAL --- */}
+
+                                {/* Sección para carga o URL de imagen principal del producto */}
                                 <div className="mb-6">
                                     <h4 className="text-xl font-semibold text-neutral-light mb-3">Imagen Principal del Producto (Opcional):</h4>
                                     <div className="flex flex-col gap-4">
-                                        {/* Option 1: Upload local file */}
+                                        {/* Opción 1: Cargar archivo local */}
                                         <div className="flex flex-col">
                                             <label htmlFor="imageFile" className="block text-neutral-light text-sm font-bold mb-2 cursor-pointer bg-neutral-gray-600 hover:bg-neutral-gray-700 py-2 px-4 rounded-lg text-center flex items-center justify-center transition duration-200">
                                                 {isUploadingMainImage ? <Loader2 size={20} className="mr-2 animate-spin" /> : <Upload size={20} className="mr-2"/>} Cargar Imagen desde mi Dispositivo
@@ -1361,7 +1671,7 @@ const InventoryPage = () => {
 
                                         <div className="text-neutral-gray-400 text-center text-sm my-2">O</div>
 
-                                        {/* Option 2: Paste image URL */}
+                                        {/* Opción 2: Pegar URL de imagen */}
                                         <div>
                                             <label htmlFor="imageUrl" className="block text-neutral-light text-sm font-bold mb-2">
                                                 Pega la URL de una Imagen Externa:
@@ -1385,18 +1695,18 @@ const InventoryPage = () => {
                                             {formErrors.imageUrl && <p className="text-red-400 text-xs mt-1">{formErrors.imageUrl}</p>}
                                         </div>
 
-                                        {/* Image preview (from local file or URL) */}
+                                        {/* Previsualización de imagen (desde archivo local o URL) */}
                                         {(imagePreviewUrl || newProduct.imageUrl) ? (
                                             <div className="mt-4 border border-neutral-gray-600 rounded-lg p-2 text-center bg-neutral-gray-800">
                                                 <p className="text-neutral-gray-400 text-sm mb-2">Previsualización de Imagen:</p>
                                                 <img
-                                                    src={imagePreviewUrl || newProduct.imageUrl} // Prioritize local preview, then URL from state
+                                                    src={imagePreviewUrl || newProduct.imageUrl} // Prioriza la previsualización local, luego la URL del estado
                                                     alt="Previsualización del Producto"
                                                     className="max-w-full h-auto max-h-48 object-contain mx-auto rounded-md"
                                                     onError={(e) => {
-                                                        e.target.onerror = null; // Prevent infinite loop if placeholder also fails
-                                                        e.target.src = 'https://placehold.co/600x400/2D3748/F8F8F2?text=Error+Cargando+Imagen'; // Fallback image
-                                                        e.target.classList.add('border-red-500', 'border-2'); // Add visual cue for broken image
+                                                        e.target.onerror = null; // Previene un bucle infinito si el marcador de posición también falla
+                                                        e.target.src = 'https://placehold.co/600x400/2D3748/F8F8F2?text=Error+Cargando+Imagen'; // Imagen de respaldo
+                                                        e.target.classList.add('border-red-500', 'border-2'); // Añade una señal visual de imagen rota
                                                     }}
                                                 />
                                                 <p className="text-orange-400 text-xs mt-1">Si la imagen no carga, la URL puede ser incorrecta o el archivo no es válido.</p>
@@ -1409,7 +1719,7 @@ const InventoryPage = () => {
                                     </div>
                                 </div>
 
-                                {/* Section for Variant Management */}
+                                {/* Sección para Gestión de Variantes */}
                                 <div className="mt-6 border-t border-neutral-gray-700 pt-6">
                                     <h4 className="text-xl font-semibold text-neutral-light mb-4">Gestión de Variantes de Producto:</h4>
                                     <p className="text-neutral-gray-300 text-sm mb-4">Define diferentes versiones de tu producto (ej. tallas, colores, materiales). Cada variante tendrá su propio SKU, precio, costo y stock.</p>
@@ -1423,7 +1733,7 @@ const InventoryPage = () => {
                                                 className="absolute top-2 right-2 text-red-400 hover:text-red-600 transition-colors duration-200"
                                                 title="Eliminar esta variante"
                                             >
-                                                <X size={20} /> {/* 'X' icon for removing variant */}
+                                                <X size={20} /> {/* Ícono 'X' para eliminar variante */}
                                             </button>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
@@ -1450,7 +1760,6 @@ const InventoryPage = () => {
                                                         onChange={(e) => handleVariantInputChange(index, e)}
                                                         placeholder={variant.autoGeneratedVariantSku || 'Ej. CAMI-AZUL-M'}
                                                         className={`shadow appearance-none border ${formErrors[`variant-${index}-sku`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                                                        // ELIMINADO: required
                                                     />
                                                     {formErrors[`variant-${index}-sku`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-sku`]}</p>}
                                                 </div>
@@ -1514,7 +1823,7 @@ const InventoryPage = () => {
                                                     </select>
                                                     {formErrors[`variant-${index}-unitOfMeasure`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-unitOfMeasure`]}</p>}
                                                 </div>
-                                                {/* Additional variant attributes */}
+                                                {/* Atributos adicionales de la variante */}
                                                 <div>
                                                     <label htmlFor={`variantColor-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Color (Opcional):</label>
                                                     <input
@@ -1554,7 +1863,79 @@ const InventoryPage = () => {
                                                     />
                                                     {formErrors[`variant-${index}-material`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-material`]}</p>}
                                                 </div>
-                                                {/* Image section for the variant */}
+
+                                                {/* --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA VARIANTE --- */}
+                                                <div className="md:col-span-2 mt-4 border-t border-neutral-gray-700 pt-4">
+                                                    <h5 className="text-base font-semibold text-neutral-light mb-2">Gestión de Stock de Variante:</h5>
+                                                    <div className="flex items-center mb-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`variantIsPerishable-${index}`}
+                                                            name="isPerishable"
+                                                            checked={variant.isPerishable}
+                                                            onChange={(e) => handleVariantInputChange(index, e)}
+                                                            className="mr-2 h-4 w-4 text-action-blue rounded focus:ring-action-blue border-neutral-gray-600 bg-neutral-gray-700"
+                                                        />
+                                                        <label htmlFor={`variantIsPerishable-${index}`} className="text-neutral-light text-sm font-bold">¿Es Perecedero?</label>
+                                                    </div>
+
+                                                    <div>
+                                                        <label htmlFor={`variantReorderThreshold-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Umbral de Reaprovisionamiento:
+                                                            <span className="relative inline-block ml-2 group">
+                                                                <Info size={16} className="text-action-blue cursor-pointer" />
+                                                                <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 w-64 p-2 bg-neutral-gray-800 text-xs text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-normal text-center shadow-lg">
+                                                                    El stock mínimo de este producto/variante para generar una alerta de "Stock Bajo".
+                                                                </span>
+                                                            </span>
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            id={`variantReorderThreshold-${index}`}
+                                                            name="reorderThreshold"
+                                                            value={variant.reorderThreshold}
+                                                            onChange={(e) => handleVariantInputChange(index, e)}
+                                                            className={`shadow appearance-none border ${formErrors[`variant-${index}-reorderThreshold`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                            placeholder="Ej. 5"
+                                                        />
+                                                        {formErrors[`variant-${index}-reorderThreshold`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-reorderThreshold`]}</p>}
+                                                    </div>
+
+                                                    {variant.isPerishable && ( // Campos condicionales para perecederos en variante
+                                                        <>
+                                                            <div className="mt-3">
+                                                                <label htmlFor={`variantOptimalMaxStock-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Stock Óptimo Máximo (Perecedero):</label>
+                                                                <input
+                                                                    type="number"
+                                                                    id={`variantOptimalMaxStock-${index}`}
+                                                                    name="optimalMaxStock"
+                                                                    value={variant.optimalMaxStock}
+                                                                    onChange={(e) => handleVariantInputChange(index, e)}
+                                                                    className={`shadow appearance-none border ${formErrors[`variant-${index}-optimalMaxStock`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                                    placeholder="Ej. 20"
+                                                                    required={variant.isPerishable}
+                                                                />
+                                                                {formErrors[`variant-${index}-optimalMaxStock`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-optimalMaxStock`]}</p>}
+                                                            </div>
+                                                            <div className="mt-3">
+                                                                <label htmlFor={`variantShelfLifeDays-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Vida Útil (en días - Perecedero):</label>
+                                                                <input
+                                                                    type="number"
+                                                                    id={`variantShelfLifeDays-${index}`}
+                                                                    name="shelfLifeDays"
+                                                                    value={variant.shelfLifeDays}
+                                                                    onChange={(e) => handleVariantInputChange(index, e)}
+                                                                    className={`shadow appearance-none border ${formErrors[`variant-${index}-shelfLifeDays`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                                    placeholder="Ej. 14"
+                                                                    required={variant.isPerishable}
+                                                                />
+                                                                {formErrors[`variant-${index}-shelfLifeDays`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-shelfLifeDays`]}</p>}
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                {/* --- FIN NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA VARIANTE --- */}
+
+                                                {/* Sección de imagen para la variante */}
                                                 <div className="md:col-span-2 border border-neutral-gray-700 rounded-lg p-3 flex flex-col gap-3 bg-neutral-gray-700">
                                                     <p className="block text-neutral-light text-sm font-bold">Imagen de la Variante (Opcional):</p>
                                                     <div className="flex flex-col">
@@ -1579,8 +1960,8 @@ const InventoryPage = () => {
                                                             name="imageUrl"
                                                             value={variant.imageUrl}
                                                             onChange={(e) => handleVariantInputChange(index, e)}
-                                                            onBlur={(e) => { // Upload image when focus is lost if URL changed
-                                                                // Only try to upload if URL is not empty and has changed
+                                                            onBlur={(e) => { // Sube la imagen al perder el foco si la URL cambió
+                                                                // Solo intenta subir si la URL no está vacía y ha cambiado
                                                                 const currentVariant = showAddModal ? newProduct.variants[index] : editingProduct.variants[index];
                                                                 if (e.target.value && e.target.value.trim() !== currentVariant.imageUrl && !e.target.value.includes('res.cloudinary.com')) {
                                                                     uploadVariantImageToCloud(e.target.value, index);
@@ -1621,14 +2002,14 @@ const InventoryPage = () => {
                             </div>
                         )}
                     </div>
-                    {/* --- END OF ADVANCED OPTIONS SECTION (ADD) --- */}
+                    {/* --- FIN DE LA SECCIÓN DE OPCIONES AVANZADAS (AÑADIR) --- */}
 
-                    {/* Form Submission Button */}
+                    {/* Botón de Envío del Formulario */}
                     <div className="md:col-span-2 text-right">
                         <button
                             type="submit"
                             className="bg-copper-rose-accent hover:bg-rose-700 text-deep-night-blue font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 flex items-center justify-center float-right"
-                            // Disable button while loading or if any image is uploading (main or variant)
+                            // Deshabilita el botón mientras carga o si alguna imagen se está subiendo (principal o de variante)
                             disabled={loading || isUploadingMainImage || Object.values(variantImageUploading).some(val => val)}
                         >
                             {loading ? <Loader2 size={20} className="mr-2 animate-spin" /> : <Save size={20} className="mr-2" />} Guardar Producto
@@ -1637,23 +2018,23 @@ const InventoryPage = () => {
                 </form>
             </ProductModal>
 
-            {/* --- Edit Product Modal --- */}
+            {/* --- Modal para Editar Producto --- */}
             <ProductModal
                 isOpen={showEditModal}
                 onClose={() => {
-                    // Reset all relevant states when closing the edit product modal
+                    // Reinicia todos los estados relevantes al cerrar el modal de edición de producto
                     setShowEditModal(false);
-                    setEditingProduct(null); // Clear the editing product state
+                    setEditingProduct(null); // Limpia el estado del producto en edición
                     setError('');
                     setSuccessMessage('');
-                    setImageFile(null); // Clear selected main image file
-                    setImagePreviewUrl(''); // Clear main image preview URL
-                    setShowAdvancedOptions(false); // Collapse advanced options
-                    setFormErrors({}); // Clear all form errors
+                    setImageFile(null); // Limpia el archivo de imagen principal seleccionado
+                    setImagePreviewUrl(''); // Limpia la URL de previsualización de imagen principal
+                    setShowAdvancedOptions(false); // Colapsa las opciones avanzadas
+                    setFormErrors({}); // Limpia todos los errores de formulario
                 }}
                 title={`Editar Producto: ${editingProduct?.name || ''}`}
             >
-                {/* Only render the form if there's a product being edited */}
+                {/* Solo renderiza el formulario si hay un producto siendo editado */}
                 {editingProduct && (
                     <form onSubmit={handleUpdateProduct} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -1679,7 +2060,7 @@ const InventoryPage = () => {
                                 value={editingProduct.sku}
                                 onChange={handleInputChange}
                                 className={`shadow appearance-none border ${formErrors.sku ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                                disabled={editingProduct.variants.length > 0} // Disabled if variants exist
+                                disabled={editingProduct.variants.length > 0} // Deshabilitado si existen variantes
                             />
                             {formErrors.sku && <p className="text-red-400 text-xs mt-1">{formErrors.sku}</p>}
                         </div>
@@ -1800,15 +2181,15 @@ const InventoryPage = () => {
                             {formErrors.description && <p className="text-red-400 text-xs mt-1">{formErrors.description}</p>}
                         </div>
 
-                        {/* --- START OF ADVANCED OPTIONS SECTION (EDIT) --- */}
+                        {/* --- INICIO DE LA SECCIÓN DE OPCIONES AVANZADAS (EDITAR) --- */}
                         <div className="md:col-span-2 mt-4">
-                            {/* Info message for disabled fields when variants exist */}
+                            {/* Mensaje de información para campos deshabilitados cuando existen variantes */}
                             {editingProduct.variants.length > 0 && (
                                 <p className="text-yellow-400 text-sm mb-4">
                                     <Info size={16} className="inline-block mr-1" /> Los campos de Precio, Stock, Costo, SKU, Unidad de Medida, Color, Talla/Tamaño y Material del producto principal están deshabilitados porque este producto tiene variantes. Gestiona estos detalles en cada variante.
                                 </p>
                             )}
-                            {/* Toggle button for advanced options */}
+                            {/* Botón para alternar opciones avanzadas */}
                             <button
                                 type="button"
                                 onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
@@ -1817,10 +2198,10 @@ const InventoryPage = () => {
                                 <span>Opciones Avanzadas</span>
                                 {showAdvancedOptions ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                             </button>
-                            {/* Collapsible advanced options content */}
+                            {/* Contenido colapsable de opciones avanzadas */}
                             {showAdvancedOptions && (
                                 <div className="mt-4 border border-neutral-gray-700 rounded-lg p-4 bg-dark-charcoal animate-fade-in-down">
-                                    {/* Main Product Attributes (Color, Size, Material) */}
+                                    {/* Atributos del Producto Principal (Color, Talla, Material) */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                         <div>
                                             <label htmlFor="editColor" className="block text-neutral-light text-sm font-bold mb-2">Color (Producto Principal - Opcional):</label>
@@ -1865,11 +2246,88 @@ const InventoryPage = () => {
                                             {formErrors.material && <p className="text-red-400 text-xs mt-1">{formErrors.material}</p>}
                                         </div>
                                     </div>
-                                    {/* Section for main product image upload or URL */}
+
+                                    {/* --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA PRODUCTO PRINCIPAL (EDITAR) --- */}
+                                    <div className="mb-6 border-t border-neutral-gray-700 pt-6 mt-6">
+                                        <h4 className="text-xl font-semibold text-neutral-light mb-3">Gestión de Stock Avanzada (Producto Principal):</h4>
+                                        <div className="flex items-center mb-4">
+                                            <input
+                                                type="checkbox"
+                                                id="editIsPerishable"
+                                                name="isPerishable"
+                                                checked={editingProduct.isPerishable}
+                                                onChange={handleInputChange}
+                                                className="mr-2 h-5 w-5 text-action-blue rounded focus:ring-action-blue border-neutral-gray-600 bg-neutral-gray-700"
+                                                disabled={editingProduct.variants.length > 0}
+                                            />
+                                            <label htmlFor="editIsPerishable" className="text-neutral-light text-base font-bold">¿Es Perecedero?</label>
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="editReorderThreshold" className="block text-neutral-light text-sm font-bold mb-2">
+                                            Umbral de Reaprovisionamiento:
+                                            <span className="relative inline-block ml-2 group">
+                                                <Info size={16} className="text-action-blue cursor-pointer" />
+                                                <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 w-64 p-2 bg-neutral-gray-800 text-xs text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-normal text-center shadow-lg">
+                                                    El stock mínimo de este producto/variante para generar una alerta de "Stock Bajo".
+                                                </span>
+                                            </span>
+                                        </label>
+                                            <input
+                                                type="number"
+                                                id="editReorderThreshold"
+                                                name="reorderThreshold"
+                                                value={editingProduct.reorderThreshold}
+                                                onChange={handleInputChange}
+                                                className={`shadow appearance-none border ${formErrors.reorderThreshold ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                placeholder="Ej. 10 (unidades para alertar stock bajo)"
+                                                disabled={editingProduct.variants.length > 0}
+                                            />
+                                            {formErrors.reorderThreshold && <p className="text-red-400 text-xs mt-1">{formErrors.reorderThreshold}</p>}
+                                        </div>
+
+                                        {editingProduct.isPerishable && ( // Campos condicionales para perecederos
+                                            <>
+                                                <div className="mt-4">
+                                                    <label htmlFor="editOptimalMaxStock" className="block text-neutral-light text-sm font-bold mb-2">Stock Óptimo Máximo (Perecedero):</label>
+                                                    <input
+                                                        type="number"
+                                                        id="editOptimalMaxStock"
+                                                        name="optimalMaxStock"
+                                                        value={editingProduct.optimalMaxStock}
+                                                        onChange={handleInputChange}
+                                                        className={`shadow appearance-none border ${formErrors.optimalMaxStock ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                        placeholder="Ej. 50 (unidades para evitar excesos)"
+                                                        required={editingProduct.isPerishable && editingProduct.variants.length === 0}
+                                                        disabled={editingProduct.variants.length > 0}
+                                                    />
+                                                    {formErrors.optimalMaxStock && <p className="text-red-400 text-xs mt-1">{formErrors.optimalMaxStock}</p>}
+                                                </div>
+                                                <div className="mt-4">
+                                                    <label htmlFor="editShelfLifeDays" className="block text-neutral-light text-sm font-bold mb-2">Vida Útil (en días - Perecedero):</label>
+                                                    <input
+                                                        type="number"
+                                                        id="editShelfLifeDays"
+                                                        name="shelfLifeDays"
+                                                        value={editingProduct.shelfLifeDays}
+                                                        onChange={handleInputChange}
+                                                        className={`shadow appearance-none border ${formErrors.shelfLifeDays ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                        placeholder="Ej. 30 (días hasta caducidad)"
+                                                        required={editingProduct.isPerishable && editingProduct.variants.length === 0}
+                                                        disabled={editingProduct.variants.length > 0}
+                                                    />
+                                                    {formErrors.shelfLifeDays && <p className="text-red-400 text-xs mt-1">{formErrors.shelfLifeDays}</p>}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    {/* --- FIN NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA PRODUCTO PRINCIPAL (EDITAR) --- */}
+
+                                    {/* Sección para carga o URL de imagen principal del producto */}
                                     <div className="mb-6">
                                         <h4 className="text-xl font-semibold text-neutral-light mb-3">Imagen Principal del Producto (Opcional):</h4>
                                         <div className="flex flex-col gap-4">
-                                            {/* Option 1: Upload local file */}
+                                            {/* Opción 1: Cargar archivo local */}
                                             <div className="flex flex-col">
                                                 <label htmlFor="editImageFile" className="block text-neutral-light text-sm font-bold mb-2 cursor-pointer bg-neutral-gray-600 hover:bg-neutral-gray-700 py-2 px-4 rounded-lg text-center flex items-center justify-center transition duration-200">
                                                     {isUploadingMainImage ? <Loader2 size={20} className="mr-2 animate-spin" /> : <Upload size={20} className="mr-2"/>} Cargar Nueva Imagen desde mi Dispositivo
@@ -1889,7 +2347,7 @@ const InventoryPage = () => {
 
                                             <div className="text-neutral-gray-400 text-center text-sm my-2">O</div>
 
-                                            {/* Option 2: Paste image URL */}
+                                            {/* Opción 2: Pegar URL de imagen */}
                                             <div>
                                                 <label htmlFor="editImageUrl" className="block text-neutral-light text-sm font-bold mb-2">
                                                     Pega la URL de una Imagen Externa:
@@ -1906,18 +2364,18 @@ const InventoryPage = () => {
                                                 {formErrors.imageUrl && <p className="text-red-400 text-xs mt-1">{formErrors.imageUrl}</p>}
                                             </div>
 
-                                            {/* Image preview (from local file or URL) */}
+                                            {/* Previsualización de imagen (desde archivo local o URL) */}
                                             {(imagePreviewUrl || editingProduct.imageUrl) ? (
                                                 <div className="mt-4 border border-neutral-gray-600 rounded-lg p-2 text-center bg-neutral-gray-800">
                                                     <p className="text-neutral-gray-400 text-sm mb-2">Previsualización de Imagen:</p>
                                                     <img
-                                                        src={imagePreviewUrl || editingProduct.imageUrl} // Prioritize local preview, then URL from state
+                                                        src={imagePreviewUrl || editingProduct.imageUrl} // Prioriza la previsualización local, luego la URL del estado
                                                         alt="Previsualización del Producto"
                                                         className="max-w-full h-auto max-h-48 object-contain mx-auto rounded-md"
                                                         onError={(e) => {
-                                                            e.target.onerror = null; // Prevent infinite loop if placeholder also fails
-                                                            e.target.src = 'https://placehold.co/600x400/2D3748/F8F8F2?text=Error+Cargando+Imagen'; // Fallback image
-                                                            e.target.classList.add('border-red-500', 'border-2'); // Add visual cue for broken image
+                                                            e.target.onerror = null; // Previene un bucle infinito si el marcador de posición también falla
+                                                            e.target.src = 'https://placehold.co/600x400/2D3748/F8F8F2?text=Error+Cargando+Imagen'; // Imagen de respaldo
+                                                            e.target.classList.add('border-red-500', 'border-2'); // Añade una señal visual de imagen rota
                                                         }}
                                                     />
                                                     <p className="text-orange-400 text-xs mt-1">Si la imagen no carga, la URL puede ser incorrecta o el archivo no es válido.</p>
@@ -1930,7 +2388,7 @@ const InventoryPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* Section for Variant Management */}
+                                    {/* Sección para Gestión de Variantes */}
                                     <div className="mt-6 border-t border-neutral-gray-700 pt-6">
                                         <h4 className="text-xl font-semibold text-neutral-light mb-4">Gestión de Variantes de Producto:</h4>
                                         <p className="text-neutral-gray-300 text-sm mb-4">Define diferentes versiones de tu producto (ej. tallas, colores, materiales). Cada variante tendrá su propio SKU, precio, costo y stock.</p>
@@ -1944,7 +2402,7 @@ const InventoryPage = () => {
                                                     className="absolute top-2 right-2 text-red-400 hover:text-red-600 transition-colors duration-200"
                                                     title="Eliminar esta variante"
                                                 >
-                                                    <X size={20} /> {/* 'X' icon for removing variant */}
+                                                    <X size={20} /> {/* Ícono 'X' para eliminar variante */}
                                                 </button>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
@@ -1971,7 +2429,6 @@ const InventoryPage = () => {
                                                             onChange={(e) => handleVariantInputChange(index, e)}
                                                             placeholder={variant.autoGeneratedVariantSku || 'Ej. CAMI-AZUL-M'}
                                                             className={`shadow appearance-none border ${formErrors[`variant-${index}-sku`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                                                            // ELIMINADO: required
                                                         />
                                                         {formErrors[`variant-${index}-sku`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-sku`]}</p>}
                                                     </div>
@@ -2035,7 +2492,7 @@ const InventoryPage = () => {
                                                         </select>
                                                         {formErrors[`variant-${index}-unitOfMeasure`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-unitOfMeasure`]}</p>}
                                                     </div>
-                                                    {/* Additional variant attributes */}
+                                                    {/* Atributos adicionales de la variante */}
                                                     <div>
                                                         <label htmlFor={`editVariantColor-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Color (Opcional):</label>
                                                         <input
@@ -2075,7 +2532,79 @@ const InventoryPage = () => {
                                                         />
                                                         {formErrors[`variant-${index}-material`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-material`]}</p>}
                                                     </div>
-                                                    {/* Image section for the variant */}
+
+                                                    {/* --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA VARIANTE (EDITAR) --- */}
+                                                    <div className="md:col-span-2 mt-4 border-t border-neutral-gray-700 pt-4">
+                                                        <h5 className="text-base font-semibold text-neutral-light mb-2">Gestión de Stock de Variante:</h5>
+                                                        <div className="flex items-center mb-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`editVariantIsPerishable-${index}`}
+                                                                name="isPerishable"
+                                                                checked={variant.isPerishable}
+                                                                onChange={(e) => handleVariantInputChange(index, e)}
+                                                                className="mr-2 h-4 w-4 text-action-blue rounded focus:ring-action-blue border-neutral-gray-600 bg-neutral-gray-700"
+                                                            />
+                                                            <label htmlFor={`editVariantIsPerishable-${index}`} className="text-neutral-light text-sm font-bold">¿Es Perecedero?</label>
+                                                        </div>
+
+                                                        <div>
+                                                            <label htmlFor={`editVariantReorderThreshold-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Umbral de Reaprovisionamiento:
+                                                            <span className="relative inline-block ml-2 group">
+                                                                <Info size={16} className="text-action-blue cursor-pointer" />
+                                                                <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 w-64 p-2 bg-neutral-gray-800 text-xs text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-normal text-center shadow-lg">
+                                                                    El stock mínimo de este producto/variante para generar una alerta de "Stock Bajo".
+                                                                </span>
+                                                            </span>
+                                                        </label>
+                                                            <input
+                                                                type="number"
+                                                                id={`editVariantReorderThreshold-${index}`}
+                                                                name="reorderThreshold"
+                                                                value={variant.reorderThreshold}
+                                                                onChange={(e) => handleVariantInputChange(index, e)}
+                                                                className={`shadow appearance-none border ${formErrors[`variant-${index}-reorderThreshold`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                                placeholder="Ej. 5"
+                                                            />
+                                                            {formErrors[`variant-${index}-reorderThreshold`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-reorderThreshold`]}</p>}
+                                                        </div>
+
+                                                        {variant.isPerishable && ( // Campos condicionales para perecederos en variante
+                                                            <>
+                                                                <div className="mt-3">
+                                                                    <label htmlFor={`editVariantOptimalMaxStock-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Stock Óptimo Máximo (Perecedero):</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        id={`editVariantOptimalMaxStock-${index}`}
+                                                                        name="optimalMaxStock"
+                                                                        value={variant.optimalMaxStock}
+                                                                        onChange={(e) => handleVariantInputChange(index, e)}
+                                                                        className={`shadow appearance-none border ${formErrors[`variant-${index}-optimalMaxStock`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                                        placeholder="Ej. 20"
+                                                                        required={variant.isPerishable}
+                                                                    />
+                                                                    {formErrors[`variant-${index}-optimalMaxStock`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-optimalMaxStock`]}</p>}
+                                                                </div>
+                                                                <div className="mt-3">
+                                                                    <label htmlFor={`editVariantShelfLifeDays-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Vida Útil (en días - Perecedero):</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        id={`editVariantShelfLifeDays-${index}`}
+                                                                        name="shelfLifeDays"
+                                                                        value={variant.shelfLifeDays}
+                                                                        onChange={(e) => handleVariantInputChange(index, e)}
+                                                                        className={`shadow appearance-none border ${formErrors[`variant-${index}-shelfLifeDays`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                                                                        placeholder="Ej. 14"
+                                                                        required={variant.isPerishable}
+                                                                    />
+                                                                    {formErrors[`variant-${index}-shelfLifeDays`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-shelfLifeDays`]}</p>}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    {/* --- FIN NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA VARIANTE (EDITAR) --- */}
+
+                                                    {/* Sección de imagen para la variante */}
                                                     <div className="md:col-span-2 border border-neutral-gray-700 rounded-lg p-3 flex flex-col gap-3 bg-neutral-gray-700">
                                                         <p className="block text-neutral-light text-sm font-bold">Imagen de la Variante (Opcional):</p>
                                                         <div className="flex flex-col">
@@ -2100,8 +2629,8 @@ const InventoryPage = () => {
                                                                 name="imageUrl"
                                                                 value={variant.imageUrl}
                                                                 onChange={(e) => handleVariantInputChange(index, e)}
-                                                                onBlur={(e) => { // Upload image when focus is lost if URL changed
-                                                                    // Only try to upload if URL is not empty and has changed
+                                                                onBlur={(e) => { // Sube la imagen al perder el foco si la URL cambió
+                                                                    // Solo intenta subir si la URL no está vacía y ha cambiado
                                                                     const currentVariant = showAddModal ? newProduct.variants[index] : editingProduct.variants[index];
                                                                     if (e.target.value && e.target.value.trim() !== currentVariant.imageUrl && !e.target.value.includes('res.cloudinary.com')) {
                                                                         uploadVariantImageToCloud(e.target.value, index);
@@ -2142,14 +2671,14 @@ const InventoryPage = () => {
                                 </div>
                             )}
                         </div>
-                        {/* --- END OF ADVANCED OPTIONS SECTION (EDIT) --- */}
+                        {/* --- FIN DE LA SECCIÓN DE OPCIONES AVANZADAS (EDITAR) --- */}
 
-                        {/* Form Submission Button */}
+                        {/* Botón de Envío del Formulario */}
                         <div className="md:col-span-2 text-right">
                             <button
                                 type="submit"
                                 className="bg-action-blue hover:bg-blue-700 text-neutral-light font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center float-right"
-                                // Disable button while loading or if any image is uploading (main or variant)
+                                // Deshabilita el botón mientras carga o si alguna imagen se está subiendo (principal o de variante)
                                 disabled={loading || isUploadingMainImage || Object.values(variantImageUploading).some(val => val)}
                             >
                                 {loading ? <Loader2 size={20} className="mr-2 animate-spin" /> : <Save size={20} className="mr-2" />} Actualizar Producto
@@ -2161,7 +2690,7 @@ const InventoryPage = () => {
 
             <h3 className="text-3xl font-semibold text-neutral-light mb-6 border-b border-neutral-gray-700 pb-3">Lista de Productos</h3>
 
-            {/* Conditional rendering for loading, no products, or product list */}
+            {/* Renderizado condicional para carga, no hay productos o lista de productos */}
             {loading && !products.length ? (
                 <div className="flex justify-center items-center h-48">
                     <Loader2 size={48} className="animate-spin text-copper-rose-accent" />
@@ -2174,7 +2703,7 @@ const InventoryPage = () => {
                     {products.map((product) => (
                         <div key={product._id} className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-action-blue-light flex flex-col justify-between transform transition duration-300 hover:scale-[1.02] hover:shadow-2xl">
                             <div>
-                                {/* Product Image (main product image first, then first variant, then fallback) */}
+                                {/* Imagen del Producto (primero la imagen principal del producto, luego la primera variante, luego el fallback) */}
                                 <div className="w-full h-48 mb-4 bg-neutral-gray-800 rounded-md overflow-hidden flex items-center justify-center">
                                     <img
                                         src={product.imageUrl || ((product.variants && product.variants.length > 0 && product.variants[0].imageUrl) ? product.variants[0].imageUrl : 'https://placehold.co/600x400/2D3748/F8F8F2?text=Sin+Imagen')}
@@ -2193,13 +2722,13 @@ const InventoryPage = () => {
                                 {product.brand && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold text-action-blue">Marca:</span> {product.brand}</p>}
                                 {product.supplier && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold text-action-blue">Proveedor:</span> {product.supplier}</p>}
                                 {product.description && <p className="text-neutral-gray-300 mb-2 text-sm line-clamp-2">{product.description}</p>}
-                                
-                                {/* Display variant details if they exist */}
+
+                                {/* Mostrar detalles de las variantes si existen */}
                                 {product.variants && product.variants.length > 0 ? (
                                     <div className="mt-2 pt-2 border-t border-neutral-gray-700">
                                         <p className="text-neutral-light font-bold text-sm mb-2">Variantes ({product.variants.length}):</p>
                                         {product.variants.map((variant, idx) => (
-                                            <div key={idx} className="bg-neutral-gray-700 rounded-md p-2 mb-1 last:mb-0">
+                                            <div key={variant._id || idx} className="bg-neutral-gray-700 rounded-md p-2 mb-1 last:mb-0">
                                                 <p className="text-neutral-light text-xs font-semibold">{variant.name}</p>
                                                 <p className="text-neutral-gray-400 text-xs">
                                                     SKU: {variant.sku} | P: ${parseFloat(variant.price).toFixed(2)} | S: {variant.stock} {variant.unitOfMeasure}
@@ -2208,13 +2737,18 @@ const InventoryPage = () => {
                                                     {variant.color && <span>Color: {variant.color}</span>}
                                                     {variant.size && <span>Talla: {variant.size}</span>}
                                                     {variant.material && <span>Material: {variant.material}</span>}
+                                                    {/* Mostrar nuevos campos para cada variante */}
+                                                    {variant.isPerishable && <span className="ml-2">(Perecedero)</span>}
+                                                    {variant.reorderThreshold > 0 && <span className="ml-2">Umbral: {variant.reorderThreshold}</span>}
+                                                    {variant.isPerishable && variant.optimalMaxStock > 0 && <span className="ml-2">Óptimo Máx: {variant.optimalMaxStock}</span>}
+                                                    {variant.isPerishable && variant.shelfLifeDays > 0 && <span className="ml-2">Vida Útil: {variant.shelfLifeDays} días</span>}
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
                                     <>
-                                        {/* Display main product attributes if no variants */}
+                                        {/* Mostrar atributos del producto principal si no hay variantes */}
                                         <p className="text-neutral-light mb-1"><span className="font-semibold">Unidad:</span> {product.unitOfMeasure}</p>
                                         <p className="text-neutral-light mb-1"><span className="font-semibold">Precio de Venta:</span> <span className="text-success-green font-bold text-lg">${parseFloat(product.price).toFixed(2)}</span></p>
                                         <p className="text-neutral-light mb-1"><span className="font-semibold">Costo Unitario:</span> <span className="text-yellow-400 font-bold">${parseFloat(product.costPrice).toFixed(2)}</span></p>
@@ -2222,10 +2756,15 @@ const InventoryPage = () => {
                                         {product.color && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold">Color:</span> {product.color}</p>}
                                         {product.size && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold">Talla:</span> {product.size}</p>}
                                         {product.material && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold">Material:</span> {product.material}</p>}
+                                        {/* Mostrar nuevos campos para el producto principal */}
+                                        {product.isPerishable && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold">Perecedero:</span> Sí</p>}
+                                        {product.reorderThreshold > 0 && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold">Umbral de Reapro.:</span> {product.reorderThreshold}</p>}
+                                        {product.isPerishable && product.optimalMaxStock > 0 && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold">Stock Óptimo Máx:</span> {product.optimalMaxStock}</p>}
+                                        {product.isPerishable && product.shelfLifeDays > 0 && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold">Vida Útil:</span> {product.shelfLifeDays} días</p>}
                                     </>
                                 )}
                             </div>
-                            {/* Action Buttons */}
+                            {/* Botones de Acción */}
                             <div className="flex justify-end gap-2 mt-4">
                                 <button
                                     onClick={() => handleEditClick(product)}
@@ -2245,7 +2784,7 @@ const InventoryPage = () => {
                 </div>
             )}
 
-            {/* Pagination Controls */}
+            {/* Controles de Paginación */}
             {totalPages > 1 && (
                 <div className="flex justify-center items-center space-x-3 mt-8 text-neutral-light">
                     <button

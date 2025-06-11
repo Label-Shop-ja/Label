@@ -22,7 +22,7 @@ export const setLogoutFunction = (callback) => {
   logoutFunction = callback;
 };
 
-// *** NUEVO: Interceptor de solicitudes ***
+// Interceptor de solicitudes
 // Se ejecuta antes de CADA solicitud HTTP saliente
 axiosInstance.interceptors.request.use(
   (config) => {

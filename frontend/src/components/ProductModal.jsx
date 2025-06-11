@@ -57,22 +57,29 @@ const ProductModal = ({ isOpen, onClose, title, children }) => {
         }
     }, [isOpen]);
 
-    if (!isOpen) return null; // No renderiza nada si el modal no está abierto
+    // No renderiza nada si el modal no está abierto
+    if (!isOpen) return null;
 
     return (
         <div
+            // Fondo oscuro semitransparente que cubre toda la pantalla
             className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 transition-opacity duration-300 animate-fade-in"
-            onClick={onClose} // Permite cerrar el modal haciendo clic fuera de él
+            // Permite cerrar el modal haciendo clic fuera de su contenido principal
+            onClick={onClose}
         >
             <div
-                ref={modalRef} // Assign ref to the modal content
+                // Contenido principal del modal: diseño, padding, sombras, bordes, etc.
+                ref={modalRef} // Asigna la referencia para el focus trapping
                 className="bg-deep-night-blue p-8 rounded-lg shadow-2xl text-neutral-light max-w-4xl w-11/12 max-h-[90vh] overflow-y-auto relative border border-neutral-gray-700 transform transition-transform duration-300 scale-100"
-                onClick={(e) => e.stopPropagation()} // Evita que el clic dentro del modal lo cierre
-                onKeyDown={handleKeyDown} // Listen for tab key for focus trapping
+                // Evita que el clic dentro del modal lo cierre
+                onClick={(e) => e.stopPropagation()}
+                // Escucha la tecla Tab para el focus trapping
+                onKeyDown={handleKeyDown}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title"
             >
+                {/* Botón para cerrar el modal */}
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 text-neutral-gray-400 hover:text-neutral-light transition-colors duration-200"
@@ -80,10 +87,12 @@ const ProductModal = ({ isOpen, onClose, title, children }) => {
                 >
                     <X size={28} /> {/* Icono X para cerrar */}
                 </button>
+                {/* Título del modal */}
                 <h3 id="modal-title" className="text-2xl font-semibold text-neutral-light mb-6 text-copper-rose-accent border-b border-neutral-gray-600 pb-3">
                     {title}
                 </h3>
-                {children} {/* Aquí se renderizará el contenido del formulario */}
+                {/* Aquí se renderizará el contenido del formulario o cualquier otro children */}
+                {children}
             </div>
         </div>
     );
