@@ -7,7 +7,9 @@ const {
     createProduct,
     updateProduct,
     deleteProduct,
-    getGlobalProducts, // <-- ASEGÚRATE DE QUE ESTA FUNCIÓN ESTÉ AQUÍ
+    getGlobalProducts,
+    getLowStockProducts,
+    getHighStockProducts, // <-- ASEGÚRATE DE QUE ESTA FUNCIÓN ESTÉ AQUÍ
 } = require('../controllers/productController');
 const protect = require('../middleware/authMiddleware'); // Middleware para proteger rutas
 
@@ -18,5 +20,8 @@ router.route('/:id').get(protect, getProduct).put(protect, updateProduct).delete
 // Ruta para productos globales (puede ser pública o privada según tu necesidad)
 // Por ahora la dejamos pública, pero puedes añadir `protect` si prefieres
 router.get('/globalproducts', getGlobalProducts); // <-- NUEVA RUTA AQUÍ
+
+router.get('/alerts/low-stock', protect, getLowStockProducts); // Nueva ruta para alertas de stock bajo
+router.get('/alerts/high-stock', protect, getHighStockProducts); // Nueva ruta para alertas de stock alto (perecederos)
 
 module.exports = router;

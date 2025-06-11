@@ -1,7 +1,8 @@
+// C:\Proyectos\Label\backend\controllers\productController.js
 const asyncHandler = require('express-async-handler');
-const Product = require('../models/productModel'); // Asegúrate de que esta línea sea correcta
+const Product = require('../models/productModel'); // Ensure this line is correct
 
-// @desc    Obtener todos los productos
+// @desc    Get all products
 // @route   GET /api/products
 // @access  Private
 const getProducts = asyncHandler(async (req, res) => {
@@ -16,15 +17,15 @@ const getProducts = asyncHandler(async (req, res) => {
             { sku: { $regex: searchTerm, $options: 'i' } },
             { brand: { $regex: searchTerm, $options: 'i' } },
             { supplier: { $regex: searchTerm, $options: 'i' } },
-            { color: { $regex: searchTerm, $options: 'i' } }, // Nuevo: Buscar por color del producto principal
-            { size: { $regex: searchTerm, $options: 'i' } },   // Nuevo: Buscar por talla/tamaño del producto principal
-            { material: { $regex: searchTerm, $options: 'i' } }, // Nuevo: Buscar por material del producto principal
-            // Buscar también en las variantes
+            { color: { $regex: searchTerm, $options: 'i' } }, // New: Search by main product color
+            { size: { $regex: searchTerm, $options: 'i' } },   // New: Search by main product size
+            { material: { $regex: searchTerm, $options: 'i' } }, // New: Search by main product material
+            // Search also in variants
             { 'variants.name': { $regex: searchTerm, $options: 'i' } },
             { 'variants.sku': { $regex: searchTerm, $options: 'i' } },
             { 'variants.color': { $regex: searchTerm, $options: 'i' } },
-            { 'variants.size': { $regex: searchTerm, $options: 'i' } },
-            { 'variants.material': { $regex: searchTerm, $options: 'i' } },
+            { 'variants.size': { $regex: searchTerm, '$options': 'i' } },
+            { 'variants.material': { $regex: searchTerm, '$options': 'i' } },
         ];
     }
 
@@ -67,7 +68,7 @@ const getProducts = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Obtener un producto por ID
+// @desc    Get a product by ID
 // @route   GET /api/products/:id
 // @access  Private
 const getProduct = asyncHandler(async (req, res) => {
@@ -75,24 +76,24 @@ const getProduct = asyncHandler(async (req, res) => {
 
     if (!product) {
         res.status(404);
-        throw new Error('Producto no encontrado');
+        throw new Error('Product not found');
     }
 
     if (product.user.toString() !== req.user.id) {
         res.status(401);
-        throw new Error('No autorizado para ver este producto');
+        throw new Error('Not authorized to view this product');
     }
 
     res.status(200).json(product);
 });
 
-// @desc    Crear un nuevo producto
+// @desc    Create a new product
 // @route   POST /api/products
 // @access  Private
 const createProduct = asyncHandler(async (req, res) => {
-    // --- Paso de Depuración: Imprime los datos recibidos ---
-    console.log('Datos de producto recibidos en createProduct:', JSON.stringify(req.body, null, 2));
-    // --- Fin del Paso de Depuración ---
+    // --- Debugging Step: Print received data ---
+    console.log('Product data received in createProduct:', JSON.stringify(req.body, null, 2));
+    // --- End Debugging Step ---
 
     const {
         name,
@@ -101,7 +102,7 @@ const createProduct = asyncHandler(async (req, res) => {
         price,
         stock,
         costPrice,
-        sku, // SKU del producto principal
+        sku, // Main product SKU
         unitOfMeasure,
         brand,
         supplier,
@@ -109,63 +110,72 @@ const createProduct = asyncHandler(async (req, res) => {
         color,
         size,
         material,
+        isPerishable, // New field
+        reorderThreshold, // New field
+        optimalMaxStock, // New field
+        shelfLifeDays, // New field
         variants
     } = req.body;
 
-    // Validación si no hay variantes: los campos principales son obligatorios
+    // Validation if no variants: main fields are mandatory
     if (!variants || variants.length === 0) {
         if (!name || !category || price === undefined || stock === undefined || costPrice === undefined || !sku || !unitOfMeasure) {
             res.status(400);
-            throw new Error('Por favor, completa todos los campos obligatorios para el producto principal si no hay variantes.');
+            throw new Error('Please complete all mandatory fields for the main product if there are no variants.');
         }
         if (isNaN(Number(price)) || Number(price) <= 0) {
             res.status(400);
-            throw new Error('El precio de venta debe ser un número positivo.');
+            throw new Error('Selling price must be a positive number.');
         }
         if (isNaN(Number(costPrice)) || Number(costPrice) < 0) {
             res.status(400);
-            throw new Error('El costo unitario debe ser un número no negativo.');
+            throw new Error('Unit cost must be a non-negative number.');
         }
         if (isNaN(Number(stock)) || Number(stock) < 0) {
             res.status(400);
-            throw new Error('El stock debe ser un número no negativo.');
+            throw new Error('Stock must be a non-negative number.');
         }
     } else {
-        // Si hay variantes, validamos que cada variante tenga los campos requeridos
+        // If there are variants, validate that each variant has the required fields
         for (const variant of variants) {
             if (!variant.name || variant.price === undefined || variant.costPrice === undefined || variant.stock === undefined || !variant.unitOfMeasure) {
                 res.status(400);
-                throw new Error('Todas las variantes deben tener nombre, precio, costo, stock y unidad de medida.');
+                throw new Error('All variants must have name, price, cost, stock, and unit of measure.');
             }
             if (isNaN(Number(variant.price)) || Number(variant.price) <= 0) {
                 res.status(400);
-                throw new Error('El precio de la variante debe ser un número positivo.');
+                throw new Error('Variant price must be a positive number.');
             }
             if (isNaN(Number(variant.costPrice)) || Number(variant.costPrice) < 0) {
                 res.status(400);
-                throw new Error('El costo de la variante debe ser un número no negativo.');
+                throw new Error('Variant cost must be a non-negative number.');
             }
             if (isNaN(Number(variant.stock)) || Number(variant.stock) < 0) {
                 res.status(400);
-                throw new Error('El stock de la variante debe ser un número no negativo.');
+                throw new Error('Variant stock must be a non-negative number.');
             }
         }
     }
 
-    // Procesa las variantes: asegura que el SKU de la variante sea una cadena de texto.
+    // Process variants: ensure variant SKU is a string and parse new fields.
     const processedVariants = variants ? variants.map(variant => {
         const finalVariantSku = variant.sku || variant.autoGeneratedVariantSku || '';
         
         return {
             ...variant,
-            sku: finalVariantSku, // Asigna el SKU final procesado
+            sku: finalVariantSku, // Assign final processed SKU
             price: Number(variant.price),
             costPrice: Number(variant.costPrice),
             stock: Number(variant.stock),
+            // New fields for variants
+            isPerishable: Boolean(variant.isPerishable),
+            reorderThreshold: Number(variant.reorderThreshold) || 0,
+            optimalMaxStock: Number(variant.optimalMaxStock) || 0,
+            shelfLifeDays: Number(variant.shelfLifeDays) || 0,
         };
     }) : [];
 
-    // Construye el objeto del producto principal
+    // Build the main product object
     const productFields = {
         user: req.user.id,
         name,
@@ -178,40 +188,43 @@ const createProduct = asyncHandler(async (req, res) => {
         size: size || '',
         material: material || '',
         variants: processedVariants,
-        // *** IMPORTANTE: El SKU del producto principal se toma directamente del 'sku' del req.body.
-        // El frontend ya se encarga de autogenerarlo si no se introduce manualmente.
         sku: sku,
         price: price,
         stock: stock,
         costPrice: costPrice,
-        unitOfMeasure: unitOfMeasure
+        unitOfMeasure: unitOfMeasure,
+        // New fields for the main product (if no variants)
+        isPerishable: Boolean(isPerishable),
+        reorderThreshold: Number(reorderThreshold) || 0,
+        optimalMaxStock: Number(optimalMaxStock) || 0,
+        shelfLifeDays: Number(shelfLifeDays) || 0,
     };
 
     try {
         const product = await Product.create(productFields);
         res.status(201).json(product);
     } catch (error) {
-        console.error('Error al crear el producto:', error);
+        console.error('Error creating product:', error);
         if (error.name === 'ValidationError') {
             const messages = Object.values(error.errors).map(val => val.message);
             return res.status(400).json({ message: messages.join(', ') });
         }
-        // Manejo específico para el error de clave duplicada del SKU principal
+        // Specific handling for main SKU duplicate key error
         if (error.code === 11000 && error.keyPattern && error.keyPattern.sku) {
-            return res.status(400).json({ message: 'El SKU del producto principal ya existe. Por favor, introduce un SKU único.' });
+            return res.status(400).json({ message: 'The main product SKU already exists. Please enter a unique SKU.' });
         }
-        res.status(500).json({ message: 'Error interno del servidor al crear el producto.' });
+        res.status(500).json({ message: 'Internal server error creating product.' });
     }
 });
 
 
-// @desc    Actualizar un producto
+// @desc    Update a product
 // @route   PUT /api/products/:id
 // @access  Private
 const updateProduct = asyncHandler(async (req, res) => {
-    // --- Paso de Depuración: Imprime los datos recibidos ---
-    console.log('Datos de producto recibidos en updateProduct:', JSON.stringify(req.body, null, 2));
-    // --- Fin del Paso de Depuración ---
+    // --- Debugging Step: Print received data ---
+    console.log('Product data received in updateProduct:', JSON.stringify(req.body, null, 2));
+    // --- End Debugging Step ---
 
     const { id } = req.params;
     const {
@@ -221,7 +234,7 @@ const updateProduct = asyncHandler(async (req, res) => {
         price,
         stock,
         costPrice,
-        sku, // SKU del producto principal
+        sku, // Main product SKU
         unitOfMeasure,
         brand,
         supplier,
@@ -229,6 +242,10 @@ const updateProduct = asyncHandler(async (req, res) => {
         color,
         size,
         material,
+        isPerishable, // New field
+        reorderThreshold, // New field
+        optimalMaxStock, // New field
+        shelfLifeDays, // New field
         variants
     } = req.body;
 
@@ -236,68 +253,73 @@ const updateProduct = asyncHandler(async (req, res) => {
 
     if (!product) {
         res.status(404);
-        throw new Error('Producto no encontrado');
+        throw new Error('Product not found');
     }
 
     if (product.user.toString() !== req.user.id) {
         res.status(401);
-        throw new Error('No autorizado para actualizar este producto');
+        throw new Error('Not authorized to update this product');
     }
 
-    // Validación si no hay variantes o se eliminaron todas
+    // Validation if no variants or all were removed
     if (!variants || variants.length === 0) {
         if (!name || !category || price === undefined || stock === undefined || costPrice === undefined || !sku || !unitOfMeasure) {
             res.status(400);
-            throw new Error('Por favor, completa todos los campos obligatorios para el producto principal si no hay variantes.');
+            throw new Error('Please complete all mandatory fields for the main product if there are no variants.');
         }
         if (isNaN(Number(price)) || Number(price) <= 0) {
             res.status(400);
-            throw new Error('El precio de venta debe ser un número positivo.');
+            throw new Error('Selling price must be a positive number.');
         }
         if (isNaN(Number(costPrice)) || Number(costPrice) < 0) {
             res.status(400);
-            throw new Error('El costo unitario debe ser un número no negativo.');
+            throw new Error('Unit cost must be a non-negative number.');
         }
         if (isNaN(Number(stock)) || Number(stock) < 0) {
             res.status(400);
-            throw new Error('El stock debe ser un número no negativo.');
+            throw new Error('Stock must be a non-negative number.');
         }
     } else {
-        // Si hay variantes, validamos que cada variante tenga los campos requeridos
+        // If there are variants, validate that each variant has the required fields
         for (const variant of variants) {
             if (!variant.name || variant.price === undefined || variant.costPrice === undefined || variant.stock === undefined || !variant.unitOfMeasure) {
                 res.status(400);
-                throw new Error('Todas las variantes deben tener nombre, precio, costo, stock y unidad de medida.');
+                throw new Error('All variants must have name, price, cost, stock, and unit of measure.');
             }
             if (isNaN(Number(variant.price)) || Number(variant.price) <= 0) {
                 res.status(400);
-                throw new Error('El precio de la variante debe ser un número positivo.');
+                throw new Error('Variant price must be a positive number.');
             }
             if (isNaN(Number(variant.costPrice)) || Number(variant.costPrice) < 0) {
                 res.status(400);
-                throw new Error('El costo de la variante debe ser un número no negativo.');
+                throw new Error('Variant cost must be a non-negative number.');
             }
             if (isNaN(Number(variant.stock)) || Number(variant.stock) < 0) {
                 res.status(400);
-                throw new Error('El stock de la variante debe ser un número no negativo.');
+                throw new Error('Variant stock must be a non-negative number.');
             }
         }
     }
 
-    // Procesa las variantes antes de actualizar
+    // Process variants before updating
     const processedVariants = variants ? variants.map(variant => {
         const finalVariantSku = variant.sku || variant.autoGeneratedVariantSku || '';
 
         return {
             ...variant,
-            sku: finalVariantSku, // Asigna el SKU final procesado
+            sku: finalVariantSku, // Assign final processed SKU
             price: Number(variant.price),
             costPrice: Number(variant.costPrice),
             stock: Number(variant.stock),
+            // New fields for variants
+            isPerishable: Boolean(variant.isPerishable),
+            reorderThreshold: Number(variant.reorderThreshold) || 0,
+            optimalMaxStock: Number(variant.optimalMaxStock) || 0,
+            shelfLifeDays: Number(variant.shelfLifeDays) || 0,
         };
     }) : [];
 
-    // Actualizar los campos del producto principal
+    // Update main product fields
     product.name = name;
     product.description = description;
     product.category = category;
@@ -305,8 +327,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.supplier = supplier;
     product.imageUrl = imageUrl || '';
     
-    // *** IMPORTANTE: Asignar sku, price, stock, costPrice, unitOfMeasure, color, size, material
-    // basándose directamente en los valores del req.body, que ya vienen preparados desde el frontend.
+    // Assign main product fields directly from req.body
     product.sku = sku;
     product.price = price;
     product.stock = stock;
@@ -315,29 +336,178 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.color = color;
     product.size = size;
     product.material = material;
+    // New fields for the main product
+    product.isPerishable = Boolean(isPerishable);
+    product.reorderThreshold = Number(reorderThreshold) || 0;
+    product.optimalMaxStock = Number(optimalMaxStock) || 0;
+    product.shelfLifeDays = Number(shelfLifeDays) || 0;
 
-    // Reemplaza las variantes existentes con las procesadas
+    // Replace existing variants with processed ones
     product.variants = processedVariants;
 
     try {
-        // Usa product.save() para que Mongoose valide los subdocumentos y se ejecuten los hooks si los hubiera
+        // Use product.save() for Mongoose to validate subdocuments and execute hooks if any
         const updatedProduct = await product.save();
         res.status(200).json(updatedProduct);
     } catch (error) {
-        console.error('Error al actualizar el producto:', error);
+        console.error('Error updating product:', error);
         if (error.name === 'ValidationError') {
             const messages = Object.values(error.errors).map(val => val.message);
             return res.status(400).json({ message: messages.join(', ') });
         }
-        // Manejo específico para el error de clave duplicada del SKU principal
+        // Specific handling for main SKU duplicate key error
         if (error.code === 11000 && error.keyPattern && error.keyPattern.sku) {
-            return res.status(400).json({ message: 'El SKU del producto principal ya existe. Por favor, introduce un SKU único.' });
+            return res.status(400).json({ message: 'The main product SKU already exists. Please enter a unique SKU.' });
         }
-        res.status(500).json({ message: 'Error interno del servidor al actualizar el producto.' });
+        res.status(500).json({ message: 'Internal server error updating product.' });
     }
 });
 
-// @desc    Eliminar un producto
+// @desc    Get low stock products
+// @route   GET /api/products/alerts/low-stock
+// @access  Private
+const getLowStockProducts = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    // Find main products with low stock (if they have no variants)
+    const lowStockMainProducts = await Product.aggregate([
+        { $match: { user: userId, variants: { $size: 0 } } }, // Products without variants
+        { $match: { $expr: { $lte: ['$stock', '$reorderThreshold'] } } } // Stock <= Reorder threshold using $expr
+    ]);
+
+    // Find products with variants where any perishable variant has high stock
+    const lowStockVariantProducts = await Product.aggregate([
+        { $match: { user: userId, 'variants.0': { $exists: true } } }, // Products with at least one variant
+        { $unwind: '$variants' }, // Unwind the variants array
+        { $match: { $expr: { $lte: ['$variants.stock', '$variants.reorderThreshold'] } } }, // Filter variants with low stock using $expr
+        {
+            $group: {
+                _id: '$_id', // Group back by product ID to get the complete product
+                name: { $first: '$name' },
+                sku: { $first: '$sku' },
+                imageUrl: { $first: '$imageUrl' },
+                variants: {
+                    $push: { // Reconstruct only the variants with low stock
+                        _id: '$variants._id',
+                        name: '$variants.name',
+                        sku: '$variants.sku',
+                        stock: '$variants.stock',
+                        reorderThreshold: '$variants.reorderThreshold',
+                        imageUrl: '$variants.imageUrl',
+                        // Add other variant fields needed for frontend display
+                    }
+                }
+            }
+        }
+    ]);
+
+    // Combine results, ensuring products with variants only show variants in alert.
+    const combinedLowStock = [];
+
+    // Add main products
+    lowStockMainProducts.forEach(p => {
+        combinedLowStock.push({
+            _id: p._id,
+            name: p.name,
+            sku: p.sku,
+            stock: p.stock,
+            reorderThreshold: p.reorderThreshold,
+            imageUrl: p.imageUrl,
+            isMainProduct: true, // Indicator for the frontend
+        });
+    });
+
+    // Add products with variants in alert (only the alerting variants)
+    lowStockVariantProducts.forEach(p => {
+        combinedLowStock.push({
+            _id: p._id,
+            name: p.name,
+            sku: p.sku,
+            imageUrl: p.imageUrl,
+            variantsInAlert: p.variants, // Contains only the variants that triggered the alert
+            isMainProduct: false, // Indicator for the frontend
+        });
+    });
+
+    res.status(200).json(combinedLowStock);
+});
+
+// @desc    Get high stock products (perishable)
+// @route   GET /api/products/alerts/high-stock
+// @access  Private
+const getHighStockProducts = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    // Find main products with high stock (if perishable and have no variants)
+    const highStockMainProducts = await Product.aggregate([
+        { $match: { user: userId, variants: { $size: 0 }, isPerishable: true } }, // Products without variants and perishable
+        { $match: { $expr: { $gt: ['$stock', '$optimalMaxStock'] } } } // Stock > Optimal max stock using $expr
+    ]);
+
+    // Find products with variants where any perishable variant has high stock
+    const highStockVariantProducts = await Product.aggregate([
+        { $match: { user: userId, 'variants.0': { $exists: true } } }, // Products with at least one variant
+        { $unwind: '$variants' }, // Unwind the variants array
+        { $match: {
+            'variants.isPerishable': true, // Only perishable variants
+            $expr: { $gt: ['$variants.stock', '$variants.optimalMaxStock'] } // Stock > Optimal max stock using $expr
+        } },
+        {
+            $group: {
+                _id: '$_id', // Group back by product ID to get the complete product
+                name: { $first: '$name' },
+                sku: { $first: '$sku' },
+                imageUrl: { $first: '$imageUrl' },
+                variants: {
+                    $push: { // Reconstruct only the variants with high stock
+                        _id: '$variants._id',
+                        name: '$variants.name',
+                        sku: '$variants.sku',
+                        stock: '$variants.stock',
+                        optimalMaxStock: '$variants.optimalMaxStock',
+                        shelfLifeDays: '$variants.shelfLifeDays',
+                        imageUrl: '$variants.imageUrl',
+                        // Add other variant fields needed for frontend display
+                    }
+                }
+            }
+        }
+    ]);
+
+    // Combine results, ensuring products with variants only show variants in alert.
+    const combinedHighStock = [];
+
+    // Add main products
+    highStockMainProducts.forEach(p => {
+        combinedHighStock.push({
+            _id: p._id,
+            name: p.name,
+            sku: p.sku,
+            stock: p.stock,
+            optimalMaxStock: p.optimalMaxStock,
+            shelfLifeDays: p.shelfLifeDays,
+            imageUrl: p.imageUrl,
+            isMainProduct: true, // Indicator for the frontend
+        });
+    });
+
+    // Add products with variants in alert (only the alerting variants)
+    highStockVariantProducts.forEach(p => {
+        combinedHighStock.push({
+            _id: p._id,
+            name: p.name,
+            sku: p.sku,
+            imageUrl: p.imageUrl,
+            variantsInAlert: p.variants, // Contains only the variants that triggered the alert
+            isMainProduct: false, // Indicator for the frontend
+        });
+    });
+
+    res.status(200).json(combinedHighStock);
+});
+
+
+// @desc    Delete a product
 // @route   DELETE /api/products/:id
 // @access  Private
 const deleteProduct = asyncHandler(async (req, res) => {
@@ -345,22 +515,22 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
     if (!product) {
         res.status(404);
-        throw new Error('Producto no encontrado');
+        throw new Error('Product not found');
     }
 
     if (product.user.toString() !== req.user.id) {
         res.status(401);
-        throw new Error('No autorizado para eliminar este producto');
+        throw new Error('Not authorized to delete this product');
     }
 
     await product.deleteOne();
 
-    res.status(200).json({ message: 'Producto eliminado' });
+    res.status(200).json({ message: 'Product removed' });
 });
 
-// @desc    Obtener productos globales
+// @desc    Get global products
 // @route   GET /api/globalproducts
-// @access  Public (o Private si solo usuarios autenticados pueden verlos)
+// @access  Public (or Private depending on your needs)
 const getGlobalProducts = asyncHandler(async (req, res) => {
     const { searchTerm } = req.query;
 
@@ -369,108 +539,108 @@ const getGlobalProducts = asyncHandler(async (req, res) => {
         query.name = { $regex: searchTerm, $options: 'i' };
     }
 
-    // Datos simulados (incluyendo color, size, material para el producto principal y variantes)
+    // Simulated data (including color, size, material for main product and variants)
     const globalProducts = [
         {
             sku: 'CAMI-ALG-ROJO-M',
-            name: 'Camiseta Básica de Algodón',
-            description: 'Camiseta de algodón suave y cómoda para uso diario.',
-            category: 'Ropa',
-            unitOfMeasure: 'unidad',
-            brand: 'Genérica',
+            name: 'Basic Cotton T-shirt',
+            description: 'Soft and comfortable cotton t-shirt for daily use.',
+            category: 'Clothing',
+            unitOfMeasure: 'unit',
+            brand: 'Generic',
             imageUrl: 'https://res.cloudinary.com/your_cloud_name/image/upload/v1678901234/label_products/camiseta_roja.jpg',
-            color: 'Rojo', // Añadido para producto principal
-            size: 'M',    // Añadido para producto principal
-            material: 'Algodón', // Añadido para producto principal
+            color: 'Red', // Added for main product
+            size: 'M',    // Added for main product
+            material: 'Cotton', // Added for main product
             variants: [
                 {
-                    name: 'Talla S - Rojo', sku: 'CAMI-S-ROJO', price: 15.00, costPrice: 7.00, stock: 50, unitOfMeasure: 'unidad', color: 'Rojo', size: 'S', material: 'Algodón', imageUrl: 'https://placehold.co/150x100/A02C2C/F8F8F2?text=S-Rojo'
+                    name: 'Size S - Red', sku: 'CAMI-S-ROJO', price: 15.00, costPrice: 7.00, stock: 50, unitOfMeasure: 'unit', color: 'Red', size: 'S', material: 'Cotton', imageUrl: 'https://placehold.co/150x100/A02C2C/F8F8F2?text=S-Red'
                 },
                 {
-                    name: 'Talla M - Rojo', sku: 'CAMI-M-ROJO', price: 15.00, costPrice: 7.00, stock: 45, unitOfMeasure: 'unidad', color: 'Rojo', size: 'M', material: 'Algodón', imageUrl: 'https://placehold.co/150x100/A02C2C/F8F8F2?text=M-Rojo'
+                    name: 'Size M - Red', sku: 'CAMI-M-ROJO', price: 15.00, costPrice: 7.00, stock: 45, unitOfMeasure: 'unit', color: 'Red', size: 'M', material: 'Cotton', imageUrl: 'https://placehold.co/150x100/A02C2C/F8F8F2?text=M-Red'
                 },
                 {
-                    name: 'Talla L - Rojo', sku: 'CAMI-L-ROJO', price: 15.00, costPrice: 7.00, stock: 30, unitOfMeasure: 'unidad', color: 'Rojo', size: 'L', material: 'Algodón', imageUrl: 'https://placehold.co/150x100/A02C2C/F8F8F2?text=L-Rojo'
+                    name: 'Size L - Red', sku: 'CAMI-L-ROJO', price: 15.00, costPrice: 7.00, stock: 30, unitOfMeasure: 'unit', color: 'Red', size: 'L', material: 'Cotton', imageUrl: 'https://placehold.co/150x100/A02C2C/F8F8F2?text=L-Red'
                 },
                 {
-                    name: 'Talla M - Azul', sku: 'CAMI-M-AZUL', price: 16.00, costPrice: 7.50, stock: 60, unitOfMeasure: 'unidad', color: 'Azul', size: 'M', material: 'Algodón', imageUrl: 'https://placehold.co/150x100/2C3CA0/F8F8F2?text=M-Azul'
+                    name: 'Size M - Blue', sku: 'CAMI-M-AZUL', price: 16.00, costPrice: 7.50, stock: 60, unitOfMeasure: 'unit', color: 'Blue', size: 'M', material: 'Cotton', imageUrl: 'https://placehold.co/150x100/2C3CA0/F8F8F2?text=M-Blue'
                 },
             ]
         },
         {
             sku: 'PANT-JEAN-AZUL-32',
-            name: 'Pantalón Jean Clásico',
-            description: 'Pantalón de jean azul clásico, ajuste recto.',
-            category: 'Ropa',
-            unitOfMeasure: 'unidad',
+            name: 'Classic Blue Jean Pants',
+            description: 'Classic blue jean pants, straight fit.',
+            category: 'Clothing',
+            unitOfMeasure: 'unit',
             brand: 'DenimCo',
             imageUrl: 'https://res.cloudinary.com/your_cloud_name/image/upload/v1678901235/label_products/jean_azul.jpg',
-            color: 'Azul', // Añadido para producto principal
-            size: '32',   // Añadido para producto principal
-            material: 'Jean', // Añadido para producto principal
+            color: 'Blue', // Added for main product
+            size: '32',   // Added for main product
+            material: 'Jean', // Added for main product
             variants: [
-                { name: 'Talla 30', sku: 'PANT-30-AZUL', price: 45.00, costPrice: 20.00, stock: 25, unitOfMeasure: 'unidad', size: '30', color: 'Azul' },
-                { name: 'Talla 32', sku: 'PANT-32-AZUL', price: 45.00, costPrice: 20.00, stock: 40, unitOfMeasure: 'unidad', size: '32', color: 'Azul' },
-                { name: 'Talla 34', sku: 'PANT-34-AZUL', price: 45.00, costPrice: 20.00, stock: 35, unitOfMeasure: 'unidad', size: '34', color: 'Azul' },
+                { name: 'Size 30', sku: 'PANT-30-AZUL', price: 45.00, costPrice: 20.00, stock: 25, unitOfMeasure: 'unit', size: '30', color: 'Blue' },
+                { name: 'Size 32', sku: 'PANT-32-AZUL', price: 45.00, costPrice: 20.00, stock: 40, unitOfMeasure: 'unit', size: '32', color: 'Blue' },
+                { name: 'Size 34', sku: 'PANT-34-AZUL', price: 45.00, costPrice: 20.00, stock: 35, unitOfMeasure: 'unit', size: '34', color: 'Blue' },
             ]
         },
         {
             sku: 'CEL-SMART-ULTRA-256',
             name: 'Smartphone Ultra X',
-            description: 'Último modelo de smartphone con cámara de alta resolución y gran almacenamiento.',
-            category: 'Electrónica',
-            unitOfMeasure: 'unidad',
+            description: 'Latest smartphone model with high-resolution camera and large storage.',
+            category: 'Electronics',
+            unitOfMeasure: 'unit',
             brand: 'TechGadget',
             imageUrl: 'https://res.cloudinary.com/your_cloud_name/image/upload/v1678901236/label_products/smartphone_ultra.jpg',
-            color: 'Negro', // Añadido para producto principal
-            size: '256GB', // Añadido para producto principal
-            material: 'Metal/Cristal', // Añadido para producto principal
+            color: 'Black', // Added for main product
+            size: '256GB', // Added for main product
+            material: 'Metal/Glass', // Added for main product
             variants: [
-                { name: 'Color Negro - 128GB', sku: 'SMART-NEGRO-128', price: 799.99, costPrice: 500.00, stock: 15, unitOfMeasure: 'unidad', color: 'Negro', size: '128GB' },
-                { name: 'Color Negro - 256GB', sku: 'SMART-NEGRO-256', price: 899.99, costPrice: 600.00, stock: 10, unitOfMeasure: 'unidad', color: 'Negro', size: '256GB' },
-                { name: 'Color Plata - 256GB', sku: 'SMART-PLATA-256', price: 899.99, costPrice: 600.00, stock: 8, unitOfMeasure: 'unidad', color: 'Plata', size: '256GB' },
+                { name: 'Black Color - 128GB', sku: 'SMART-NEGRO-128', price: 799.99, costPrice: 500.00, stock: 15, unitOfMeasure: 'unit', color: 'Black', size: '128GB' },
+                { name: 'Black Color - 256GB', sku: 'SMART-NEGRO-256', price: 899.99, costPrice: 600.00, stock: 10, unitOfMeasure: 'unit', color: 'Black', size: '256GB' },
+                { name: 'Silver Color - 256GB', sku: 'SMART-PLATA-256', price: 899.99, costPrice: 600.00, stock: 8, unitOfMeasure: 'unit', color: 'Silver', size: '256GB' },
             ]
         },
         {
             sku: 'AUDI-BLUETOOTH-SPORT',
-            name: 'Audífonos Bluetooth Deportivos',
-            description: 'Audífonos inalámbricos ideales para el ejercicio, con sonido de alta fidelidad.',
-            category: 'Electrónica',
-            unitOfMeasure: 'unidad',
+            name: 'Sport Bluetooth Headphones',
+            description: 'Wireless headphones ideal for exercise, with high-fidelity sound.',
+            category: 'Electronics',
+            unitOfMeasure: 'unit',
             brand: 'SoundBlast',
-            imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Audifonos',
-            color: 'Negro', // Añadido para producto principal
-            size: 'N/A',   // Añadido para producto principal
-            material: 'Plástico', // Añadido para producto principal
+            imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Headphones',
+            color: 'Black', // Added for main product
+            size: 'N/A',   // Added for main product
+            material: 'Plastic', // Added for main product
             variants: []
         },
         {
             sku: 'CAFE-ESPECIAL-KG',
-            name: 'Café Especial de Origen',
-            description: 'Granos de café arábica, tostado medio, de fincas seleccionadas.',
-            category: 'Alimentos y Bebidas',
+            name: 'Special Origin Coffee',
+            description: 'Arabica coffee beans, medium roasted, from selected farms.',
+            category: 'Food and Beverages',
             unitOfMeasure: 'kg',
             brand: 'AromaPuro',
-            imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Cafe',
-            color: 'Marrón', // Añadido para producto principal
-            size: '1KG',     // Añadido para producto principal
-            material: 'Grano', // Añadido para producto principal
+            imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Coffee',
+            color: 'Brown', // Added for main product
+            size: '1KG',     // Added for main product
+            material: 'Grain', // Added for main product
             variants: []
         },
         {
             sku: 'ZAP-DEP-CORR-40',
-            name: 'Zapatillas Deportivas Running',
-            description: 'Zapatillas ligeras y transpirables para corredores.',
-            category: 'Calzado',
-            unitOfMeasure: 'unidad',
+            name: 'Running Sports Shoes',
+            description: 'Lightweight and breathable running shoes.',
+            category: 'Footwear',
+            unitOfMeasure: 'unit',
             brand: 'RunFast',
-            imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Zapatillas',
-            color: 'Azul', // Añadido para producto principal
-            size: '40',   // Añadido para producto principal
-            material: 'Malla/Sintético', // Añadido para producto principal
+            imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Shoes',
+            color: 'Blue', // Added for main product
+            size: '40',   // Added for main product
+            material: 'Mesh/Synthetic', // Added for main product
             variants: [
-                { name: 'Talla 40 - Azul', sku: 'ZAP-40-AZUL', price: 60.00, costPrice: 30.00, stock: 20, unitOfMeasure: 'unidad', size: '40', color: 'Azul' },
-                { name: 'Talla 42 - Negro', sku: 'ZAP-42-NEGRO', price: 65.00, costPrice: 32.00, stock: 15, unitOfMeasure: 'unidad', size: '42', color: 'Negro' },
+                { name: 'Size 40 - Blue', sku: 'ZAP-40-AZUL', price: 60.00, costPrice: 30.00, stock: 20, unitOfMeasure: 'unit', size: '40', color: 'Blue' },
+                { name: 'Size 42 - Black', sku: 'ZAP-42-NEGRO', price: 65.00, costPrice: 32.00, stock: 15, unitOfMeasure: 'unit', size: '42', color: 'Black' },
             ]
         },
     ];
@@ -491,4 +661,6 @@ module.exports = {
     updateProduct,
     deleteProduct,
     getGlobalProducts,
+    getLowStockProducts, // Export new function
+    getHighStockProducts, // Export new function
 };

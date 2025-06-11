@@ -1,3 +1,4 @@
+// C:\Proyectos\Label\backend\models\productModel.js
 const mongoose = require('mongoose');
 
 // Define el esquema para las variantes de producto
@@ -10,7 +11,7 @@ const variantSchema = mongoose.Schema(
         },
         sku: {
             type: String,
-            required: false, // ¡MODIFICADO! Ahora es opcional a nivel de BD.
+            required: false, // Ahora es opcional a nivel de BD.
             unique: false,
             trim: true,
         },
@@ -58,7 +59,27 @@ const variantSchema = mongoose.Schema(
             type: String,
             default: '', // URL de la imagen específica de la variante
         },
-        // Puedes añadir más campos específicos de variantes aquí
+        // --- NUEVOS CAMPOS PARA ALERTAS DE STOCK Y PERECEDEROS ---
+        isPerishable: { // Indica si esta variante es perecedera
+            type: Boolean,
+            default: false,
+        },
+        reorderThreshold: { // Umbral para alerta de stock bajo
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        optimalMaxStock: { // Umbral para alerta de stock alto/óptimo (para perecederos)
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        shelfLifeDays: { // Días de vida útil (para perecederos)
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        // --- FIN NUEVOS CAMPOS ---
     },
     {
         timestamps: true, // Añade createdAt y updatedAt para cada variante
@@ -148,6 +169,27 @@ const productSchema = mongoose.Schema(
             trim: true,
             default: '',
         },
+        // --- NUEVOS CAMPOS PARA ALERTAS DE STOCK Y PERECEDEROS (PARA PRODUCTOS SIN VARIANTES) ---
+        isPerishable: { // Indica si el producto principal es perecedero
+            type: Boolean,
+            default: false,
+        },
+        reorderThreshold: { // Umbral para alerta de stock bajo
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        optimalMaxStock: { // Umbral para alerta de stock alto/óptimo (para perecederos)
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        shelfLifeDays: { // Días de vida útil (para perecederos)
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        // --- FIN NUEVOS CAMPOS ---
         // Array de variantes, utilizando el esquema de variantes definido arriba
         variants: [variantSchema],
     },
