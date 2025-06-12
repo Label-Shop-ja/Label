@@ -1,29 +1,33 @@
 // C:\Proyectos\Label\backend\controllers\productController.js
 const asyncHandler = require('express-async-handler');
-const Product = require('../models/productModel'); // Ensure this line is correct
+const Product = require('../models/productModel'); // Asegúrate de que esta línea sea correcta
 
-// @desc    Get all products
+// @desc    Obtener todos los productos
 // @route   GET /api/products
 // @access  Private
 const getProducts = asyncHandler(async (req, res) => {
-    const { searchTerm, category, brand, supplier, variantColor, variantSize, page, limit } = req.query;
+    // Asegura que solo se vean los productos del usuario autenticado
+    const userId = req.user.id;
 
-    const query = { user: req.user.id };
+    // Destructure new sorting parameters
+    const { searchTerm, category, brand, supplier, variantColor, variantSize, page, limit, sortBy, sortOrder } = req.query;
+
+    const query = { user: userId };
 
     if (searchTerm) {
         query.$or = [
             { name: { $regex: searchTerm, $options: 'i' } },
             { description: { $regex: searchTerm, $options: 'i' } },
-            { sku: { $regex: searchTerm, $options: 'i' } },
-            { brand: { $regex: searchTerm, $options: 'i' } },
-            { supplier: { $regex: searchTerm, $options: 'i' } },
-            { color: { $regex: searchTerm, $options: 'i' } }, // New: Search by main product color
-            { size: { $regex: searchTerm, $options: 'i' } },   // New: Search by main product size
-            { material: { $regex: searchTerm, $options: 'i' } }, // New: Search by main product material
+            { sku: { $regex: searchTerm, '$options': 'i' } },
+            { brand: { $regex: searchTerm, '$options': 'i' } },
+            { supplier: { $regex: searchTerm, '$options': 'i' } },
+            { color: { $regex: searchTerm, '$options': 'i' } },
+            { size: { $regex: searchTerm, '$options': 'i' } },
+            { material: { $regex: searchTerm, '$options': 'i' } },
             // Search also in variants
             { 'variants.name': { $regex: searchTerm, $options: 'i' } },
-            { 'variants.sku': { $regex: searchTerm, $options: 'i' } },
-            { 'variants.color': { $regex: searchTerm, $options: 'i' } },
+            { 'variants.sku': { $regex: searchTerm, '$options': 'i' } },
+            { 'variants.color': { $regex: searchTerm, '$options': 'i' } },
             { 'variants.size': { $regex: searchTerm, '$options': 'i' } },
             { 'variants.material': { $regex: searchTerm, '$options': 'i' } },
         ];
@@ -49,8 +53,38 @@ const getProducts = asyncHandler(async (req, res) => {
     const limitNum = parseInt(limit) || 10;
     const skip = (pageNum - 1) * limitNum;
 
+    // Define sorting options based on sortBy and sortOrder
+    let sortOptions = {};
+    if (sortBy) {
+        const order = sortOrder === 'desc' ? -1 : 1;
+        switch (sortBy) {
+            case 'name':
+                sortOptions.name = order;
+                break;
+            case 'price':
+                sortOptions.price = order;
+                break;
+            case 'stock':
+                sortOptions.stock = order;
+                break;
+            case 'category':
+                sortOptions.category = order;
+                break;
+            case 'brand':
+                sortOptions.brand = order;
+                break;
+            case 'createdAt':
+                sortOptions.createdAt = order;
+                break;
+            default:
+                sortOptions.createdAt = -1;
+        }
+    } else {
+        sortOptions.createdAt = -1;
+    }
+
     const products = await Product.find(query)
-        .sort('-createdAt')
+        .sort(sortOptions) // Apply the dynamic sortOptions
         .skip(skip)
         .limit(limitNum);
 
@@ -68,7 +102,7 @@ const getProducts = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get a product by ID
+// @desc    Obtener un producto por ID
 // @route   GET /api/products/:id
 // @access  Private
 const getProduct = asyncHandler(async (req, res) => {
@@ -87,13 +121,11 @@ const getProduct = asyncHandler(async (req, res) => {
     res.status(200).json(product);
 });
 
-// @desc    Create a new product
+// @desc    Crear un nuevo producto
 // @route   POST /api/products
 // @access  Private
 const createProduct = asyncHandler(async (req, res) => {
-    // --- Debugging Step: Print received data ---
     console.log('Product data received in createProduct:', JSON.stringify(req.body, null, 2));
-    // --- End Debugging Step ---
 
     const {
         name,
@@ -102,7 +134,7 @@ const createProduct = asyncHandler(async (req, res) => {
         price,
         stock,
         costPrice,
-        sku, // Main product SKU
+        sku,
         unitOfMeasure,
         brand,
         supplier,
@@ -110,14 +142,13 @@ const createProduct = asyncHandler(async (req, res) => {
         color,
         size,
         material,
-        isPerishable, // New field
-        reorderThreshold, // New field
-        optimalMaxStock, // New field
-        shelfLifeDays, // New field
+        isPerishable,
+        reorderThreshold,
+        optimalMaxStock,
+        shelfLifeDays,
         variants
     } = req.body;
 
-    // Validation if no variants: main fields are mandatory
     if (!variants || variants.length === 0) {
         if (!name || !category || price === undefined || stock === undefined || costPrice === undefined || !sku || !unitOfMeasure) {
             res.status(400);
@@ -136,7 +167,6 @@ const createProduct = asyncHandler(async (req, res) => {
             throw new Error('Stock must be a non-negative number.');
         }
     } else {
-        // If there are variants, validate that each variant has the required fields
         for (const variant of variants) {
             if (!variant.name || variant.price === undefined || variant.costPrice === undefined || variant.stock === undefined || !variant.unitOfMeasure) {
                 res.status(400);
@@ -157,17 +187,15 @@ const createProduct = asyncHandler(async (req, res) => {
         }
     }
 
-    // Process variants: ensure variant SKU is a string and parse new fields.
     const processedVariants = variants ? variants.map(variant => {
         const finalVariantSku = variant.sku || variant.autoGeneratedVariantSku || '';
         
         return {
             ...variant,
-            sku: finalVariantSku, // Assign final processed SKU
+            sku: finalVariantSku,
             price: Number(variant.price),
             costPrice: Number(variant.costPrice),
             stock: Number(variant.stock),
-            // New fields for variants
             isPerishable: Boolean(variant.isPerishable),
             reorderThreshold: Number(variant.reorderThreshold) || 0,
             optimalMaxStock: Number(variant.optimalMaxStock) || 0,
@@ -175,7 +203,6 @@ const createProduct = asyncHandler(async (req, res) => {
         };
     }) : [];
 
-    // Build the main product object
     const productFields = {
         user: req.user.id,
         name,
@@ -193,7 +220,6 @@ const createProduct = asyncHandler(async (req, res) => {
         stock: stock,
         costPrice: costPrice,
         unitOfMeasure: unitOfMeasure,
-        // New fields for the main product (if no variants)
         isPerishable: Boolean(isPerishable),
         reorderThreshold: Number(reorderThreshold) || 0,
         optimalMaxStock: Number(optimalMaxStock) || 0,
@@ -209,7 +235,6 @@ const createProduct = asyncHandler(async (req, res) => {
             const messages = Object.values(error.errors).map(val => val.message);
             return res.status(400).json({ message: messages.join(', ') });
         }
-        // Specific handling for main SKU duplicate key error
         if (error.code === 11000 && error.keyPattern && error.keyPattern.sku) {
             return res.status(400).json({ message: 'The main product SKU already exists. Please enter a unique SKU.' });
         }
@@ -218,13 +243,11 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 
-// @desc    Update a product
+// @desc    Actualizar un producto
 // @route   PUT /api/products/:id
 // @access  Private
 const updateProduct = asyncHandler(async (req, res) => {
-    // --- Debugging Step: Print received data ---
     console.log('Product data received in updateProduct:', JSON.stringify(req.body, null, 2));
-    // --- End Debugging Step ---
 
     const { id } = req.params;
     const {
@@ -234,7 +257,7 @@ const updateProduct = asyncHandler(async (req, res) => {
         price,
         stock,
         costPrice,
-        sku, // Main product SKU
+        sku,
         unitOfMeasure,
         brand,
         supplier,
@@ -242,10 +265,10 @@ const updateProduct = asyncHandler(async (req, res) => {
         color,
         size,
         material,
-        isPerishable, // New field
-        reorderThreshold, // New field
-        optimalMaxStock, // New field
-        shelfLifeDays, // New field
+        isPerishable,
+        reorderThreshold,
+        optimalMaxStock,
+        shelfLifeDays,
         variants
     } = req.body;
 
@@ -261,7 +284,6 @@ const updateProduct = asyncHandler(async (req, res) => {
         throw new Error('Not authorized to update this product');
     }
 
-    // Validation if no variants or all were removed
     if (!variants || variants.length === 0) {
         if (!name || !category || price === undefined || stock === undefined || costPrice === undefined || !sku || !unitOfMeasure) {
             res.status(400);
@@ -280,9 +302,8 @@ const updateProduct = asyncHandler(async (req, res) => {
             throw new Error('Stock must be a non-negative number.');
         }
     } else {
-        // If there are variants, validate that each variant has the required fields
         for (const variant of variants) {
-            if (!variant.name || variant.price === undefined || variant.costPrice === undefined || variant.stock === undefined || !variant.unitOfMeasure) {
+            if (!variant.name || variant.price === undefined || variant.costPrice === undefined || variant.stock === undefined || !variant.unitOfMeasure) { // Corrected: variant.price !== undefined
                 res.status(400);
                 throw new Error('All variants must have name, price, cost, stock, and unit of measure.');
             }
@@ -301,17 +322,15 @@ const updateProduct = asyncHandler(async (req, res) => {
         }
     }
 
-    // Process variants before updating
     const processedVariants = variants ? variants.map(variant => {
         const finalVariantSku = variant.sku || variant.autoGeneratedVariantSku || '';
 
         return {
             ...variant,
-            sku: finalVariantSku, // Assign final processed SKU
+            sku: finalVariantSku,
             price: Number(variant.price),
             costPrice: Number(variant.costPrice),
             stock: Number(variant.stock),
-            // New fields for variants
             isPerishable: Boolean(variant.isPerishable),
             reorderThreshold: Number(variant.reorderThreshold) || 0,
             optimalMaxStock: Number(variant.optimalMaxStock) || 0,
@@ -319,7 +338,6 @@ const updateProduct = asyncHandler(async (req, res) => {
         };
     }) : [];
 
-    // Update main product fields
     product.name = name;
     product.description = description;
     product.category = category;
@@ -327,7 +345,6 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.supplier = supplier;
     product.imageUrl = imageUrl || '';
     
-    // Assign main product fields directly from req.body
     product.sku = sku;
     product.price = price;
     product.stock = stock;
@@ -336,17 +353,14 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.color = color;
     product.size = size;
     product.material = material;
-    // New fields for the main product
     product.isPerishable = Boolean(isPerishable);
     product.reorderThreshold = Number(reorderThreshold) || 0;
     product.optimalMaxStock = Number(optimalMaxStock) || 0;
     product.shelfLifeDays = Number(shelfLifeDays) || 0;
 
-    // Replace existing variants with processed ones
     product.variants = processedVariants;
 
     try {
-        // Use product.save() for Mongoose to validate subdocuments and execute hooks if any
         const updatedProduct = await product.save();
         res.status(200).json(updatedProduct);
     } catch (error) {
@@ -355,7 +369,6 @@ const updateProduct = asyncHandler(async (req, res) => {
             const messages = Object.values(error.errors).map(val => val.message);
             return res.status(400).json({ message: messages.join(', ') });
         }
-        // Specific handling for main SKU duplicate key error
         if (error.code === 11000 && error.keyPattern && error.keyPattern.sku) {
             return res.status(400).json({ message: 'The main product SKU already exists. Please enter a unique SKU.' });
         }
@@ -363,48 +376,43 @@ const updateProduct = asyncHandler(async (req, res) => {
     }
 });
 
-// @desc    Get low stock products
+// @desc    Obtener productos con stock bajo
 // @route   GET /api/products/alerts/low-stock
 // @access  Private
 const getLowStockProducts = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
-    // Find main products with low stock (if they have no variants)
     const lowStockMainProducts = await Product.aggregate([
-        { $match: { user: userId, variants: { $size: 0 } } }, // Products without variants
-        { $match: { $expr: { $lte: ['$stock', '$reorderThreshold'] } } } // Stock <= Reorder threshold using $expr
+        { $match: { user: userId, variants: { $size: 0 } } },
+        { $match: { $expr: { $lte: ['$stock', '$reorderThreshold'] } } }
     ]);
 
-    // Find products with variants where any perishable variant has high stock
     const lowStockVariantProducts = await Product.aggregate([
-        { $match: { user: userId, 'variants.0': { $exists: true } } }, // Products with at least one variant
-        { $unwind: '$variants' }, // Unwind the variants array
-        { $match: { $expr: { $lte: ['$variants.stock', '$variants.reorderThreshold'] } } }, // Filter variants with low stock using $expr
+        { $match: { user: userId, 'variants.0': { $exists: true } } },
+        { $unwind: '$variants' },
+        { $match: { $expr: { $lte: ['$variants.stock', '$variants.reorderThreshold'] } } },
         {
             $group: {
-                _id: '$_id', // Group back by product ID to get the complete product
+                _id: '$_id',
                 name: { $first: '$name' },
                 sku: { $first: '$sku' },
                 imageUrl: { $first: '$imageUrl' },
                 variants: {
-                    $push: { // Reconstruct only the variants with low stock
+                    $push: {
                         _id: '$variants._id',
                         name: '$variants.name',
                         sku: '$variants.sku',
                         stock: '$variants.stock',
                         reorderThreshold: '$variants.reorderThreshold',
                         imageUrl: '$variants.imageUrl',
-                        // Add other variant fields needed for frontend display
                     }
                 }
             }
         }
     ]);
 
-    // Combine results, ensuring products with variants only show variants in alert.
     const combinedLowStock = [];
 
-    // Add main products
     lowStockMainProducts.forEach(p => {
         combinedLowStock.push({
             _id: p._id,
@@ -413,53 +421,50 @@ const getLowStockProducts = asyncHandler(async (req, res) => {
             stock: p.stock,
             reorderThreshold: p.reorderThreshold,
             imageUrl: p.imageUrl,
-            isMainProduct: true, // Indicator for the frontend
+            isMainProduct: true,
         });
     });
 
-    // Add products with variants in alert (only the alerting variants)
     lowStockVariantProducts.forEach(p => {
         combinedLowStock.push({
             _id: p._id,
             name: p.name,
             sku: p.sku,
             imageUrl: p.imageUrl,
-            variantsInAlert: p.variants, // Contains only the variants that triggered the alert
-            isMainProduct: false, // Indicator for the frontend
+            variantsInAlert: p.variants,
+            isMainProduct: false,
         });
     });
 
     res.status(200).json(combinedLowStock);
 });
 
-// @desc    Get high stock products (perishable)
+// @desc    Obtener productos con stock alto (perecederos)
 // @route   GET /api/products/alerts/high-stock
 // @access  Private
 const getHighStockProducts = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
-    // Find main products with high stock (if perishable and have no variants)
     const highStockMainProducts = await Product.aggregate([
-        { $match: { user: userId, variants: { $size: 0 }, isPerishable: true } }, // Products without variants and perishable
-        { $match: { $expr: { $gt: ['$stock', '$optimalMaxStock'] } } } // Stock > Optimal max stock using $expr
+        { $match: { user: userId, variants: { $size: 0 }, isPerishable: true } },
+        { $match: { $expr: { $gt: ['$stock', '$optimalMaxStock'] } } }
     ]);
 
-    // Find products with variants where any perishable variant has high stock
     const highStockVariantProducts = await Product.aggregate([
-        { $match: { user: userId, 'variants.0': { $exists: true } } }, // Products with at least one variant
-        { $unwind: '$variants' }, // Unwind the variants array
+        { $match: { user: userId, 'variants.0': { $exists: true } } },
+        { $unwind: '$variants' },
         { $match: {
-            'variants.isPerishable': true, // Only perishable variants
-            $expr: { $gt: ['$variants.stock', '$variants.optimalMaxStock'] } // Stock > Optimal max stock using $expr
+            'variants.isPerishable': true,
+            $expr: { $gt: ['$variants.stock', '$variants.optimalMaxStock'] }
         } },
         {
             $group: {
-                _id: '$_id', // Group back by product ID to get the complete product
+                _id: '$_id',
                 name: { $first: '$name' },
                 sku: { $first: '$sku' },
                 imageUrl: { $first: '$imageUrl' },
                 variants: {
-                    $push: { // Reconstruct only the variants with high stock
+                    $push: {
                         _id: '$variants._id',
                         name: '$variants.name',
                         sku: '$variants.sku',
@@ -467,17 +472,14 @@ const getHighStockProducts = asyncHandler(async (req, res) => {
                         optimalMaxStock: '$variants.optimalMaxStock',
                         shelfLifeDays: '$variants.shelfLifeDays',
                         imageUrl: '$variants.imageUrl',
-                        // Add other variant fields needed for frontend display
                     }
                 }
             }
         }
     ]);
 
-    // Combine results, ensuring products with variants only show variants in alert.
     const combinedHighStock = [];
 
-    // Add main products
     highStockMainProducts.forEach(p => {
         combinedHighStock.push({
             _id: p._id,
@@ -487,19 +489,18 @@ const getHighStockProducts = asyncHandler(async (req, res) => {
             optimalMaxStock: p.optimalMaxStock,
             shelfLifeDays: p.shelfLifeDays,
             imageUrl: p.imageUrl,
-            isMainProduct: true, // Indicator for the frontend
+            isMainProduct: true,
         });
     });
 
-    // Add products with variants in alert (only the alerting variants)
     highStockVariantProducts.forEach(p => {
         combinedHighStock.push({
             _id: p._id,
             name: p.name,
             sku: p.sku,
             imageUrl: p.imageUrl,
-            variantsInAlert: p.variants, // Contains only the variants that triggered the alert
-            isMainProduct: false, // Indicator for the frontend
+            variantsInAlert: p.variants,
+            isMainProduct: false,
         });
     });
 
@@ -507,7 +508,7 @@ const getHighStockProducts = asyncHandler(async (req, res) => {
 });
 
 
-// @desc    Delete a product
+// @desc    Eliminar un producto
 // @route   DELETE /api/products/:id
 // @access  Private
 const deleteProduct = asyncHandler(async (req, res) => {
@@ -528,9 +529,9 @@ const deleteProduct = asyncHandler(async (req, res) => {
     res.status(200).json({ message: 'Product removed' });
 });
 
-// @desc    Get global products
-// @route   GET /api/globalproducts
-// @access  Public (or Private depending on your needs)
+// @desc    Obtener sugerencias de productos globales (para todos los usuarios)
+// @route   GET /api/products/globalproducts
+// @access  Public (o ajusta si lo quieres privado)
 const getGlobalProducts = asyncHandler(async (req, res) => {
     const { searchTerm } = req.query;
 
@@ -539,7 +540,6 @@ const getGlobalProducts = asyncHandler(async (req, res) => {
         query.name = { $regex: searchTerm, $options: 'i' };
     }
 
-    // Simulated data (including color, size, material for main product and variants)
     const globalProducts = [
         {
             sku: 'CAMI-ALG-ROJO-M',
@@ -549,9 +549,9 @@ const getGlobalProducts = asyncHandler(async (req, res) => {
             unitOfMeasure: 'unit',
             brand: 'Generic',
             imageUrl: 'https://res.cloudinary.com/your_cloud_name/image/upload/v1678901234/label_products/camiseta_roja.jpg',
-            color: 'Red', // Added for main product
-            size: 'M',    // Added for main product
-            material: 'Cotton', // Added for main product
+            color: 'Red',
+            size: 'M',
+            material: 'Cotton',
             variants: [
                 {
                     name: 'Size S - Red', sku: 'CAMI-S-ROJO', price: 15.00, costPrice: 7.00, stock: 50, unitOfMeasure: 'unit', color: 'Red', size: 'S', material: 'Cotton', imageUrl: 'https://placehold.co/150x100/A02C2C/F8F8F2?text=S-Red'
@@ -575,9 +575,9 @@ const getGlobalProducts = asyncHandler(async (req, res) => {
             unitOfMeasure: 'unit',
             brand: 'DenimCo',
             imageUrl: 'https://res.cloudinary.com/your_cloud_name/image/upload/v1678901235/label_products/jean_azul.jpg',
-            color: 'Blue', // Added for main product
-            size: '32',   // Added for main product
-            material: 'Jean', // Added for main product
+            color: 'Blue',
+            size: '32',
+            material: 'Jean',
             variants: [
                 { name: 'Size 30', sku: 'PANT-30-AZUL', price: 45.00, costPrice: 20.00, stock: 25, unitOfMeasure: 'unit', size: '30', color: 'Blue' },
                 { name: 'Size 32', sku: 'PANT-32-AZUL', price: 45.00, costPrice: 20.00, stock: 40, unitOfMeasure: 'unit', size: '32', color: 'Blue' },
@@ -592,13 +592,13 @@ const getGlobalProducts = asyncHandler(async (req, res) => {
             unitOfMeasure: 'unit',
             brand: 'TechGadget',
             imageUrl: 'https://res.cloudinary.com/your_cloud_name/image/upload/v1678901236/label_products/smartphone_ultra.jpg',
-            color: 'Black', // Added for main product
-            size: '256GB', // Added for main product
-            material: 'Metal/Glass', // Added for main product
+            color: 'Black',
+            size: '256GB',
+            material: 'Metal/Glass',
             variants: [
                 { name: 'Black Color - 128GB', sku: 'SMART-NEGRO-128', price: 799.99, costPrice: 500.00, stock: 15, unitOfMeasure: 'unit', color: 'Black', size: '128GB' },
-                { name: 'Black Color - 256GB', sku: 'SMART-NEGRO-256', price: 899.99, costPrice: 600.00, stock: 10, unitOfMeasure: 'unit', color: 'Black', size: '256GB' },
-                { name: 'Silver Color - 256GB', sku: 'SMART-PLATA-256', price: 899.99, costPrice: 600.00, stock: 8, unitOfMeasure: 'unit', color: 'Silver', size: '256GB' },
+                { name: 'Black Color - 256GB', price: 899.99, costPrice: 600.00, stock: 10, unitOfMeasure: 'unit', color: 'Black', size: '256GB' },
+                { name: 'Silver Color - 256GB', price: 899.99, costPrice: 600.00, stock: 8, unitOfMeasure: 'unit', color: 'Silver', size: '256GB' },
             ]
         },
         {
@@ -609,9 +609,9 @@ const getGlobalProducts = asyncHandler(async (req, res) => {
             unitOfMeasure: 'unit',
             brand: 'SoundBlast',
             imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Headphones',
-            color: 'Black', // Added for main product
-            size: 'N/A',   // Added for main product
-            material: 'Plastic', // Added for main product
+            color: 'Black',
+            size: 'N/A',
+            material: 'Plastic',
             variants: []
         },
         {
@@ -622,9 +622,9 @@ const getGlobalProducts = asyncHandler(async (req, res) => {
             unitOfMeasure: 'kg',
             brand: 'AromaPuro',
             imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Coffee',
-            color: 'Brown', // Added for main product
-            size: '1KG',     // Added for main product
-            material: 'Grain', // Added for main product
+            color: 'Brown',
+            size: '1KG',
+            material: 'Grain',
             variants: []
         },
         {
@@ -635,9 +635,9 @@ const getGlobalProducts = asyncHandler(async (req, res) => {
             unitOfMeasure: 'unit',
             brand: 'RunFast',
             imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Shoes',
-            color: 'Blue', // Added for main product
-            size: '40',   // Added for main product
-            material: 'Mesh/Synthetic', // Added for main product
+            color: 'Blue',
+            size: '40',
+            material: 'Mesh/Synthetic',
             variants: [
                 { name: 'Size 40 - Blue', sku: 'ZAP-40-AZUL', price: 60.00, costPrice: 30.00, stock: 20, unitOfMeasure: 'unit', size: '40', color: 'Blue' },
                 { name: 'Size 42 - Black', sku: 'ZAP-42-NEGRO', price: 65.00, costPrice: 32.00, stock: 15, unitOfMeasure: 'unit', size: '42', color: 'Black' },
@@ -653,6 +653,61 @@ const getGlobalProducts = asyncHandler(async (req, res) => {
     res.status(200).json(filteredSuggestions.slice(0, 5));
 });
 
+// @desc    Obtener reporte de inventario detallado por variante
+// @route   GET /api/products/reports/variants
+// @access  Private
+const getVariantInventoryReport = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    const report = await Product.aggregate([
+        {
+            $match: {
+                user: userId,
+                'variants.0': { $exists: true } // Solo incluye productos que tienen variantes
+            }
+        },
+        { $unwind: '$variants' },
+        {
+            $project: {
+                _id: 0,
+                productId: '$_id',
+                productName: '$name',
+                productSku: '$sku',
+                productCategory: '$category',
+                productBrand: '$brand',
+                productImageUrl: '$imageUrl',
+
+                variantId: '$variants._id',
+                variantName: '$variants.name',
+                variantSku: '$variants.sku',
+                variantStock: '$variants.stock',
+                variantPrice: '$variants.price',
+                variantCostPrice: '$variants.costPrice',
+                variantUnitOfMeasure: '$variants.unitOfMeasure',
+                variantColor: '$variants.color',
+                variantSize: '$variants.size',
+                variantMaterial: '$variants.material',
+                variantImageUrl: '$variants.imageUrl',
+
+                variantIsPerishable: '$variants.isPerishable',
+                variantReorderThreshold: '$variants.reorderThreshold',
+                variantOptimalMaxStock: '$variants.optimalMaxStock',
+                variantShelfLifeDays: '$variants.shelfLifeDays',
+
+                variantTotalValue: { $multiply: ['$variants.stock', '$variants.price'] },
+                variantTotalCostValue: { $multiply: ['$variants.stock', '$variants.costPrice'] }
+            }
+        },
+        {
+            $sort: {
+                productName: 1,
+                variantName: 1
+            }
+        }
+    ]);
+
+    res.status(200).json(report);
+});
 
 module.exports = {
     getProducts,
@@ -663,4 +718,5 @@ module.exports = {
     getGlobalProducts,
     getLowStockProducts, // Export new function
     getHighStockProducts, // Export new function
+    getVariantInventoryReport, // <-- NUEVA FUNCIÓN EXPORTADA
 };

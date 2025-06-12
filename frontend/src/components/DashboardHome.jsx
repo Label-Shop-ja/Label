@@ -11,7 +11,7 @@ function DashboardHome() {
     // overflow-y-auto: Permite scroll si el contenido es muy largo.
     <main className="flex-1 p-8 bg-gray-900 text-neutral-light overflow-y-auto">
       <h1 className="text-4xl font-bold mb-8 text-copper-rose-accent">
-        Dashboard
+        Panel de Control
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

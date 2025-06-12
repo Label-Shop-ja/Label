@@ -165,7 +165,7 @@ const PosPage = () => {
     <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen flex flex-col lg:flex-row gap-6">
       {/* Columna de Búsqueda de Productos y Resultados */}
       <div className="lg:w-2/3 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col">
-        <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Punto de Venta</h2>
+        <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Punto de Venta (POS)</h2>
 
         {error && (
           <div className="bg-red-700 bg-opacity-30 border border-red-500 text-red-300 px-4 py-3 rounded relative mb-6" role="alert">
