@@ -23,13 +23,6 @@ const createClient = asyncHandler(async (req, res) => {
     throw new Error('Por favor, añade el nombre del cliente.');
   }
 
-  // Validar si el email ya existe para este usuario (opcional, si quieres que el email sea único por usuario)
-  // const existingClient = await Client.findOne({ user: req.user.id, email });
-  // if (existingClient && email) { // Solo si se proporciona un email
-  //   res.status(400);
-  //   throw new Error('Ya existe un cliente con este email para tu cuenta.');
-  // }
-
   const client = await Client.create({
     user: req.user.id, // Asocia el cliente al usuario autenticado
     name,

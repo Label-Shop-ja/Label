@@ -9,12 +9,13 @@ const {
   deleteTransaction,
   getFinancialSummary,
 } = require('../controllers/transactionController');
-const { protect } = require('../middleware/authMiddleware');
+// Importamos el middleware de protección. ¡Ahora lo importamos directamente!
+const protect = require('../middleware/authMiddleware'); // <--- ¡CAMBIO AQUÍ!
 
 // Rutas protegidas
 
 // SIEMPRE COLOCA LAS RUTAS ESPECÍFICAS PRIMERO
-router.get('/summary', protect, getFinancialSummary); // <--- ESTA RUTA DEBE IR PRIMERO
+router.get('/summary', protect, getFinancialSummary); // Esta ruta debe ir primero
 
 router.route('/').get(protect, getTransactions).post(protect, createTransaction);
 router.route('/:id').get(protect, getTransactionById).put(protect, updateTransaction).delete(protect, deleteTransaction);

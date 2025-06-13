@@ -6,7 +6,7 @@ import AccessModal from './components/AccessModal'; // El modal de acceso y regi
 import DashboardHome from './components/DashboardHome';
 
 // Importar los componentes de "páginas"
-import InventoryPage from './components/InventoryPage';
+import InventoryPage from "./components/Inventory/InventoryPage";
 import FinancialPage from './components/FinancialPage';
 import PosPage from './components/PosPage';
 import ClientsPage from './components/ClientsPage';

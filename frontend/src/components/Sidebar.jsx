@@ -20,25 +20,25 @@ function Sidebar() {
           <li className="mb-2">
             {/* Ruta relativa: "." significa la ruta actual del padre (/dashboard) */}
             <NavLink to="." className={getNavLinkClass} end>
-              <span className="mr-3 text-2xl">📊</span> Dashboard
+              <span className="mr-3 text-2xl">📊</span> Panel
             </NavLink>
           </li>
           <li className="mb-2">
             {/* Ruta relativa: "inventario" se resolverá como /dashboard/inventario */}
             <NavLink to="inventario" className={getNavLinkClass}>
-              <span className="mr-3 text-2xl">🏷️</span> Inventario y Catálogo
+              <span className="mr-3 text-2xl">🏷️</span> Inventario
             </NavLink>
           </li>
           <li className="mb-2">
             {/* Ruta relativa: "finanzas" se resolverá como /dashboard/finanzas */}
             <NavLink to="finanzas" className={getNavLinkClass}>
-              <span className="mr-3 text-2xl">💰</span> Gestión Financiera
+              <span className="mr-3 text-2xl">💰</span> Finanzas
             </NavLink>
           </li>
           <li className="mb-2">
             {/* Ruta relativa: "pos" se resolverá como /dashboard/pos */}
             <NavLink to="pos" className={getNavLinkClass}>
-              <span className="mr-3 text-2xl">🛒</span> Punto de Venta (POS)
+              <span className="mr-3 text-2xl">🛒</span> Punto de Venta
             </NavLink>
           </li>
           <li className="mb-2">

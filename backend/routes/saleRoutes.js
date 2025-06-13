@@ -6,7 +6,8 @@ const {
   getSales,
   getSaleById,
 } = require('../controllers/saleController');
-const { protect } = require('../middleware/authMiddleware'); // Importa el middleware de protección
+// Importamos el middleware de protección. ¡Ahora lo importamos directamente!
+const protect = require('../middleware/authMiddleware'); // <--- ¡CAMBIO AQUÍ!
 
 // Rutas protegidas
 router.route('/').post(protect, createSale).get(protect, getSales);

@@ -8,7 +8,8 @@ const {
   updateClient,
   deleteClient,
 } = require('../controllers/clientController');
-const { protect } = require('../middleware/authMiddleware'); // Importa el middleware de protección
+// Importamos el middleware de protección. ¡Ahora lo importamos directamente!
+const protect = require('../middleware/authMiddleware'); // <--- ¡CAMBIO AQUÍ!
 
 // Rutas protegidas
 router.route('/').get(protect, getClients).post(protect, createClient);

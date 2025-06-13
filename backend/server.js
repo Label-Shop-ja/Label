@@ -1,5 +1,8 @@
 // C:\Proyectos\Label\backend\server.js
+const path = require('path'); // Restaurado: útil para servir archivos estáticos en producción
 const express = require('express');
+const dotenv = require('dotenv').config(); // Asegúrate de cargar .env al principio
+const colors = require('colors'); // Restaurado: para logs con colores en consola
 const cors = require('cors');
 const connectDB = require('./config/db');
 const { errorHandler } = require('./middleware/errorMiddleware');
@@ -12,11 +15,10 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const saleRoutes = require('./routes/saleRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const statsRoutes = require('./routes/statsRoutes');
-const globalProductRoutes = require('./routes/globalProductRoutes'); // Rutas de productos globales
+const globalProductRoutes = require('./routes/globalProductRoutes');
+const uploadRoutes = require('./routes/uploadRoutes'); // ¡Nueva importación para la subida de imágenes!
 
-require('dotenv').config(); // Cargar variables de entorno
-
-console.log('Valor de MONGO_URI en server.js:', process.env.MONGO_URI);
+console.log('Valor de MONGO_URI en server.js:', process.env.MONGO_URI.magenta); // Usando colors
 
 const app = express();
 
@@ -34,14 +36,24 @@ app.use(cors({
 }));
 
 // Rutas de la API
+console.log('Cargando rutas de usuarios...');
 app.use('/api/users', userRoutes);
+console.log('Cargando rutas de autenticación...');
 app.use('/api/auth', authRoutes);
+console.log('Cargando rutas de productos...');
 app.use('/api/products', productRoutes);
+console.log('Cargando rutas de transacciones...');
 app.use('/api/transactions', transactionRoutes);
+console.log('Cargando rutas de ventas...');
 app.use('/api/sales', saleRoutes);
+console.log('Cargando rutas de clientes...');
 app.use('/api/clients', clientRoutes);
+console.log('Cargando rutas de estadísticas...');
 app.use('/api/stats', statsRoutes);
+console.log('Cargando rutas de productos globales...');
 app.use('/api/globalproducts', globalProductRoutes);
+console.log('Cargando rutas de subida de imágenes...'); // Nuevo log para la nueva ruta
+app.use('/api/upload', uploadRoutes); // ¡Nueva ruta para la subida de imágenes!
 
 // Middleware de manejo de errores personalizado - DEBE IR AL FINAL DE LAS RUTAS
 app.use(errorHandler);
@@ -49,6 +61,6 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}`);
+    console.log(`Servidor corriendo en el puerto ${PORT}`.cyan.bold); // Usando colors
     // No se programa la limpieza aquí, será manejada por un Cron Job externo (Render)
 });
