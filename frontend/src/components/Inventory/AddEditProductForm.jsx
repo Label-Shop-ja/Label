@@ -103,6 +103,42 @@ const AddEditProductForm = ({
                     </p>
                 )}
             </div>
+            <div className="md:col-span-2">
+                <label className="block text-neutral-light text-sm font-bold mb-2">Tipo de Producto:</label>
+                <div className="flex items-center space-x-4 mb-4">
+                    <input
+                        type="radio"
+                        id="simpleProduct"
+                        name="hasVariants" // Usamos 'hasVariants' como nombre para el control
+                        value="false"
+                        checked={productData.variants.length === 0} // Si no hay variantes, es producto simple
+                        onChange={() => {
+                            handleProductInputChange({ target: { name: 'variants', value: [] } }); // Vacía variantes si se selecciona simple
+                            // Opcional: Podrías resetear los campos de stock/precio del padre aquí si los tenías deshabilitados antes
+                            // pero se recomienda que el Logic maneje el reset cuando se desactiva "tiene variantes"
+                        }}
+                        className="mr-2 h-4 w-4 text-action-blue rounded focus:ring-action-blue border-neutral-gray-600 bg-neutral-gray-700"
+                    />
+                    <label htmlFor="simpleProduct" className="text-neutral-light cursor-pointer">Producto Simple (Sin Tallas/Colores)</label>
+                </div>
+                <div className="flex items-center space-x-4">
+                    <input
+                        type="radio"
+                        id="productWithVariants"
+                        name="hasVariants"
+                        value="true"
+                        checked={productData.variants.length > 0} // Si hay variantes, es producto con variantes
+                        onChange={() => {
+                            // Si activa variantes, asegurarse de que haya al menos una vacía si no hay ninguna
+                            if (productData.variants.length === 0) {
+                                handleAddVariant(); // Añade la primera variante automáticamente
+                            }
+                        }}
+                        className="mr-2 h-4 w-4 text-action-blue rounded focus:ring-action-blue border-neutral-gray-600 bg-neutral-gray-700"
+                    />
+                    <label htmlFor="productWithVariants" className="text-neutral-light cursor-pointer">Producto con Variantes (Tallas/Colores)</label>
+                </div>
+            </div>
             <div>
                 <label htmlFor="sku" className="block text-neutral-light text-sm font-bold mb-2">
                     SKU:
@@ -160,6 +196,22 @@ const AddEditProductForm = ({
                     ))}
                 </select>
                 {formErrors.unitOfMeasure && <p className="text-red-400 text-xs mt-1">{formErrors.unitOfMeasure}</p>}
+            </div>
+            <div>
+                <label htmlFor="baseCurrency" className="block text-neutral-light text-sm font-bold mb-2">Moneda Base:</label>
+                <select
+                    id="baseCurrency"
+                    name="baseCurrency"
+                    value={productData.baseCurrency}
+                    onChange={handleProductInputChange}
+                    className={`shadow appearance-none border ${formErrors.baseCurrency ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
+                    required
+                >
+                    <option value="USD">USD - Dólar</option>
+                    <option value="VES">VES - Bolívar</option>
+                    <option value="EUR">EUR - Euro</option>
+                </select>
+                {formErrors.baseCurrency && <p className="text-red-400 text-xs mt-1">{formErrors.baseCurrency}</p>}
             </div>
             <div>
                 <label htmlFor="brand" className="block text-neutral-light text-sm font-bold mb-2">Marca (Opcional):</label>

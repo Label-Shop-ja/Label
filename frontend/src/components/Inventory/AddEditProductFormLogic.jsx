@@ -46,8 +46,22 @@ const AddEditProductFormLogic = ({
 
 
     // Sincroniza el estado interno con las props iniciales (para edición)
-    useEffect(() => {
-        setProductData(initialProductData);
+useEffect(() => {
+    setProductData(prevData => {
+        const dataToSet = { ...initialProductData };
+        // Si es un producto nuevo o un producto existente sin variantes, los campos normales se usan
+        // Si es un producto con variantes, ciertos campos del padre deben ser informativos
+        if (dataToSet.variants && dataToSet.variants.length > 0) {
+            // Forzamos stock, precio, costo, unidad y SKU del padre a valores informativos/neutros
+            // ya que serán derivados de las variantes en el pre-save hook del backend
+            dataToSet.stock = 0; // Se recalculará en el backend
+            dataToSet.price = 0; // Se derivará del primer precio de variante en el backend
+            dataToSet.costPrice = 0; // Se derivará del primer costo de variante en el backend
+            // SKU y unitOfMeasure no los tocaremos aquí, ya que pueden ser relevantes para el producto padre
+            // aunque estén deshabilitados para edición si tiene variantes.
+        }
+        return dataToSet;
+    });
         setImagePreviewUrl(initialProductData.imageUrl || ''); // Establece la previsualización inicial
 
         // Para productos existentes, si el SKU no está vacío, se considera manualmente editado
@@ -66,7 +80,6 @@ const AddEditProductFormLogic = ({
         setNoGlobalSuggestionsFound(false);
         setFormErrors({}); // Limpiar errores al cambiar de producto
     }, [initialProductData, generateSkuFromName]);
-
 
     // Función principal para subir archivos de imagen o procesar URLs a Cloudinary
     const uploadImageToCloud = useCallback(async (fileOrUrl, isVariant = false, variantIndex = null) => {
@@ -191,6 +204,35 @@ const AddEditProductFormLogic = ({
         setProductData(prev => ({ ...prev, [name]: inputValue }));
         displayMessage('', ''); // Limpiar mensajes generales al cambiar cualquier input
         setFormErrors(prev => ({ ...prev, [name]: '' })); // Limpiar error específico
+
+        // Lógica específica para el tipo de producto (simple vs con variantes)
+        if (name === 'variants') { // Este 'name' viene de la simulación del radio button
+            if (inputValue.length === 0) { // Si se desactiva "tiene variantes" (se selecciona producto simple)
+                // Asegurarse de que los campos deshabilitados ahora sean requeridos si estaban vacíos
+                setFormErrors(prev => ({
+                    ...prev,
+                    sku: productData.sku.trim() === '' && !isMainSkuManuallyEdited ? 'El SKU es obligatorio.' : '',
+                    price: productData.price === '' || productData.price === null || productData.price === undefined ? 'Campo obligatorio.' : '',
+                    stock: productData.stock === '' || productData.stock === null || productData.stock === undefined ? 'Campo obligatorio.' : '',
+                    costPrice: productData.costPrice === '' || productData.costPrice === null || productData.costPrice === undefined ? 'Campo obligatorio.' : '',
+                    unitOfMeasure: productData.unitOfMeasure.trim() === '' ? 'La unidad de medida es obligatoria.' : '',
+                    // Limpiar errores de variantes si se cambia a producto simple
+                    ...Object.keys(prev).filter(key => key.startsWith('variant-')).reduce((acc, key) => ({ ...acc, [key]: '' }), {})
+                }));
+                // Restablecer los valores a lo que el usuario pudo haber escrito antes
+                setProductData(prev => ({
+                    ...prev,
+                    // Opcional: podrías restablecer stock/precio/costo a valores por defecto o al último valor que tenían
+                    // si el usuario alternaba entre tipos de producto. Por ahora, asumimos que los dejará como estaban si no se modifican.
+                }));
+            } else { // Si se activa "tiene variantes"
+                // Limpiar errores de campos de producto principal que se deshabilitan
+                setFormErrors(prev => ({
+                    ...prev,
+                    sku: '', price: '', stock: '', costPrice: '', unitOfMeasure: ''
+                }));
+            }
+        }
 
         // Lógica de autogeneración de SKU y sugerencias globales (solo para el campo 'name')
         if (name === 'name') {
@@ -386,7 +428,7 @@ const AddEditProductFormLogic = ({
 
 
         // Validaciones del producto principal
-        const fieldsToValidate = ['name', 'category', 'sku', 'price', 'costPrice', 'stock', 'unitOfMeasure', 'reorderThreshold'];
+        const fieldsToValidate = ['name', 'category', 'sku', 'price', 'costPrice', 'stock', 'unitOfMeasure', 'reorderThreshold', 'baseCurrency']; // <-- ¡AÑADIDO 'baseCurrency'
         if (currentProductData.isPerishable) {
             fieldsToValidate.push('optimalMaxStock', 'shelfLifeDays');
         }
@@ -468,6 +510,7 @@ const AddEditProductFormLogic = ({
             reorderThreshold: suggestedProduct.reorderThreshold || 0,
             optimalMaxStock: suggestedProduct.optimalMaxStock || 0,
             shelfLifeDays: suggestedProduct.shelfLifeDays || 0,
+            baseCurrency: suggestedProduct.baseCurrency || 'USD', // <-- ¡AÑADE ESTO!
             variants: suggestedProduct.variants ? suggestedProduct.variants.map(v => ({
                 ...v,
                 autoGeneratedVariantSku: v.sku && v.sku.trim() !== '' ? '' : generateSkuFromName(v.name || ''),

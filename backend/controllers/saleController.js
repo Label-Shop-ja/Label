@@ -1,202 +1,252 @@
-// C:\Proyectos\Label\backend\controllers\saleController.js
-const Sale = require('../models/Sale');
-const Product = require('../models/productModel');
-const Transaction = require('../models/Transaction');
-const asyncHandler = require('express-async-handler');
+// C:\Proyectos\Label\backend\models\productModel.js
 const mongoose = require('mongoose');
-const logInventoryMovement = require('../utils/inventoryLogger');
 
-// @desc    Registrar una nueva venta
-// @route   POST /api/sales
-// @access  Private
-const createSale = asyncHandler(async (req, res) => {
-    const { productsSold, paymentMethod, customerName } = req.body;
-
-    if (!productsSold || productsSold.length === 0) {
-        res.status(400);
-        throw new Error('No hay productos en la venta.');
+// Define el esquema para las variantes de producto
+const variantSchema = mongoose.Schema(
+    {
+        name: {
+            type: String,
+            required: [true, 'Por favor, añade un nombre para la variante'],
+            trim: true,
+        },
+        sku: {
+            type: String,
+            required: false, // Ahora es opcional a nivel de BD.
+            unique: false,
+            trim: true,
+        },
+        price: {
+            type: Number,
+            required: [true, 'Por favor, añade un precio de venta para la variante'],
+            default: 0,
+            min: 0,
+        },
+        costPrice: {
+            type: Number,
+            required: [true, 'Por favor, añade un costo para la variante'],
+            default: 0,
+            min: 0,
+        },
+        stock: {
+            type: Number,
+            required: [true, 'Por favor, añade el stock de la variante'],
+            default: 0,
+            min: 0,
+        },
+        unitOfMeasure: {
+            type: String,
+            required: [true, 'Por favor, añade una unidad de medida para la variante'],
+            default: 'unidad',
+            trim: true,
+        },
+        // Atributos adicionales para las variantes
+        color: {
+            type: String,
+            trim: true,
+            default: '',
+        },
+        size: {
+            type: String,
+            trim: true,
+            default: '',
+        },
+        material: {
+            type: String,
+            trim: true,
+            default: '',
+        },
+        imageUrl: {
+            type: String,
+            default: '', // URL de la imagen específica de la variante
+        },
+        // --- NUEVOS CAMPOS PARA ALERTAS DE STOCK Y PERECEDEROS ---
+        isPerishable: { // Indica si esta variante es perecedera
+            type: Boolean,
+            default: false,
+        },
+        reorderThreshold: { // Umbral para alerta de stock bajo
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        optimalMaxStock: { // Umbral para alerta de stock alto/óptimo (para perecederos)
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        shelfLifeDays: { // Días de vida útil (para perecederos)
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        // --- FIN NUEVOS CAMPOS ---
+    },
+    {
+        timestamps: true, // Añade createdAt y updatedAt para cada variante
     }
-    if (!paymentMethod) {
-        res.status(400);
-        throw new Error('Por favor, especifica el método de pago.');
+);
+
+// Define el esquema principal del producto
+const productSchema = mongoose.Schema(
+    {
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            required: true,
+            ref: 'User', // Esto asume que tienes un modelo de usuario
+        },
+        name: {
+            type: String,
+            required: [true, 'Por favor, añade un nombre de producto'],
+            trim: true,
+        },
+        description: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        category: {
+            type: String,
+            required: [true, 'Por favor, añade una categoría'],
+            trim: true,
+        },
+        price: {
+            type: Number,
+            required: true,
+            default: 0,
+            min: 0,
+        },
+        stock: {
+            type: Number,
+            required: true,
+            default: 0,
+            min: 0,
+        },
+        costPrice: {
+            type: Number,
+            required: true,
+            default: 0,
+            min: 0,
+        },
+        sku: {
+            type: String,
+            required: true,
+            unique: true, // El SKU del producto principal debe ser único
+            trim: true,
+        },
+        unitOfMeasure: {
+            type: String,
+            required: true,
+            default: 'unidad',
+            trim: true,
+        },
+        // Moneda base del precio y costo del producto principal y sus variantes (ej. 'USD', 'VES')
+        baseCurrency: {
+            type: String,
+            required: true,
+            enum: ['USD', 'VES', 'EUR'], // Puedes añadir más si quieres
+            default: 'USD', // Por defecto, se asume que los precios se manejan en USD
+        },
+        brand: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        supplier: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        imageUrl: {
+            type: String,
+            default: '', // URL de la imagen principal del producto
+        },
+        // Nuevos atributos para el producto principal (opcionales)
+        color: {
+            type: String,
+            trim: true,
+            default: '',
+        },
+        size: {
+            type: String,
+            trim: true,
+            default: '',
+        },
+        material: {
+            type: String,
+            trim: true,
+            default: '',
+        },
+        // --- NUEVOS CAMPOS PARA ALERTAS DE STOCK Y PERECEDEROS (PARA PRODUCTOS SIN VARIANTES) ---
+        isPerishable: { // Indica si el producto principal es perecedero
+            type: Boolean,
+            default: false,
+        },
+        reorderThreshold: { // Umbral para alerta de stock bajo
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        optimalMaxStock: { // Umbral para alerta de stock alto/óptimo (para perecederos)
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        shelfLifeDays: { // Días de vida útil (para perecederos)
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        // --- FIN NUEVOS CAMPOS ---
+        // Array de variantes, utilizando el esquema de variantes definido arriba
+        variants: [variantSchema],
+    },
+    {
+        timestamps: true, // Añade createdAt y updatedAt para el producto principal
     }
+);
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-        let totalAmount = 0;
-        const productsForSale = []; // Para almacenar los detalles completos de los productos vendidos
-        const logEntriesToCreate = []; // <-- ¡NUEVA LISTA PARA GUARDAR LOS LOGS PENDIENTES!
-
-        // Validar productos y actualizar stock DENTRO de la transacción
-        for (const item of productsSold) {
-            const product = await Product.findById(item.product).session(session);
-
-            if (!product) {
-                res.status(404);
-                throw new Error(`Producto con ID ${item.product} no encontrado.`);
-            }
-
-            if (product.user.toString() !== req.user.id) {
-                res.status(401);
-                throw new Error('No autorizado para vender uno de estos productos.');
-            }
-
-            let currentStockToVerify;
-            let targetStockContainer; // Referencia al objeto que contiene el stock (producto o variante)
-            let variantDetailsForLog = {};
-            let productSkuForLog = product.sku; // Por defecto el SKU del producto principal
-            let priceToUse = product.price; // Por defecto el precio del producto principal
-
-            // Lógica para manejar si el item es un producto principal o una variante
-            if (item.variantId && product.variants && product.variants.length > 0) {
-                const targetVariant = product.variants.id(item.variantId);
-                if (!targetVariant) {
-                    res.status(404);
-                    throw new Error(`Variante con ID ${item.variantId} no encontrada para el producto: ${product.name}.`);
-                }
-                currentStockToVerify = targetVariant.stock;
-                targetStockContainer = targetVariant; // Apuntamos al stock de la variante
-                variantDetailsForLog = {
-                    variantId: targetVariant._id,
-                    variantName: targetVariant.name,
-                };
-                productSkuForLog = targetVariant.sku; // Usamos el SKU de la variante
-                priceToUse = targetVariant.price; // Usamos el precio de la variante
-            } else {
-                currentStockToVerify = product.stock;
-                targetStockContainer = product; // Apuntamos al stock del producto principal
-            }
-
-            if (currentStockToVerify < item.quantity) {
-                res.status(400);
-                throw new Error(`Stock insuficiente para el producto: ${product.name}${targetStockContainer.name ? ' - ' + targetStockContainer.name : ''}. Disponible: ${currentStockToVerify}, Solicitado: ${item.quantity}`);
-            }
-
-            // Descontar el stock de la variante o del producto principal
-            targetStockContainer.stock -= item.quantity;
-            // Guardamos el producto (que contiene la variante si se modificó) DENTRO de la sesión.
-            await product.save({ session });
-
-            // Calcular el monto total de la venta (usando el precio correcto: de la variante o del producto principal)
-            const itemTotal = priceToUse * item.quantity;
-            totalAmount += itemTotal;
-
-            // Añadir detalles del producto/variante a la lista de productos vendidos en la Sale
-            productsForSale.push({
-                product: product._id,
-                name: product.name, // El nombre del producto principal
-                quantity: item.quantity,
-                priceAtSale: priceToUse, // El precio al que se vendió (del producto o variante)
-                // Si vendimos una variante, guardamos su ID en productsSold también
-                ...(item.variantId && { variant: item.variantId }),
-                // Podrías guardar más detalles de la variante aquí si los necesitas para el historial de ventas
-            });
-
-            // Preparar los datos del log de inventario para crearlos DESPUÉS de tener el ID de la venta
-            logEntriesToCreate.push({
-                user: req.user.id,
-                product: product._id,
-                ...variantDetailsForLog, // Incluye variantId y variantName si es una variante
-                productName: product.name,
-                sku: productSkuForLog,
-                movementType: 'out',
-                quantityChange: item.quantity,
-                finalStock: targetStockContainer.stock, // El stock final del producto/variante
-                reason: 'sale',
-                // relatedSale se añadirá después de crear la venta
-                session: session, // Pasa la sesión para que sea parte de la transacción
-            });
-        }
-
-        // Crear la venta DENTRO de la transacción
-        const sale = await Sale.create([{
-            user: req.user.id,
-            productsSold: productsForSale,
-            totalAmount,
-            paymentMethod,
-            customerName,
-        }], { session });
-        const createdSale = sale[0];
-
-        // Crear una transacción financiera de ingreso DENTRO de la transacción
-        const financialTransaction = await Transaction.create([{
-            user: req.user.id,
-            description: `Venta #${createdSale._id.toString().substring(0, 8)} - ${customerName || 'Cliente General'}`,
-            amount: totalAmount,
-            type: 'income',
-            category: 'Ventas',
-        }], { session });
-        const createdFinancialTransaction = financialTransaction[0];
-
-        // Vincular la transacción financiera con la venta y guardar DENTRO de la transacción
-        createdSale.financialTransaction = createdFinancialTransaction._id;
-        await createdSale.save({ session });
-
-        // AHORA SÍ: Registrar todos los movimientos de inventario recolectados,
-        // con el ID de la venta que acabamos de crear
-        for (const logData of logEntriesToCreate) {
-            logData.relatedSale = createdSale._id; // ¡Ahora sí tenemos el ID de la venta!
-            await logInventoryMovement(logData);
-        }
-
-        await session.commitTransaction(); // Si todo sale bien, CONFIRMAR la transacción
-        session.endSession(); // Terminar la sesión
-
-        res.status(201).json({
-            sale: createdSale,
-            financialTransaction: createdFinancialTransaction,
-        });
-
-    } catch (error) {
-        await session.abortTransaction(); // Si algo falla, REVERTIR todos los cambios
-        session.endSession(); // Terminar la sesión
-
-        console.error('Error durante la transacción de venta:', error);
-
-        if (error.status) {
-            res.status(error.status);
-            throw new Error(error.message);
-        } else {
-            res.status(500);
-            throw new Error('Error al procesar la venta. Por favor, inténtalo de nuevo. Detalle: ' + error.message);
-        }
+// Virtual para calcular el stock total del producto a partir de sus variantes
+productSchema.virtual('totalStock').get(function() {
+    if (this.variants && this.variants.length > 0) {
+        return this.variants.reduce((acc, variant) => acc + variant.stock, 0);
     }
+    return this.stock; // Si no tiene variantes, usa su propio stock
 });
 
-// ... el resto del código del saleController (getSales, getSaleById) no cambia ...
-// @desc    Obtener todas las ventas del usuario
-// @route   GET /api/sales
-// @access  Private
-const getSales = asyncHandler(async (req, res) => {
-  const sales = await Sale.find({ user: req.user.id })
-    .populate('productsSold.product', 'name price')
-    .sort({ createdAt: -1 });
-  res.status(200).json(sales);
+// Virtual para calcular el valor total del inventario de este producto/variante en USD
+productSchema.virtual('totalValueUSD').get(function() {
+    // Si tiene variantes, suma los valores de sus variantes
+    if (this.variants && this.variants.length > 0) {
+        return this.variants.reduce((acc, variant) => acc + (variant.stock * variant.price), 0);
+    }
+    // Si no tiene variantes, usa su propio stock y precio
+    return this.stock * this.price;
 });
 
-// @desc    Obtener una venta por ID (opcional)
-// @route   GET /api/sales/:id
-// @access  Private
-const getSaleById = asyncHandler(async (req, res) => {
-  const sale = await Sale.findById(req.params.id).populate('productsSold.product', 'name price');
+// Configura toJSON y toObject para incluir virtuals
+productSchema.set('toJSON', { virtuals: true });
+productSchema.set('toObject', { virtuals: true });
 
-  if (!sale) {
-    res.status(404);
-    throw new Error('Venta no encontrada');
-  }
+// Middleware pre-save para productos con variantes
+productSchema.pre('save', function(next) {
+    if (this.variants && this.variants.length > 0) {
+        // Si el producto tiene variantes, su stock, precio, costo y unidad de medida
+        // se derivan de las variantes o se ponen a cero/valor por defecto
+        this.stock = this.variants.reduce((acc, variant) => acc + variant.stock, 0);
 
-  if (sale.user.toString() !== req.user.id) {
-    res.status(401);
-    throw new Error('No autorizado para ver esta venta');
-  }
+        // Establecer precio y costo del producto padre a un valor que indique que se usan variantes
+        // Usamos el precio y costo de la primera variante como base, o 0 si no hay variantes (aunque siempre habrá al menos 1)
+        this.price = this.variants.length > 0 ? this.variants[0].price : 0;
+        this.costPrice = this.variants.length > 0 ? this.variants[0].costPrice : 0;
+        this.unitOfMeasure = this.variants.length > 0 ? this.variants[0].unitOfMeasure : 'unidad';
 
-  res.status(200).json(sale);
+        // Para el SKU del padre: si el frontend no lo envía y hay variantes, lo dejamos vacío
+        // si el esquema permite que sea opcional. Actualmente es `required: true`.
+        // Por ahora, asumimos que el frontend maneja el SKU del padre si hay variantes.
+        // Si el SKU del padre debe ser vacío o derivado cuando hay variantes, tendríamos que cambiar `required: true` a `false` en `productModel.js` para el SKU principal.
+    }
+    next();
 });
 
-module.exports = {
-  createSale,
-  getSales,
-  getSaleById,
-};
+// Exporta el modelo Product
+module.exports = mongoose.model('Product', productSchema);
