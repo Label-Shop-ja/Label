@@ -225,6 +225,7 @@ const createProduct = asyncHandler(async (req, res) => {
         reorderThreshold: Number(reorderThreshold) || 0,
         optimalMaxStock: Number(optimalMaxStock) || 0,
         shelfLifeDays: Number(shelfLifeDays) || 0,
+        baseCurrency: req.body.baseCurrency || 'USD', // <-- ¡AÑADE ESTO!
     };
 
     try {
@@ -395,6 +396,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.shelfLifeDays = Number(shelfLifeDays) || 0;
 
     product.variants = processedVariants;
+    product.baseCurrency = req.body.baseCurrency || 'USD'; // <-- ¡AÑADE ESTO!
 
 // --- LÓGICA DE REGISTRO DE MOVIMIENTOS DE INVENTARIO POR ACTUALIZACIÓN ---
 const oldProduct = await Product.findById(id); // Traemos el producto viejo para comparar stock

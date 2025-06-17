@@ -139,6 +139,13 @@ const productSchema = mongoose.Schema(
             default: 'unidad',
             trim: true,
         },
+        // Moneda base del precio y costo del producto principal y sus variantes (ej. 'USD', 'VES')
+        baseCurrency: {
+            type: String,
+            required: true,
+            enum: ['USD', 'VES', 'EUR'], // Puedes añadir más si quieres
+            default: 'USD', // Por defecto, se asume que los precios se manejan en USD
+        },
         brand: {
             type: String,
             default: '',
@@ -197,6 +204,49 @@ const productSchema = mongoose.Schema(
         timestamps: true, // Añade createdAt y updatedAt para el producto principal
     }
 );
+
+// Virtual para calcular el stock total del producto a partir de sus variantes
+productSchema.virtual('totalStock').get(function() {
+    if (this.variants && this.variants.length > 0) {
+        return this.variants.reduce((acc, variant) => acc + variant.stock, 0);
+    }
+    return this.stock; // Si no tiene variantes, usa su propio stock
+});
+
+// Virtual para calcular el valor total del inventario de este producto/variante en USD
+productSchema.virtual('totalValueUSD').get(function() {
+    // Si tiene variantes, suma los valores de sus variantes
+    if (this.variants && this.variants.length > 0) {
+        return this.variants.reduce((acc, variant) => acc + (variant.stock * variant.price), 0);
+    }
+    // Si no tiene variantes, usa su propio stock y precio
+    return this.stock * this.price;
+});
+
+// Configura toJSON y toObject para incluir virtuals
+productSchema.set('toJSON', { virtuals: true });
+productSchema.set('toObject', { virtuals: true });
+
+// Middleware pre-save para productos con variantes
+productSchema.pre('save', function(next) {
+    if (this.variants && this.variants.length > 0) {
+        // Si el producto tiene variantes, su stock, precio, costo y unidad de medida
+        // se derivan de las variantes o se ponen a cero/valor por defecto
+        this.stock = this.variants.reduce((acc, variant) => acc + variant.stock, 0);
+
+        // Establecer precio y costo del producto padre a un valor que indique que se usan variantes
+        // Usamos el precio y costo de la primera variante como base, o 0 si no hay variantes (aunque siempre habrá al menos 1)
+        this.price = this.variants.length > 0 ? this.variants[0].price : 0;
+        this.costPrice = this.variants.length > 0 ? this.variants[0].costPrice : 0;
+        this.unitOfMeasure = this.variants.length > 0 ? this.variants[0].unitOfMeasure : 'unidad';
+
+        // Para el SKU del padre: si el frontend no lo envía y hay variantes, lo dejamos vacío
+        // si el esquema permite que sea opcional. Actualmente es `required: true`.
+        // Por ahora, asumimos que el frontend maneja el SKU del padre si hay variantes.
+        // Si el SKU del padre debe ser vacío o derivado cuando hay variantes, tendríamos que cambiar `required: true` a `false` en `productModel.js` para el SKU principal.
+    }
+    next();
+});
 
 // Exporta el modelo Product
 module.exports = mongoose.model('Product', productSchema);
