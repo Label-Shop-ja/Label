@@ -1,6 +1,7 @@
 // C:\Proyectos\Label\backend\controllers\productController.js
 const asyncHandler = require('express-async-handler');
 const Product = require('../models/productModel'); // Asegúrate de que esta línea sea correcta
+const logInventoryMovement = require('../utils/inventoryLogger'); // <-- ¡NUEVA LÍNEA!
 
 // @desc    Obtener todos los productos
 // @route   GET /api/products
@@ -228,6 +229,41 @@ const createProduct = asyncHandler(async (req, res) => {
 
     try {
         const product = await Product.create(productFields);
+
+        // --- REGISTRAR MOVIMIENTO DE INVENTARIO POR CREACIÓN DE PRODUCTO ---
+    if (product.variants && product.variants.length > 0) {
+        for (const variant of product.variants) {
+            if (variant.stock > 0) {
+                await logInventoryMovement({
+                    user: req.user.id,
+                    product: product._id,
+                    variantId: variant._id,
+                    productName: product.name,
+                    variantName: variant.name,
+                    sku: variant.sku,
+                    movementType: 'in',
+                    quantityChange: variant.stock,
+                    finalStock: variant.stock, // Stock inicial de la variante
+                    reason: 'initial_stock',
+                    session: undefined, // No es parte de una transacción de venta
+                });
+            }
+        }
+    } else if (product.stock > 0) {
+        await logInventoryMovement({
+            user: req.user.id,
+            product: product._id,
+            productName: product.name,
+            sku: product.sku,
+            movementType: 'in',
+            quantityChange: product.stock,
+            finalStock: product.stock, // Stock inicial del producto principal
+            reason: 'initial_stock',
+            session: undefined,
+        });
+    }
+    // --- FIN REGISTRO MOVIMIENTO DE INVENTARIO ---
+
         res.status(201).json(product);
     } catch (error) {
         console.error('Error creating product:', error);
@@ -360,8 +396,77 @@ const updateProduct = asyncHandler(async (req, res) => {
 
     product.variants = processedVariants;
 
-    try {
-        const updatedProduct = await product.save();
+// --- LÓGICA DE REGISTRO DE MOVIMIENTOS DE INVENTARIO POR ACTUALIZACIÓN ---
+const oldProduct = await Product.findById(id); // Traemos el producto viejo para comparar stock
+
+try {
+    const updatedProduct = await product.save();
+
+    if (oldProduct) {
+        if (oldProduct.variants && oldProduct.variants.length > 0) {
+            // Lógica para productos con variantes
+            for (const updatedVariant of updatedProduct.variants) {
+                const oldVariant = oldProduct.variants.id(updatedVariant._id);
+
+                if (oldVariant && oldVariant.stock !== updatedVariant.stock) {
+                    const quantityDiff = Math.abs(updatedVariant.stock - oldVariant.stock);
+                    const movementType = updatedVariant.stock > oldVariant.stock ? 'in' : 'out';
+                    const reason = 'adjustment'; // Asumimos que es un ajuste manual por update
+
+                    await logInventoryMovement({
+                        user: req.user.id,
+                        product: updatedProduct._id,
+                        variantId: updatedVariant._id,
+                        productName: updatedProduct.name,
+                        variantName: updatedVariant.name,
+                        sku: updatedVariant.sku,
+                        movementType: movementType,
+                        quantityChange: quantityDiff,
+                        finalStock: updatedVariant.stock,
+                        reason: reason,
+                        session: undefined,
+                    });
+                }
+            }
+            // Si se añadieron nuevas variantes con stock
+            for (const newVariant of updatedProduct.variants) {
+                if (!oldProduct.variants.some(ov => ov._id.equals(newVariant._id)) && newVariant.stock > 0) {
+                    await logInventoryMovement({
+                        user: req.user.id,
+                        product: updatedProduct._id,
+                        variantId: newVariant._id,
+                        productName: updatedProduct.name,
+                        variantName: newVariant.name,
+                        sku: newVariant.sku,
+                        movementType: 'in',
+                        quantityChange: newVariant.stock,
+                        finalStock: newVariant.stock,
+                        reason: 'initial_stock_variant_added',
+                        session: undefined,
+                    });
+                }
+            }
+        } else if (oldProduct.stock !== updatedProduct.stock) {
+            // Lógica para productos sin variantes
+            const quantityDiff = Math.abs(updatedProduct.stock - oldProduct.stock);
+            const movementType = updatedProduct.stock > oldProduct.stock ? 'in' : 'out';
+            const reason = 'adjustment';
+
+            await logInventoryMovement({
+                user: req.user.id,
+                product: updatedProduct._id,
+                productName: updatedProduct.name,
+                sku: updatedProduct.sku,
+                movementType: movementType,
+                quantityChange: quantityDiff,
+                finalStock: updatedProduct.stock,
+                reason: reason,
+                session: undefined,
+            });
+        }
+    }
+    // --- FIN LÓGICA DE REGISTRO ---
+
         res.status(200).json(updatedProduct);
     } catch (error) {
         console.error('Error updating product:', error);
