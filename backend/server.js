@@ -55,7 +55,7 @@ console.log('Cargando rutas de productos globales...');
 app.use('/api/globalproducts', globalProductRoutes);
 console.log('Cargando rutas de subida de imágenes...'); // Nuevo log para la nueva ruta
 app.use('/api/upload', uploadRoutes); // ¡Nueva ruta para la subida de imágenes!
-console.log('Cargando rutas de Tasa de Cambio...'); // Nuevo log para la nueva ruta Tasa de cambio
+console.log('Cargando rutas de Tasa de Cambio...'); // Nuevo log para la nueva ruta Tasa de Cambio
 app.use('/api/exchangeRate', exchangeRateRoutes); // <-- ¡NUEVA LÍNEA!
 
 // Middleware de manejo de errores personalizado - DEBE IR AL FINAL DE LAS RUTAS
