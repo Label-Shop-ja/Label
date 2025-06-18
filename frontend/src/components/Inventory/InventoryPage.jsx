@@ -15,6 +15,11 @@ const MessageDisplay = lazy(() => import('../Common/MessageDisplay'));
 // Importa el nuevo componente lógico del formulario
 const AddEditProductFormLogic = lazy(() => import('./AddEditProductFormLogic'));
 
+// NUEVAS IMPORTACIONES
+import { useCurrency } from '../../context/CurrencyContext'; // <-- ¡NUEVA LÍNEA!
+const ExchangeRateDisplay = lazy(() => import('../Currency/ExchangeRateDisplay')); // <-- ¡NUEVA LÍNEA!
+const ExchangeRateModal = lazy(() => import('../Currency/ExchangeRateModal'));   // <-- ¡NUEVA LÍNEA!
+
 // Íconos de Lucide React, si se usan directamente en este componente principal
 import { Loader2, Upload } from 'lucide-react';
 
@@ -77,6 +82,12 @@ const InventoryPage = () => {
     // --- NUEVOS ESTADOS PARA ALERTAS DE STOCK ---
     const [lowStockAlerts, setLowStockAlerts] = useState([]);
     const [highStockAlerts, setHighStockAlerts] = useState([]);
+
+    // Usa el contexto de moneda
+    const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, updateExchangeRate } = useCurrency(); // <-- ¡NUEVA LÍNEA!
+
+    // Estado para controlar la visibilidad del modal de tasa de cambio
+    const [showExchangeRateModal, setShowExchangeRateModal] = useState(false); // <-- ¡NUEVA LÍNEA!
 
     // Función auxiliar para mostrar mensajes de éxito o error al usuario
     const displayMessage = useCallback((msg, type) => {
@@ -463,6 +474,7 @@ const InventoryPage = () => {
         fetchFilterOptions();
         fetchLowStockAlerts();
         fetchHighStockAlerts();
+        fetchExchangeRate(); // <-- ¡ESTA LÍNEA ES CLAVE Y DEBE IR AQUÍ!
     }, [fetchProducts, fetchFilterOptions, fetchLowStockAlerts, fetchHighStockAlerts]);
 
 
@@ -470,6 +482,25 @@ const InventoryPage = () => {
     return (
         <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen font-inter">
             <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Gestión de Inventario</h2>
+            {/* Sección de Tasa del Día y Configuración */}
+            <div className="bg-deep-night-blue p-4 rounded-lg shadow-inner mb-6 border border-neutral-gray-700 flex items-center justify-between">
+                <Suspense fallback={<div>Cargando tasa...</div>}>
+                    <ExchangeRateDisplay
+                        exchangeRate={exchangeRate}
+                        loading={loadingCurrency}
+                        error={currencyError}
+                        formatPrice={formatPrice} // Pasa formatPrice desde useCurrency
+                        primaryCurrency={exchangeRate?.fromCurrency || 'USD'} // Pasa la moneda base
+                        secondaryCurrency={exchangeRate?.toCurrency || 'VES'} // Pasa la moneda secundaria
+                    />
+                </Suspense>
+                <button
+                    onClick={() => setShowExchangeRateModal(true)}
+                    className="bg-action-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    Configurar Tasa
+                </button>
+            </div>
 
             {/* Visualización de Mensajes de Éxito y Error */}
             <Suspense fallback={<div></div>}>
@@ -544,6 +575,30 @@ const InventoryPage = () => {
                         </button>
                      </Suspense>
                 )}
+            </div>
+
+            {/* Modal para Configurar Tasa de Cambio (Lazy Loaded) */}
+            <Suspense fallback={<div></div>}>
+                {showExchangeRateModal && (
+                    <ExchangeRateModal
+                        isOpen={showExchangeRateModal}
+                        onClose={() => setShowExchangeRateModal(false)}
+                        currentExchangeRate={exchangeRate} // Si hay una tasa ya cargada
+                        loading={loadingCurrency}
+                        error={currencyError}
+                        onSave={updateExchangeRate} // Función para guardar/actualizar en el backend
+                    />
+                )}
+            </Suspense>
+
+            {/* Botón para la Lógica de Actualización Inteligente de Precios */}
+            <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 flex flex-wrap gap-4 justify-between items-center">
+                <button
+                    onClick={() => displayMessage('La lógica de actualización inteligente de precios se implementará aquí.', 'info')} // Placeholder
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md flex items-center justify-center text-sm"
+                >
+                    Sugerir Actualización de Precios (Devaluación)
+                </button>
             </div>
 
             {/* Sección de Alertas de Stock (Lazy Loaded) */}

@@ -23,6 +23,21 @@ const PosPage = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Función auxiliar para mostrar mensajes de éxito o error al usuario (¡NUEVA LÍNEA!)
+  const displayMessage = useCallback((msg, type) => {
+      if (type === 'success') {
+          setSuccessMessage(msg);
+          setError('');
+      } else {
+          setError(msg);
+          setSuccessMessage('');
+      }
+      setTimeout(() => {
+          setSuccessMessage('');
+          setError('');
+      }, 5000); // Los mensajes desaparecen después de 5 segundos
+  }, []); // Dependencias vacías porque los setters son estables
+
   // Estados para modales de selección de variante y peso digital
   const [showVariantModal, setShowVariantModal] = useState(false);
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null); // Producto que se va a vender por variante

@@ -1,11 +1,13 @@
 // src/components/Inventory/ProductList.jsx
 import React, { lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react'; // Ícono de carga
+import { useCurrency } from '../../context/CurrencyContext'; // <-- ¡NUEVA LÍNEA!
 
 // Importación perezosa del componente ProductCard
 const ProductCard = lazy(() => import('./ProductCard'));
 
 const ProductList = ({ products, handleEditClick, confirmDeleteProduct, expandedProducts, toggleProductExpansion }) => {
+    const { exchangeRate, convertPrice, formatPrice } = useCurrency(); // <-- ¡NUEVA LÍNEA!
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {products.map((product) => (
@@ -27,6 +29,10 @@ const ProductList = ({ products, handleEditClick, confirmDeleteProduct, expanded
                         confirmDeleteProduct={confirmDeleteProduct}
                         isExpanded={expandedProducts.has(product._id)}
                         toggleProductExpansion={toggleProductExpansion}
+                        // <-- ¡NUEVAS PROPS!
+                        formatPrice={formatPrice}
+                        convertPrice={convertPrice}
+                        exchangeRate={exchangeRate}
                     />
                 </Suspense>
             ))}
