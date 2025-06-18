@@ -84,7 +84,7 @@ const InventoryPage = () => {
     const [highStockAlerts, setHighStockAlerts] = useState([]);
 
     // Usa el contexto de moneda
-    const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, updateExchangeRate } = useCurrency(); // <-- ¡NUEVA LÍNEA!
+    const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, updateExchangeRate, convertPrice, formatPrice } = useCurrency(); // <-- ¡NUEVA LÍNEA!
 
     // Estado para controlar la visibilidad del modal de tasa de cambio
     const [showExchangeRateModal, setShowExchangeRateModal] = useState(false); // <-- ¡NUEVA LÍNEA!

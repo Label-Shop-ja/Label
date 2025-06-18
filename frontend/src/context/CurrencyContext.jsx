@@ -28,11 +28,11 @@ export const CurrencyProvider = ({ children }) => {
       setExchangeRate(response.data);
       localStorage.setItem('exchangeRate', JSON.stringify(response.data)); // Guardar en localStorage
     } catch (err) {
-      console.error('Error al cargar la tasa de cambio:', err.response?.data?.message || err.message);
-      // Si no hay tasa configurada, se puede usar un default o dejar null
+      const msg = err.response?.data?.message || err.message || 'Error desconocido al cargar tasa.';
+      console.error('Error al cargar la tasa de cambio:', msg); // Solo el mensaje, no el objeto completo
       setExchangeRate(null);
-      setCurrencyError(err.response?.data?.message || 'Error al cargar la tasa de cambio.');
-      localStorage.removeItem('exchangeRate'); // Limpiar si hubo error
+      setCurrencyError(msg); // Set state with the message
+      localStorage.removeItem('exchangeRate');
     } finally {
       setLoadingCurrency(false);
     }
@@ -52,8 +52,9 @@ export const CurrencyProvider = ({ children }) => {
       localStorage.setItem('exchangeRate', JSON.stringify(response.data));
       return true;
     } catch (err) {
-      console.error('Error al actualizar la tasa de cambio:', err.response?.data?.message || err.message);
-      setCurrencyError(err.response?.data?.message || 'Error al actualizar la tasa de cambio.');
+      const msg = err.response?.data?.message || err.message || 'Error desconocido al actualizar tasa.';
+      console.error('Error al actualizar la tasa de cambio:', msg);
+      setCurrencyError(msg);
       return false;
     } finally {
       setLoadingCurrency(false);
