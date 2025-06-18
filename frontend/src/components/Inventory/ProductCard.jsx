@@ -1,8 +1,14 @@
 // src/components/Inventory/ProductCard.jsx
 import React from 'react';
-import { Edit, Trash2, ChevronDown, ChevronUp, Info } from 'lucide-react'; // Íconos de Lucide React
+import { Edit, Trash2, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { useCurrency } from '../../context/CurrencyContext'; // <-- ¡NUEVA LÍNEA!
 
 const ProductCard = ({ product, handleEditClick, confirmDeleteProduct, isExpanded, toggleProductExpansion }) => {
+    const { exchangeRate, convertPrice, formatPrice } = useCurrency(); // <-- ¡NUEVA LÍNEA!
+
+    const primaryCurrency = exchangeRate?.fromCurrency || 'USD';
+    const secondaryCurrency = exchangeRate?.toCurrency || 'VES';
+
     return (
         <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-action-blue-light flex flex-col justify-between transform transition duration-300 hover:scale-[1.02] hover:shadow-2xl">
             <div>
@@ -30,8 +36,24 @@ const ProductCard = ({ product, handleEditClick, confirmDeleteProduct, isExpande
                 {!product.variants || product.variants.length === 0 ? (
                     <>
                         <p className="text-neutral-light mb-1"><span className="font-semibold">Unidad:</span> {product.unitOfMeasure}</p>
-                        <p className="text-neutral-light mb-1"><span className="font-semibold">Precio de Venta:</span> <span className="text-success-green font-bold text-lg">${parseFloat(product.price).toFixed(2)}</span></p>
-                        <p className="text-neutral-light mb-1"><span className="font-semibold">Costo Unitario:</span> <span className="text-yellow-400 font-bold">${parseFloat(product.costPrice).toFixed(2)}</span></p>
+                        <p className="text-neutral-light mb-1">
+                            <span className="font-semibold">Precio de Venta:</span>
+                            <span className="text-success-green font-bold text-lg ml-2">{formatPrice(product.price, primaryCurrency)}</span>
+                            {primaryCurrency !== secondaryCurrency && exchangeRate && (
+                                <span className="ml-2 text-xs text-neutral-gray-400">
+                                    ({formatPrice(convertPrice(product.price, primaryCurrency, secondaryCurrency), secondaryCurrency)})
+                                </span>
+                            )}
+                        </p>
+                        <p className="text-neutral-light mb-1">
+                            <span className="font-semibold">Costo Unitario:</span>
+                            <span className="text-yellow-400 font-bold ml-2">{formatPrice(product.costPrice, primaryCurrency)}</span>
+                            {primaryCurrency !== secondaryCurrency && exchangeRate && (
+                                <span className="ml-2 text-xs text-neutral-gray-400">
+                                    ({formatPrice(convertPrice(product.costPrice, primaryCurrency, secondaryCurrency), secondaryCurrency)})
+                                </span>
+                            )}
+                        </p>
                         <p className="text-neutral-light mb-3"><span className="font-semibold">Stock:</span> <span className={`${product.stock <= 5 ? 'text-red-400' : 'text-yellow-400'} font-bold`}>{product.stock} unidades</span></p>
                         {product.color && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold">Color:</span> {product.color}</p>}
                         {product.size && <p className="text-neutral-light mb-1 text-sm"><span className="font-semibold">Talla:</span> {product.size}</p>}
@@ -75,7 +97,14 @@ const ProductCard = ({ product, handleEditClick, confirmDeleteProduct, isExpande
                                         <div className="flex-grow">
                                             <p className="text-neutral-light text-base font-semibold mb-1">{variant.name}</p>
                                             <p className="text-neutral-gray-400 text-xs">SKU: {variant.sku}</p>
-                                            <p className="text-success-green font-bold text-sm mt-1">Precio: ${parseFloat(variant.price).toFixed(2)}</p>
+                                            <p className="text-success-green font-bold text-sm mt-1">
+                                                Precio: {formatPrice(variant.price, primaryCurrency)}
+                                                {primaryCurrency !== secondaryCurrency && exchangeRate && (
+                                                    <span className="ml-2 text-xs text-neutral-gray-400">
+                                                        ({formatPrice(convertPrice(variant.price, primaryCurrency, secondaryCurrency), secondaryCurrency)})
+                                                    </span>
+                                                )}
+                                            </p>
                                             <p className="text-yellow-400 text-sm">Stock: {variant.stock} {variant.unitOfMeasure}</p>
                                             <div className="flex flex-wrap gap-x-3 text-neutral-gray-400 text-xs mt-1">
                                                 {variant.color && <span>Color: {variant.color}</span>}
