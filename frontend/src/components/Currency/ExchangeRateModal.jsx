@@ -4,22 +4,24 @@ import ProductModal from '../Common/ProductModal'; // Reutilizamos el modal base
 import { Loader2 } from 'lucide-react'; // Ícono de carga
 
 const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, error, onSave }) => {
-    const [rate, setRate] = useState('');
-    const [defaultProfitPercentage, setDefaultProfitPercentage] = useState('');
+    // Inicializamos los estados con números o vacío para números, y con el tipo de moneda
+    const [rate, setRate] = useState(''); // Se inicializa como string para el input, se convierte a Number en handleSubmit
+    const [defaultProfitPercentage, setDefaultProfitPercentage] = useState(''); // Se inicializa como string para el input
     const [fromCurrency, setFromCurrency] = useState('USD');
     const [toCurrency, setToCurrency] = useState('VES');
     const [localError, setLocalError] = useState(''); // Errores internos del modal
 
     useEffect(() => {
         if (isOpen && currentExchangeRate) {
+            // Convertimos a string para mostrar en el input type="number"
             setRate(currentExchangeRate.rate.toString());
             setDefaultProfitPercentage(currentExchangeRate.defaultProfitPercentage.toString());
             setFromCurrency(currentExchangeRate.fromCurrency);
             setToCurrency(currentExchangeRate.toCurrency);
         } else if (isOpen && !currentExchangeRate) {
             // Resetear a valores por defecto si no hay tasa configurada
-            setRate('');
-            setDefaultProfitPercentage('30'); // Default profit
+            setRate(''); // Deja vacío para placeholder
+            setDefaultProfitPercentage('30'); // Default profit como string para input
             setFromCurrency('USD');
             setToCurrency('VES');
         }
@@ -28,23 +30,31 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
 
     const handleSubmit = async () => {
         setLocalError('');
-        if (rate.trim() === '' || isNaN(Number(rate)) || Number(rate) <= 0) {
+        // Validación de campos antes de enviar
+        const numRate = Number(rate);
+        const numProfit = Number(defaultProfitPercentage);
+
+        if (rate.trim() === '' || isNaN(numRate) || numRate <= 0) {
             setLocalError('La tasa de cambio debe ser un número positivo.');
             return;
         }
-        if (defaultProfitPercentage.trim() === '' || isNaN(Number(defaultProfitPercentage)) || Number(defaultProfitPercentage) < 0) {
+        if (defaultProfitPercentage.trim() === '' || isNaN(numProfit) || numProfit < 0) {
             setLocalError('El porcentaje de ganancia debe ser un número no negativo.');
+            return;
+        }
+        if (numProfit > 500) { // Validación frontend adicional para defaultProfitPercentage
+            setLocalError('El porcentaje de ganancia no puede ser mayor a 500%.');
             return;
         }
 
         const success = await onSave({
             fromCurrency,
             toCurrency,
-            rate: Number(rate),
-            defaultProfitPercentage: Number(defaultProfitPercentage)
+            rate: numRate, // <-- Convertir a número aquí al enviar
+            defaultProfitPercentage: numProfit // <-- Convertir a número aquí al enviar
         });
 
-        if (success) { // onSave devuelve true si fue exitoso
+        if (success) {
             onClose(); // Cierra el modal si la operación fue exitosa
         } else {
             // El error ya lo maneja el CurrencyContext y se propaga via 'error' prop
@@ -94,11 +104,11 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
                         type="number"
                         id="rate"
                         value={rate}
-                        onChange={(e) => setRate(e.target.value)}
+                        onChange={(e) => setRate(e.target.value)} // Mantener como string en el estado para el input
                         step="0.01"
                         min="0.01"
                         placeholder="Ej. 102.81"
-                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal" // <-- Asegurar text-neutral-light aquí
                     />
                 </div>
 
@@ -108,12 +118,12 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
                         type="number"
                         id="defaultProfitPercentage"
                         value={defaultProfitPercentage}
-                        onChange={(e) => setDefaultProfitPercentage(e.target.value)}
+                        onChange={(e) => setDefaultProfitPercentage(e.target.value)} // Mantener como string en el estado para el input
                         step="1"
                         min="0"
-                        max="500"
+                        max="500" // El max HTML, la validación del backend es 500
                         placeholder="Ej. 30"
-                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal" // <-- Asegurar text-neutral-light aquí
                     />
                 </div>
 
