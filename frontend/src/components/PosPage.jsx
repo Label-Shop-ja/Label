@@ -1,21 +1,21 @@
 // C:\Proyectos\Label\frontend\src\components\PosPage.jsx
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import axiosInstance from '../api/axiosInstance';
-import { useCurrency } from '../context/CurrencyContext'; // <-- ¡NUEVA IMPORTACIÓN!
+import { useCurrency } from '../context/CurrencyContext';
 
 // Importaciones perezosas de los nuevos componentes
 const ProductSearchPanel = lazy(() => import('./Pos/ProductSearchPanel'));
 const SaleCartPanel = lazy(() => import('./Pos/SaleCartPanel'));
 const PaymentSection = lazy(() => import('./Pos/PaymentSection'));
-const VariantSelectModal = lazy(() => import('./Pos/VariantSelectModal')); // Para la selección de variantes
+const VariantSelectModal = lazy(() => import('./Pos/VariantSelectModal'));
 const WeightInputModal = lazy(() => import('./Pos/WeightInputModal')); // Para el peso digital
 
 const PosPage = () => {
   // Estados principales
-  const [products, setProducts] = useState([]); // Todos los productos del inventario
+  const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState([]); // Resultados de búsqueda filtrados localmente
-  const [saleItems, setSaleItems] = useState([]); // Productos en el carrito de venta
+  const [searchResults, setSearchResults] = useState([]);
+  const [saleItems, setSaleItems] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [customerName, setCustomerName] = useState('');
@@ -55,6 +55,7 @@ const PosPage = () => {
     setError('');
     try {
       const response = await axiosInstance.get('/products?limit=99999');
+      // Asegurarse de que `totalStock` y `price` estén disponibles en los productos
       setProducts(response.data.products.map(p => ({
           ...p,
           // Ajusta stock para usar totalStock si tiene variantes
@@ -290,9 +291,9 @@ const PosPage = () => {
             loading={loading}
             addProductToSale={addProductToSale}
             searchInputRef={searchInputRef}
-            formatPrice={formatPrice} // Pasar la función de formateo
-            convertPrice={convertPrice} // Pasar la función de conversión
-            exchangeRate={exchangeRate} // Pasar la tasa de cambio
+            formatPrice={formatPrice}
+            convertPrice={convertPrice}
+            exchangeRate={exchangeRate}
           />
         </Suspense>
       </div>
@@ -353,7 +354,7 @@ const PosPage = () => {
             formatPrice={formatPrice}
             convertPrice={convertPrice}
             exchangeRate={exchangeRate}
-            loading={loading} //* <-- ¡IMPORTANTE: Pasar la prop 'loading'! */}
+            loading={loading} //* <-- ¡AÑADE ESTA LÍNEA! */}
           />
         )}
       </Suspense>
@@ -362,5 +363,3 @@ const PosPage = () => {
 };
 
 export default PosPage;
-// Nota: Asegúrate de que los nuevos componentes ProductSearchPanel, SaleCartPanel, PaymentSection, VariantSelectModal y WeightInputModal estén correctamente implementados y exportados en sus respectivos archivos.
-// También asegúrate de que el contexto CurrencyContext esté correctamente configurado y que las funciones convertPrice y formatPrice estén disponibles para su uso en los componentes que las necesiten.
