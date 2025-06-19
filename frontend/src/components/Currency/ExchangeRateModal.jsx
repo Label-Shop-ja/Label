@@ -79,7 +79,7 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
                         id="fromCurrency"
                         value={fromCurrency}
                         onChange={(e) => setFromCurrency(e.target.value)}
-                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
                     >
                         <option value="USD">USD - Dólar</option>
                         <option value="EUR">EUR - Euro</option>
@@ -92,7 +92,7 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
                         id="toCurrency"
                         value={toCurrency}
                         onChange={(e) => setToCurrency(e.target.value)}
-                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
                     >
                         <option value="VES">VES - Bolívar</option>
                     </select>
@@ -108,7 +108,7 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
                         step="0.01"
                         min="0.01"
                         placeholder="Ej. 102.81"
-                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal" // <-- Asegurar text-neutral-light aquí
+                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal" // <-- Asegurar text-neutral-light aquí
                     />
                 </div>
 
@@ -123,7 +123,7 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
                         min="0"
                         max="500" // El max HTML, la validación del backend es 500
                         placeholder="Ej. 30"
-                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal" // <-- Asegurar text-neutral-light aquí
+                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal" // <-- Asegurar text-neutral-light aquí
                     />
                 </div>
 

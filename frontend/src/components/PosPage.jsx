@@ -19,11 +19,11 @@ const PosPage = () => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [customerName, setCustomerName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // <-- Estado de loading del PosPage
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Función auxiliar para mostrar mensajes de éxito o error al usuario (¡NUEVA LÍNEA!)
+  // Función auxiliar para mostrar mensajes de éxito o error al usuario
   const displayMessage = useCallback((msg, type) => {
       if (type === 'success') {
           setSuccessMessage(msg);
@@ -36,7 +36,7 @@ const PosPage = () => {
           setSuccessMessage('');
           setError('');
       }, 5000); // Los mensajes desaparecen después de 5 segundos
-  }, []); // Dependencias vacías porque los setters son estables
+  }, []);
 
   // Estados para modales de selección de variante y peso digital
   const [showVariantModal, setShowVariantModal] = useState(false);
@@ -47,7 +47,7 @@ const PosPage = () => {
   const searchInputRef = useRef(null); // Ref para enfocar el campo de búsqueda
 
   // Usa el contexto de moneda
-  const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, convertPrice, formatPrice } = useCurrency(); // <-- ¡NUEVO!
+  const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, convertPrice, formatPrice } = useCurrency();
 
   // --- Función para cargar todos los productos del inventario (para POS) ---
   const fetchAllProductsForPOS = useCallback(async () => {
@@ -55,7 +55,6 @@ const PosPage = () => {
     setError('');
     try {
       const response = await axiosInstance.get('/products?limit=99999');
-      // Asegurarse de que `totalStock` y `price` estén disponibles en los productos
       setProducts(response.data.products.map(p => ({
           ...p,
           // Ajusta stock para usar totalStock si tiene variantes
@@ -109,14 +108,14 @@ const PosPage = () => {
 
     // Determinar el producto/variante real y su stock/precio
     let itemToAdd = { ...productToAdd };
-    let itemStock = productToAdd.displayStock; // Stock que se muestra
-    let itemPrice = productToAdd.displayPrice; // Precio que se muestra
-    let variantId = undefined; // ID de la variante si aplica
+    let itemStock = productToAdd.displayStock;
+    let itemPrice = productToAdd.displayPrice;
+    let variantId = undefined;
 
-    if (selectedVariant) { // Si se seleccionó una variante
-      itemToAdd = { ...productToAdd, ...selectedVariant, _id: productToAdd._id }; // Combinar product y variant details, manteniendo _id del producto principal
-      itemStock = selectedVariant.stock; // Usar stock de la variante
-      itemPrice = selectedVariant.price; // Usar precio de la variante
+    if (selectedVariant) {
+      itemToAdd = { ...productToAdd, ...selectedVariant, _id: productToAdd._id };
+      itemStock = selectedVariant.stock;
+      itemPrice = selectedVariant.price;
       variantId = selectedVariant._id;
     }
 
@@ -124,21 +123,21 @@ const PosPage = () => {
     if (['kg', 'litro', 'metro'].includes(itemToAdd.unitOfMeasure) && measuredQuantity === null) {
       setSelectedProductForWeight(itemToAdd);
       setShowWeightModal(true);
-      return; // Detener la adición al carrito hasta que se ingrese el peso
+      return;
     }
 
     // Si es un producto con variantes y no se ha seleccionado una variante
     if (itemToAdd.variants && itemToAdd.variants.length > 0 && !selectedVariant) {
         setSelectedProductForVariant(itemToAdd);
         setShowVariantModal(true);
-        return; // Detener la adición al carrito hasta que se seleccione la variante
+        return;
     }
 
     const existingItemIndex = saleItems.findIndex(
       (item) => item.product._id === itemToAdd._id && (item.variantId === variantId || (!item.variantId && !variantId))
     );
 
-    let quantityToAdd = measuredQuantity !== null ? measuredQuantity : 1; // Si hay cantidad medida, usarla
+    let quantityToAdd = measuredQuantity !== null ? measuredQuantity : 1;
 
     if (existingItemIndex !== -1) {
       const existingItem = saleItems[existingItemIndex];
@@ -155,24 +154,22 @@ const PosPage = () => {
         )
       );
     } else {
-      if (quantityToAdd > itemStock) { // Si es la primera vez que se añade, verificar stock
+      if (quantityToAdd > itemStock) {
           setError(`No hay suficiente stock para ${itemToAdd.name}${selectedVariant ? ' - ' + selectedVariant.name : ''}. Stock disponible: ${itemStock}`);
           return;
       }
       setSaleItems([
         ...saleItems,
         {
-          product: itemToAdd, // Guarda el objeto completo (producto o variante)
+          product: itemToAdd,
           quantity: quantityToAdd,
-          priceAtSale: itemPrice, // El precio que se usará para el cálculo de la venta
-          variantId: variantId, // Guarda el ID de la variante si aplica
-          // `name` y `unitOfMeasure` se tomarán de `itemToAdd`
+          priceAtSale: itemPrice,
+          variantId: variantId,
         },
       ]);
     }
     setSearchTerm('');
     searchInputRef.current.focus();
-    // Cierra modales si estaban abiertos
     setShowVariantModal(false);
     setSelectedProductForVariant(null);
     setShowWeightModal(false);
@@ -189,26 +186,25 @@ const PosPage = () => {
         .map((item, index) => {
           if (index === itemIndex) {
             const newQuantity = item.quantity + delta;
-            if (newQuantity <= 0) return null; // Eliminar si la cantidad es 0 o menos
+            if (newQuantity <= 0) return null;
 
-            // Obtener el stock real del producto o variante
             const originalProduct = products.find(p => p._id === item.product._id);
-            let availableStock = originalProduct?.displayStock; // Stock del producto principal
+            let availableStock = originalProduct?.displayStock;
 
             if (item.variantId && originalProduct?.variants) {
               const variant = originalProduct.variants.find(v => v._id === item.variantId);
-              if (variant) availableStock = variant.stock; // Usar stock de la variante
+              if (variant) availableStock = variant.stock;
             }
 
             if (delta > 0 && newQuantity > availableStock) {
               setError(`No hay suficiente stock para ${item.product.name}${item.variantId ? ' - ' + item.product.variantName : ''}. Stock disponible: ${availableStock}`);
-              return item; // No actualizar si excede el stock
+              return item;
             }
             return { ...item, quantity: newQuantity };
           }
           return item;
         })
-        .filter(Boolean) // Eliminar items que retornaron null
+        .filter(Boolean)
     );
   }, [saleItems, products]);
 
@@ -232,9 +228,9 @@ const PosPage = () => {
       productsSold: saleItems.map((item) => ({
         product: item.product._id,
         quantity: item.quantity,
-        variantId: item.variantId, // Incluir ID de variante si aplica
+        variantId: item.variantId,
       })),
-      totalAmount, // Incluir totalAmount, aunque el backend lo recalcule por seguridad
+      totalAmount,
       paymentMethod,
       customerName,
     };
@@ -243,12 +239,10 @@ const PosPage = () => {
     try {
       const response = await axiosInstance.post('/sales', saleData);
       setSuccessMessage(`Venta registrada con éxito. Total: ${formatPrice(response.data.sale.totalAmount, exchangeRate?.fromCurrency || 'USD')}`);
-      // Limpiar el carrito y el formulario
       setSaleItems([]);
       setSearchTerm('');
       setCustomerName('');
       setPaymentMethod('cash');
-      // Volver a cargar la lista de productos para reflejar los stocks actualizados
       fetchAllProductsForPOS();
       searchInputRef.current.focus();
     } catch (err) {
@@ -359,6 +353,7 @@ const PosPage = () => {
             formatPrice={formatPrice}
             convertPrice={convertPrice}
             exchangeRate={exchangeRate}
+            loading={loading} //* <-- ¡IMPORTANTE: Pasar la prop 'loading'! */}
           />
         )}
       </Suspense>
@@ -367,3 +362,5 @@ const PosPage = () => {
 };
 
 export default PosPage;
+// Nota: Asegúrate de que los nuevos componentes ProductSearchPanel, SaleCartPanel, PaymentSection, VariantSelectModal y WeightInputModal estén correctamente implementados y exportados en sus respectivos archivos.
+// También asegúrate de que el contexto CurrencyContext esté correctamente configurado y que las funciones convertPrice y formatPrice estén disponibles para su uso en los componentes que las necesiten.
