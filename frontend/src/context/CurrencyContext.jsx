@@ -28,8 +28,8 @@ export const CurrencyProvider = ({ children }) => {
       setExchangeRate(response.data);
       localStorage.setItem('exchangeRate', JSON.stringify(response.data)); // Guardar en localStorage
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Error desconocido al cargar tasa.';
-      console.error('Error al cargar la tasa de cambio:', msg); // Solo el mensaje, no el objeto completo
+      const msg = String(err.response?.data?.message || err.message || 'Error desconocido al cargar tasa.');
+      console.error('Error al cargar la tasa de cambio:', msg); // <-- SOLO EL MENSAJE, NO EL OBJETO COMPLETO `err`
       setExchangeRate(null);
       setCurrencyError(msg); // Set state with the message
       localStorage.removeItem('exchangeRate');
@@ -52,8 +52,8 @@ export const CurrencyProvider = ({ children }) => {
       localStorage.setItem('exchangeRate', JSON.stringify(response.data));
       return true;
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Error desconocido al actualizar tasa.';
-      console.error('Error al actualizar la tasa de cambio:', msg);
+      const msg = String(err.response?.data?.message || err.message || 'Error desconocido al actualizar tasa.');
+      console.error('Error al actualizar la tasa de cambio:', msg); // <-- SOLO EL MENSAJE, NO EL OBJETO COMPLETO `err`
       setCurrencyError(msg);
       return false;
     } finally {
