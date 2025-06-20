@@ -240,36 +240,40 @@ const AddEditProductForm = ({
                 {formErrors.supplier && <p className="text-red-400 text-xs mt-1">{formErrors.supplier}</p>}
             </div>
             <div>
-                <label htmlFor="price" className="block text-neutral-light text-sm font-bold mb-2">Precio de Venta ($) (Producto Principal):</label>
-                <input
-                    type="number"
-                    id="price"
-                    name="price"
-                    value={productData.price}
+                {/* Moneda Base es la moneda de registro interna del producto (ej. USD por defecto) */}
+                <label htmlFor="baseCurrency" className="block text-neutral-light text-sm font-bold mb-2">Moneda de Registro Interna:</label>
+                <select
+                    id="baseCurrency"
+                    name="baseCurrency"
+                    value={productData.baseCurrency}
                     onChange={handleProductInputChange}
-                    step="0.01"
-                    className={`shadow appearance-none border ${formErrors.price ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                    placeholder="Ej. 29.99"
-                    required={productData.variants.length === 0}
-                    disabled={productData.variants.length > 0}
-                />
-                {formErrors.price && <p className="text-red-400 text-xs mt-1">{formErrors.price}</p>}
+                    className={`shadow appearance-none border ${formErrors.baseCurrency ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
+                    required
+                    disabled // Se deshabilita para que el usuario no lo cambie fácilmente, es más técnico
+                >
+                    <option value="USD">USD - Dólar</option>
+                    <option value="VES">VES - Bolívar</option>
+                    <option value="EUR">EUR - Euro</option>
+                </select>
+                {formErrors.baseCurrency && <p className="text-red-400 text-xs mt-1">{formErrors.baseCurrency}</p>}
             </div>
             <div>
-                <label htmlFor="costPrice" className="block text-neutral-light text-sm font-bold mb-2">Costo Unitario ($) (Producto Principal):</label>
-                <input
-                    type="number"
-                    id="costPrice"
-                    name="costPrice"
-                    value={productData.costPrice}
+                {/* Moneda Principal de Visualización en Listas */}
+                <label htmlFor="displayCurrency" className="block text-neutral-light text-sm font-bold mb-2">Moneda Principal de Vista:</label>
+                <select
+                    id="displayCurrency"
+                    name="displayCurrency"
+                    value={productData.displayCurrency}
                     onChange={handleProductInputChange}
-                    step="0.01"
-                    className={`shadow appearance-none border ${formErrors.costPrice ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                    placeholder="Ej. 15.00"
-                    required={productData.variants.length === 0}
-                    disabled={productData.variants.length > 0}
-                />
-                {formErrors.costPrice && <p className="text-red-400 text-xs mt-1">{formErrors.costPrice}</p>}
+                    className={`shadow appearance-none border ${formErrors.displayCurrency ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
+                    required={productData.variants.length === 0} // Si tiene variantes, se deriva
+                    disabled={productData.variants.length > 0} // Si tiene variantes, se deriva
+                >
+                    <option value="USD">USD - Dólar</option>
+                    <option value="VES">VES - Bolívar</option>
+                    <option value="EUR">EUR - Euro</option>
+                </select>
+                {formErrors.displayCurrency && <p className="text-red-400 text-xs mt-1">{formErrors.displayCurrency}</p>}
             </div>
             <div>
                 <label htmlFor="stock" className="block text-neutral-light text-sm font-bold mb-2">Stock (Producto Principal):</label>

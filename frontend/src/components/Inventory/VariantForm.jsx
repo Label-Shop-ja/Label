@@ -62,35 +62,85 @@ const VariantForm = ({
                     />
                     {formErrors[`variant-${index}-sku`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-sku`]}</p>}
                 </div>
-                <div>
-                    <label htmlFor={`variantPrice-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Precio de Venta ($):</label>
-                    <input
-                        type="number"
-                        id={`variantPrice-${index}`}
-                        name="price"
-                        value={variant.price}
-                        onChange={(e) => handleVariantInputChange(index, e)}
-                        step="0.01"
-                        className={`shadow appearance-none border ${formErrors[`variant-${index}-price`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                        placeholder="Ej. 25.99"
-                        required
-                    />
-                    {formErrors[`variant-${index}-price`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-price`]}</p>}
+                {/* Campo de Precio de Venta de Variante con selector de moneda y porcentaje de ganancia */}
+                <div className="flex items-end gap-2">
+                    <div className="flex-grow">
+                        <label htmlFor={`variantPrice-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Precio de Venta ($):</label>
+                        <input
+                            type="number"
+                            id={`variantPrice-${index}`}
+                            name="price"
+                            value={variant.price}
+                            onChange={(e) => handleVariantInputChange(index, e, 'price')} // Pasa 'price' para la lógica específica
+                            step="0.01"
+                            className={`shadow appearance-none border ${formErrors[`variant-${index}-price`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                            placeholder={`Ej. 25.99 (${formatPrice(calculatedVariantPricePlaceholder[index], variant.saleCurrency || 'USD')})`} // Placeholder dinámico
+                            required
+                        />
+                        {formErrors[`variant-${index}-price`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-price`]}</p>}
+                    </div>
+                    <div className="w-24 flex-shrink-0">
+                        <label htmlFor={`variantSaleCurrency-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Moneda:</label>
+                        <select
+                            id={`variantSaleCurrency-${index}`}
+                            name="saleCurrency"
+                            value={variant.saleCurrency}
+                            onChange={(e) => handleVariantInputChange(index, e)}
+                            className={`shadow appearance-none border ${formErrors[`variant-${index}-saleCurrency`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
+                            required
+                        >
+                            <option value="USD">USD</option>
+                            <option value="VES">VES</option>
+                            <option value="EUR">EUR</option>
+                        </select>
+                    </div>
+                    <div className="w-24 flex-shrink-0">
+                        <label htmlFor={`variantProfitPercentage-${index}`} className="block text-neutral-light text-sm font-bold mb-2">% Ganancia:</label>
+                        <input
+                            type="number"
+                            id={`variantProfitPercentage-${index}`}
+                            name="profitPercentage"
+                            value={calculatedVariantProfitPercentage[index] || ''} // <-- Será dinámico
+                            onChange={(e) => handleVariantInputChange(index, e, 'profitPercentage')} // Pasa 'profitPercentage'
+                            step="0.1"
+                            min="0"
+                            className={`shadow appearance-none border ${formErrors[`variant-${index}-profitPercentage`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                            placeholder="%"
+                        />
+                    </div>
                 </div>
-                <div>
-                    <label htmlFor={`variantCostPrice-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Costo Unitario ($):</label>
-                    <input
-                        type="number"
-                        id={`variantCostPrice-${index}`}
-                        name="costPrice"
-                        value={variant.costPrice}
-                        onChange={(e) => handleVariantInputChange(index, e)}
-                        step="0.01"
-                        className={`shadow appearance-none border ${formErrors[`variant-${index}-costPrice`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                        placeholder="Ej. 12.50"
-                        required
-                    />
-                    {formErrors[`variant-${index}-costPrice`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-costPrice`]}</p>}
+                {/* Campo de Costo Unitario de Variante con selector de moneda */}
+                <div className="flex items-end gap-2">
+                    <div className="flex-grow">
+                        <label htmlFor={`variantCostPrice-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Costo Unitario ($):</label>
+                        <input
+                            type="number"
+                            id={`variantCostPrice-${index}`}
+                            name="costPrice"
+                            value={variant.costPrice}
+                            onChange={(e) => handleVariantInputChange(index, e, 'costPrice')} // Pasa 'costPrice' para la lógica específica
+                            step="0.01"
+                            className={`shadow appearance-none border ${formErrors[`variant-${index}-costPrice`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                            placeholder="Ej. 12.50"
+                            required
+                        />
+                        {formErrors[`variant-${index}-costPrice`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-costPrice`]}</p>}
+                    </div>
+                    <div className="w-24 flex-shrink-0">
+                        <label htmlFor={`variantCostCurrency-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Moneda:</label>
+                        <select
+                            id={`variantCostCurrency-${index}`}
+                            name="costCurrency"
+                            value={variant.costCurrency}
+                            onChange={(e) => handleVariantInputChange(index, e)}
+                            className={`shadow appearance-none border ${formErrors[`variant-${index}-costCurrency`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
+                            required
+                        >
+                            <option value="USD">USD</option>
+                            <option value="VES">VES</option>
+                            <option value="EUR">EUR</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label htmlFor={`variantStock-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Stock:</label>
