@@ -5,14 +5,22 @@ import { X, Upload, Loader2, Info } from 'lucide-react'; // Íconos
 const VariantForm = ({
     variant,
     index,
-    handleVariantInputChange,
-    removeVariant, // Este removeVariant ahora viene de AddEditProductFormLogic
+    handleVariantInputChange, // Este es el handler general para todos los inputs
+    removeVariant,
     unitOfMeasureOptions,
     handleVariantImageFileChange,
     variantImageUploading,
     formErrors,
     uploadImageToCloud,
-    isNewProduct, // Se sigue pasando, aunque la lógica de carga de imagen es manejada en Logic
+    isNewProduct,
+    // ¡NUEVAS PROPS PARA EL PORCENTAJE Y MONEDA DESDE LOGIC (¡TIENEN QUE ESTAR AQUÍ!)
+    formatPrice,
+    convertPrice,
+    exchangeRate,
+    calculatedVariantProfitPercentage,
+    calculatedVariantPricePlaceholder,
+    // Handler para la imagen de URL (si lo tienes separado o si lo integraste en handleVariantInputChange)
+    handleImageUrlBlur,
 }) => {
     // Función auxiliar para subir imagen de variante al perder el foco en la URL
     const handleImageUrlBlur = useCallback(async (e) => {

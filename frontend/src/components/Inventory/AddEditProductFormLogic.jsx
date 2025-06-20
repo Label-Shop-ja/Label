@@ -1,27 +1,37 @@
 // src/components/Inventory/AddEditProductFormLogic.jsx
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import axiosInstance from '../../api/axiosInstance';
-import { useCurrency } from '../../context/CurrencyContext';
-import { useDebounce } from '../../hooks/useDebounce';
-import { useTranslation } from 'react-i18next';
-import PropTypes from 'prop-types';
+import { useCurrency } from '../../context/CurrencyContext'; // <-- ¡NUEVA LÍNEA!
+import { useDebounce } from '../../hooks/useDebounce'; // Asumo que tienes este hook
+import { useTranslation } from 'react-i18next'; // Asumo que tienes este hook
+import PropTypes from 'prop-types'; // Asumo que tienes PropTypes
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Importación perezosa del componente AddEditProductForm (ahora de UI)
 const AddEditProductFormUI = lazy(() => import('./AddEditProductForm'));
 
+// Define defaultNewProductState aquí, ya que es la base para la inicialización
+const defaultNewProductState = {
+    name: '', description: '', category: '', price: '', stock: '',
+    costPrice: '', sku: '', unitOfMeasure: 'unidad', brand: '', supplier: '', imageUrl: '',
+    color: '', size: '', material: '', variants: [],
+    isPerishable: false, reorderThreshold: 0, optimalMaxStock: 0, shelfLifeDays: 0,
+    // Asegurarse de incluir los nuevos campos de moneda con valores por defecto
+    costCurrency: 'USD', saleCurrency: 'USD', baseCurrency: 'USD', displayCurrency: 'USD',
+};
+
 const AddEditProductFormLogic = ({
     isNewProduct,
-    initialProductData,
-    onProductSave,
+    initialProductData, // Producto inicial para edición o vacío para nuevo
+    onProductSave, // Callback para InventoryPage (handleAddProduct o handleUpdateProduct)
     loading,
     displayMessage,
     unitOfMeasureOptions,
-    debounceTimeoutRef,
+    debounceTimeoutRef, // Pasado desde InventoryPage para el debounce
 }) => {
     // Usa el contexto de moneda y desestructura TODO lo que necesitas de una vez
-    const { exchangeRate, convertPrice, formatPrice, baseCurrency: contextBaseCurrency, primaryCurrency, secondaryCurrency } = useCurrency();
+    const { exchangeRate, convertPrice, formatPrice, baseCurrency: contextBaseCurrency, primaryCurrency, secondaryCurrency } = useCurrency(); // <-- ¡AÑADIDO formatPrice y convertPrice!
 
     // Estados internos para la lógica del formulario
     const [isEditing, setIsEditing] = useState(!isNewProduct);
@@ -58,8 +68,90 @@ const AddEditProductFormLogic = ({
             .slice(0, 4)
             .join('-');
         const hash = Math.random().toString(36).substring(2, 6).toUpperCase();
-        return `<span class="math-inline">\{cleanedName\.substring\(0, 15\)\}\-</span>{hash}`;
+        return `${cleanedName.substring(0, 15)}-${hash}`;
     }, []);
+
+    // --- Función para subir imágenes a Cloudinary (y actualizar estado del producto) ---
+    const uploadImageToCloud = useCallback(async (fileOrUrl, isVariant = false, variantIndex = null) => {
+        let uploadedUrl = '';
+        const formData = new FormData();
+
+        setFormErrors(prev => {
+            const newErrors = { ...prev };
+            if (isVariant) {
+                newErrors[`variant-${variantIndex}-imageUrl`] = '';
+            } else {
+                newErrors.imageUrl = '';
+            }
+            return newErrors;
+        });
+
+        if (isVariant) {
+            setVariantImageUploading(prev => ({ ...prev, [variantIndex]: true }));
+        } else {
+            setIsUploadingMainImage(true);
+        }
+
+        try {
+            if (typeof fileOrUrl === 'string') { // Es una URL, intentar subirla directamente si no es de Cloudinary
+                if (fileOrUrl.includes('res.cloudinary.com')) {
+                    uploadedUrl = fileOrUrl; // Ya es de Cloudinary, no subir de nuevo
+                } else {
+                    formData.append('imageUrl', fileOrUrl); // Backend lo manejará como URL
+                    const response = await axiosInstance.post('/upload/url', formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data', // Importante para FormData
+                        },
+                    });
+                    uploadedUrl = response.data.url;
+                }
+            } else { // Es un objeto File (desde input type="file")
+                formData.append('image', fileOrUrl); // 'image' debe coincidir con el nombre del campo en tu backend (uploadMiddleware)
+                const response = await axiosInstance.post('/upload', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data', // Importante para FormData
+                    },
+                });
+                uploadedUrl = response.data.url;
+            }
+
+            if (isVariant) {
+                setProductData(prev => {
+                    const updatedVariants = [...prev.variants];
+                    updatedVariants[variantIndex] = { ...updatedVariants[variantIndex], imageUrl: uploadedUrl };
+                    return { ...prev, variants: updatedVariants };
+                });
+                displayMessage('Imagen de variante subida exitosamente.', 'success');
+            } else {
+                setProductData(prev => ({ ...prev, imageUrl: uploadedUrl }));
+                setImagePreviewUrl(uploadedUrl); // Actualiza la previsualización
+                displayMessage('Imagen principal subida exitosamente.', 'success');
+            }
+            return uploadedUrl;
+        } catch (err) {
+            console.error('Error al subir imagen:', err.response?.data?.message || err.message);
+            const errorMessage = err.response?.data?.message || 'Error al subir imagen. Inténtalo de nuevo.';
+            displayMessage(errorMessage, 'error');
+            setFormErrors(prev => {
+                const newErrors = { ...prev };
+                if (isVariant) {
+                    newErrors[`variant-${variantIndex}-imageUrl`] = errorMessage;
+                } else {
+                    newErrors.imageUrl = errorMessage;
+                }
+                return newErrors;
+            });
+            return null;
+        } finally {
+            if (isVariant) {
+                setVariantImageUploading(prev => ({ ...prev, [variantIndex]: false }));
+            } else {
+                setIsUploadingMainImage(false);
+            }
+        }
+    }, [displayMessage, setFormErrors, setProductData, setImagePreviewUrl, setIsUploadingMainImage, setVariantImageUploading]);
+    // --- FIN Función de Subida de Imágenes ---
+
 
     // Función auxiliar para calcular porcentaje de ganancia y precio placeholder
     const calculateProfitAndPricePlaceholder = useCallback((cost, currentPrice, costCurrency, saleCurrency, setPercentage, setPricePlaceholder) => {
@@ -103,11 +195,11 @@ const AddEditProductFormLogic = ({
         const isProductSimple = currentProductState.variants.length === 0;
 
         // Helper para obtener el valor correcto si es una variante
-        const getVariantValue = (fieldName) => {
+        const getVariantValue = (fieldName) => { // Función auxiliar interna, no afecta el bug
             if (isVariantField) {
                 return currentProductState.variants[variantIndex][fieldName];
             }
-            return value; // Si no es variante, usa el value directo del campo del producto principal
+            return value;
         };
 
         const currentFieldData = isVariantField ? currentProductState.variants[variantIndex] : currentProductState;
@@ -115,11 +207,10 @@ const AddEditProductFormLogic = ({
 
         // Validaciones generales
         if ((name === 'name' || name === 'category' || name === 'unitOfMeasure' || name === 'price' || name === 'stock' || name === 'costPrice' || name === 'sku' || name === 'baseCurrency' || name === 'costCurrency' || name === 'saleCurrency' || name === 'displayCurrency') &&
-            ((isProductSimple && !isVariantField) || isVariantField)) { // Solo aplica si es producto simple y campo principal, o si es campo de variante
+            ((isProductSimple && !isVariantField) || isVariantField)) {
             
-            // Si el campo es SKU y el producto es nuevo y el SKU no ha sido editado manualmente
             if (name === 'sku' && isNewProduct && !isMainSkuManuallyEdited && (value === '' || value === undefined || value === null)) {
-                error = ''; // No hay error, se autogenera
+                error = '';
             } else if (name === 'sku' && value.trim() === '') {
                 error = 'El SKU es obligatorio.';
             } else if (name === 'name' && value.trim() === '') {
@@ -160,15 +251,12 @@ const AddEditProductFormLogic = ({
         }
 
         // Validación de unicidad de SKU (siempre al final para no interferir con otras validaciones)
-        // Solo para productos existentes o si el SKU principal fue editado manualmente
-        if (name === 'sku' && value.trim() !== '' && (isProductSimple || isVariantField)) { // Aplica a SKU principal o SKU de variante
-            // Esta lógica de unicidad se maneja mejor en el backend antes de guardar
-            // Pero si quieres una validación frontal en tiempo real, deberías debouncarla y hacer una llamada a la API
-            // Por ahora, solo es una validación básica de formato.
+        if (name === 'sku' && value.trim() !== '' && (isProductSimple || isVariantField)) {
+            // Lógica de unicidad de SKU aquí (requiere llamada a API, se puede optimizar con debounce)
         }
 
         return error;
-    }, [isNewProduct, isMainSkuManuallyEdited, autoGeneratedSku]); // <-- Dependencias para useCallback
+    }, [isNewProduct, isMainSkuManuallyEdited, autoGeneratedSku]);
 
     // Sincroniza el estado interno con las props iniciales (para edición o nuevo producto)
     useEffect(() => {
@@ -176,7 +264,7 @@ const AddEditProductFormLogic = ({
             const dataToSet = { ...initialProductData };
             
             // Asegurar que `initialProductData` esté completo para evitar `undefined` o `null`
-            Object.keys(defaultNewProductState).forEach(key => {
+            Object.keys(defaultNewProductState).forEach(key => { // <-- defaultNewProductState está aquí
                 if (dataToSet[key] === undefined) {
                     dataToSet[key] = defaultNewProductState[key];
                 }
@@ -184,7 +272,7 @@ const AddEditProductFormLogic = ({
 
             // Inicializar las nuevas monedas si es un producto nuevo o no las tiene
             dataToSet.costCurrency = dataToSet.costCurrency || 'USD';
-            dataToSet.saleCurrency = dataToSet.saleCurrency || 'USD';
+            dataToSet.saleCurrency = dataToSet.costCurrency; // ¡Modificación para que saleCurrency se adapte al costo!
             dataToSet.baseCurrency = dataToSet.baseCurrency || contextBaseCurrency || 'USD';
             dataToSet.displayCurrency = dataToSet.displayCurrency || dataToSet.saleCurrency || 'USD';
 
@@ -192,7 +280,7 @@ const AddEditProductFormLogic = ({
             dataToSet.variants = dataToSet.variants ? dataToSet.variants.map(v => ({
                 ...v,
                 costCurrency: v.costCurrency || 'USD',
-                saleCurrency: v.saleCurrency || 'USD',
+                saleCurrency: v.costCurrency || 'USD', // ¡Modificación para que saleCurrency de variante se adapte al costo!
             })) : [];
             
             // Si es un producto con variantes, ciertos campos del padre deben ser informativos
@@ -276,7 +364,7 @@ const AddEditProductFormLogic = ({
                     if (name === 'costCurrency' && (prev.saleCurrency === prev.costCurrency || !prev.saleCurrency)) { // Si cambias costCurrency y saleCurrency era igual o no definido
                         updatedData.saleCurrency = inputValue; // Actualiza saleCurrency también
                     }
-                    if (name === 'costCurrency' && (prev.displayCurrency === prev.saleCurrency || !prev.displayCurrency)) { // Si cambias costCurrency y displayCurrency era igual o no definido
+                    if (name === 'costCurrency' && (prev.displayCurrency === prev.costCurrency || !prev.displayCurrency)) { // Si cambias costCurrency y displayCurrency era igual o no definido
                         updatedData.displayCurrency = inputValue; // Actualiza displayCurrency también
                     }
                 } else if (name === 'price') {
@@ -380,7 +468,7 @@ const AddEditProductFormLogic = ({
 
         setFormErrors(prev => ({
             ...prev,
-            [`variant-<span class="math-inline">\{index\}\-</span>{name}`]: validateField(name, inputValue, { ...productData, variants: productData.variants.map((v, i) => i === index ? { ...v, [name]: inputValue } : v) }, index)
+            [`variant-${index}-${name}`]: validateField(name, inputValue, { ...productData, variants: productData.variants.map((v, i) => i === index ? { ...v, [name]: inputValue } : v) }, index)
         }));
 
         displayMessage('', '');
@@ -429,9 +517,11 @@ const AddEditProductFormLogic = ({
             unitOfMeasure: 'unidad', imageUrl: '', color: '', size: '', material: '',
             autoGeneratedVariantSku: '', // Se autogenerará si no se introduce
             isPerishable: false, reorderThreshold: 0, optimalMaxStock: 0, shelfLifeDays: 0,
+            costCurrency: productData.costCurrency || 'USD', // Hereda la moneda de costo del padre o USD
+            saleCurrency: productData.saleCurrency || 'USD', // Hereda la moneda de venta del padre o USD
         };
         setProductData(prev => ({ ...prev, variants: [...prev.variants, newVariant] }));
-    }, []);
+    }, [productData.costCurrency, productData.saleCurrency]); // Dependencias para heredar monedas del padre
 
     // Función para eliminar una variante por su índice.
     const handleRemoveVariant = useCallback((indexToRemove) => {
@@ -468,12 +558,11 @@ const AddEditProductFormLogic = ({
         let isValid = true;
 
         // Determina el SKU final para el producto principal basado en la entrada del usuario o auto-generación
-        // Ahora, si el usuario no ha editado manualmente y el campo está vacío, se usará el autoGeneratedSku
         const finalMainSku = isMainSkuManuallyEdited ? currentProductData.sku : (currentProductData.sku || autoGeneratedSku);
 
 
         // Validaciones del producto principal
-        const fieldsToValidate = ['name', 'category', 'sku', 'price', 'costPrice', 'stock', 'unitOfMeasure', 'reorderThreshold', 'baseCurrency']; // <-- ¡AÑADIDO 'baseCurrency'
+        const fieldsToValidate = ['name', 'category', 'sku', 'price', 'costPrice', 'stock', 'unitOfMeasure', 'reorderThreshold', 'baseCurrency', 'costCurrency', 'saleCurrency', 'displayCurrency'];
         if (currentProductData.isPerishable) {
             fieldsToValidate.push('optimalMaxStock', 'shelfLifeDays');
         }
@@ -483,7 +572,7 @@ const AddEditProductFormLogic = ({
             // Para SKU, usar el SKU final calculado
             if (fieldName === 'sku') value = finalMainSku;
 
-            const errorMsg = validateField(fieldName, value, currentProductData);
+            const errorMsg = validateField(fieldName, value, currentProductData, null); // Pasa null para variantIndex para producto principal
             if (errorMsg) {
                 errors[fieldName] = errorMsg;
                 isValid = false;
@@ -495,7 +584,7 @@ const AddEditProductFormLogic = ({
             const variantPrefix = `variant-${index}-`;
             const finalVariantSku = variant.sku.trim() === '' ? variant.autoGeneratedVariantSku : variant.sku;
 
-            const variantFieldsToValidate = ['name', 'sku', 'price', 'costPrice', 'stock', 'unitOfMeasure', 'reorderThreshold'];
+            const variantFieldsToValidate = ['name', 'sku', 'price', 'costPrice', 'stock', 'unitOfMeasure', 'reorderThreshold', 'costCurrency', 'saleCurrency'];
             if (variant.isPerishable) {
                 variantFieldsToValidate.push('optimalMaxStock', 'shelfLifeDays');
             }
@@ -512,7 +601,7 @@ const AddEditProductFormLogic = ({
             });
         });
 
-        setFormErrors(errors); // Actualiza el estado de los errores del formulario
+        setFormErrors(errors);
         return isValid;
     }, [isNewProduct, autoGeneratedSku, validateField, setFormErrors, isMainSkuManuallyEdited]);
 
@@ -532,66 +621,69 @@ const AddEditProductFormLogic = ({
         }
 
 
-        await onProductSave(productDataToSend); // Llama al callback pasado por prop
+        await onProductSave(productDataToSend);
     }, [onProductSave, productData, validateForm, displayMessage, isNewProduct, isMainSkuManuallyEdited, autoGeneratedSku]);
 
 
     // Maneja la selección de un producto desde las sugerencias del catálogo global.
     const handleSelectGlobalProduct = useCallback((suggestedProduct) => {
-        setProductData(prev => ({ // Usar el actualizador de función para evitar dependencias circulares complejas
-            ...prev, // Mantén otros campos que no se sobrescriben
-            name: suggestedProduct.name,
-            description: suggestedProduct.description || '',
-            category: suggestedProduct.category || '',
-            sku: suggestedProduct.sku || '',
-            unitOfMeasure: suggestedProduct.unitOfMeasure || 'unidad',
-            brand: suggestedProduct.brand || '',
-            supplier: suggestedProduct.supplier || '',
-            imageUrl: suggestedProduct.imageUrl || '',
-            color: suggestedProduct.color || '',
-            size: suggestedProduct.size || '',
-            material: suggestedProduct.material || '',
-            isPerishable: suggestedProduct.isPerishable || false,
-            reorderThreshold: suggestedProduct.reorderThreshold || 0,
-            optimalMaxStock: suggestedProduct.optimalMaxStock || 0,
-            shelfLifeDays: suggestedProduct.shelfLifeDays || 0,
-            baseCurrency: suggestedProduct.baseCurrency || 'USD', // <-- ¡AÑADE ESTO!
-            secondaryCurrency: suggestedProduct.secondaryCurrency || 'USD', // <-- ¡AÑADE ESTO!
-            primaryCurrency: suggestedProduct.primaryCurrency || 'USD', // <-- ¡AÑADE ESTO!
-            exchangeRate: suggestedProduct.exchangeRate || 1, // <-- ¡AÑADE EST
-            costCurrency: suggestedProduct.costCurrency || 'USD', // <-- ¡NUEVA LÍNEA!
-            saleCurrency: suggestedProduct.saleCurrency || 'USD', // <-- ¡NUEVA LÍNEA!
-            displayCurrency: suggestedProduct.displayCurrency || suggestedProduct.saleCurrency || 'USD', // <-- ¡NUEVA LÍNEA!
-            variants: suggestedProduct.variants ? suggestedProduct.variants.map(v => ({
-                ...v,
-                autoGeneratedVariantSku: v.sku && v.sku.trim() !== '' ? '' : generateSkuFromName(v.name || ''),
-                isPerishable: v.isPerishable || false,
-                reorderThreshold: v.reorderThreshold || 0,
-                optimalMaxStock: v.optimalMaxStock || 0,
-                shelfLifeDays: v.shelfLifeDays || 0,
-                costCurrency: v.costCurrency || 'USD', // <-- ¡NUEVA LÍNEA!
-                saleCurrency: v.saleCurrency || 'USD', // <-- ¡NUEVA LÍNEA!
-                pricePlaceholder: v.pricePlaceholder || 0, // Asegurar que pricePlaceholder tenga un valor por defecto
-                profitPercentage: v.profitPercentage || 0, // Asegurar que profitPercentage tenga un valor por defecto
-                imageUrl: v.imageUrl || '', // Asegurar que imageUrl tenga un valor por defecto
-            })) : [],
-        }));
-        // Actualizar el estado de las monedas basado en el producto global seleccionado
-        setBaseCurrency(suggestedProduct.baseCurrency || 'USD'); // Asegurar que baseCurrency tenga un valor por defecto
-        setSecondaryCurrency(suggestedProduct.secondaryCurrency || 'USD'); // Asegurar que secondaryCurrency tenga un valor por defecto
-        setPrimaryCurrency(suggestedProduct.primaryCurrency || 'USD'); // Asegurar que primaryCurrency tenga un valor por defecto
-        setExchangeRate(suggestedProduct.exchangeRate || 1); // Asegurar que exchangeRate tenga un valor por defecto
-        setProductData(prev => ({ ...prev, displayCurrency: suggestedProduct.saleCurrency || 'USD' })); // Asegurar que displayCurrency tenga un valor por defecto
-        setIsNewProduct(false); // Cambiar a modo edición
-        setImageFile(null); // Limpiar archivo local
-        setImagePreviewUrl(suggestedProduct.imageUrl || ''); // Establecer previsualización de la URL del producto global
+        setProductData(prev => {
+            const newProductData = {
+                ...prev, // Mantén otros campos que no se sobrescriben
+                name: suggestedProduct.name,
+                description: suggestedProduct.description || '',
+                category: suggestedProduct.category || '',
+                sku: suggestedProduct.sku || '',
+                unitOfMeasure: suggestedProduct.unitOfMeasure || 'unidad',
+                brand: suggestedProduct.brand || '',
+                supplier: suggestedProduct.supplier || '',
+                imageUrl: suggestedProduct.imageUrl || '',
+                color: suggestedProduct.color || '',
+                size: suggestedProduct.size || '',
+                material: suggestedProduct.material || '',
+                isPerishable: suggestedProduct.isPerishable || false,
+                reorderThreshold: suggestedProduct.reorderThreshold || 0,
+                optimalMaxStock: suggestedProduct.optimalMaxStock || 0,
+                shelfLifeDays: suggestedProduct.shelfLifeDays || 0,
+                
+                // Nuevos campos de moneda
+                baseCurrency: suggestedProduct.baseCurrency || 'USD',
+                costCurrency: suggestedProduct.costCurrency || 'USD',
+                saleCurrency: suggestedProduct.saleCurrency || 'USD',
+                displayCurrency: suggestedProduct.displayCurrency || suggestedProduct.saleCurrency || 'USD',
+
+                // Porcentaje y precio placeholder (se recalcularán en el useEffect)
+                price: suggestedProduct.price || '', // Mantener el precio del suggestedProduct
+                costPrice: suggestedProduct.costPrice || '', // Mantener el costo del suggestedProduct
+
+                variants: suggestedProduct.variants ? suggestedProduct.variants.map(v => ({
+                    ...v,
+                    autoGeneratedVariantSku: v.sku && v.sku.trim() !== '' ? '' : generateSkuFromName(v.name || ''),
+                    isPerishable: v.isPerishable || false,
+                    reorderThreshold: v.reorderThreshold || 0,
+                    optimalMaxStock: v.optimalMaxStock || 0,
+                    shelfLifeDays: v.shelfLifeDays || 0,
+                    costCurrency: v.costCurrency || 'USD',
+                    saleCurrency: v.costCurrency || 'USD', // Asegurarse que saleCurrency se adapte al costo de la variante
+                })) : [],
+            };
+
+            return newProductData;
+        });
+
+        // Actualizar estados adicionales
+        setIsEditing(false); // Al seleccionar un producto global, se asume que se está creando uno nuevo basado en él
+        setIsNewProduct(true); // Se fuerza a modo "nuevo producto" al seleccionar uno global
+        setImageFile(null);
+        setImagePreviewUrl(suggestedProduct.imageUrl || '');
         setGlobalProductSuggestions([]);
         setShowGlobalSuggestions(false);
         setNoGlobalSuggestionsFound(false);
-        setAutoGeneratedSku(suggestedProduct.name ? generateSkuFromName(suggestedProduct.name) : ''); // Regenerar SKU autogenerado para el nuevo nombre
-        setIsMainSkuManuallyEdited(suggestedProduct.sku.trim() !== ''); // Si el producto global tiene SKU, se asume manual
-        setFormErrors({}); // Limpiar errores al seleccionar sugerencia
-    }, [generateSkuFromName, displayMessage, setGlobalProductSuggestions, setShowGlobalSuggestions, setNoGlobalSuggestionsFound, setImageFile, setImagePreviewUrl, setIsMainSkuManuallyEdited, setFormErrors]);
+        setAutoGeneratedSku(suggestedProduct.name ? generateSkuFromName(suggestedProduct.name) : '');
+        setIsMainSkuManuallyEdited(suggestedProduct.sku?.trim() !== '');
+        setFormErrors({});
+        displayMessage('Producto global cargado. Puedes modificarlo y guardarlo como nuevo.', 'info');
+    }, [generateSkuFromName, displayMessage]);
 
 
      return (
@@ -640,6 +732,9 @@ const AddEditProductFormLogic = ({
                 calculatedProductPricePlaceholder={calculatedProductPricePlaceholder}
                 calculatedVariantProfitPercentage={calculatedVariantProfitPercentage}
                 calculatedVariantPricePlaceholder={calculatedVariantPricePlaceholder}
+                // ¡ESTAS FALTABAN!
+                formatPrice={formatPrice} // <-- ¡AÑADIDA!
+                convertPrice={convertPrice} // <-- ¡AÑADIDA!
             />
         </Suspense>
     );

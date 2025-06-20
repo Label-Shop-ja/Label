@@ -1,8 +1,6 @@
 // src/components/Inventory/AddEditProductForm.jsx (Componente de UI Puro)
 import React, { lazy, Suspense } from 'react';
 import { Plus, X, Upload, Loader2, Info, ChevronDown, ChevronUp, Save } from 'lucide-react'; // Íconos
-// Nota: axiosInstance se mantiene si hay lógica local que la requiera, si no, se puede quitar.
-// En este caso, la lógica de búsqueda de sugerencias y generación de SKU se ha movido al componente lógico.
 
 // Importación perezosa del componente VariantForm
 const VariantForm = lazy(() => import('./VariantForm'));
@@ -46,6 +44,13 @@ const AddEditProductForm = ({
     handleMainImageFileChange, // Handler específico para el input de tipo 'file' de imagen principal
     handleMainImageUrlBlur, // Handler específico para el onBlur de la URL de imagen principal
     handleVariantImageFileChange,
+    // NUEVAS PROPS PARA EL PORCENTAJE DINÁMICO (¡TIENEN QUE ESTAR AQUÍ!)
+    calculatedProductProfitPercentage,
+    calculatedProductPricePlaceholder,
+    calculatedVariantProfitPercentage,
+    calculatedVariantPricePlaceholder,
+    formatPrice, // <-- ¡AÑADIDA!
+    convertPrice, // <-- ¡AÑADIDA!
 }) => {
 
     return (
@@ -258,42 +263,6 @@ const AddEditProductForm = ({
                     placeholder="Ej. Distribuciones ABC"
                 />
                 {formErrors.supplier && <p className="text-red-400 text-xs mt-1">{formErrors.supplier}</p>}
-            </div>
-            <div>
-                {/* Moneda Base es la moneda de registro interna del producto (ej. USD por defecto) */}
-                <label htmlFor="baseCurrency" className="block text-neutral-light text-sm font-bold mb-2">Moneda de Registro Interna:</label>
-                <select
-                    id="baseCurrency"
-                    name="baseCurrency"
-                    value={productData.baseCurrency}
-                    onChange={handleProductInputChange}
-                    className={`shadow appearance-none border ${formErrors.baseCurrency ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
-                    required
-                    disabled // Se deshabilita para que el usuario no lo cambie fácilmente, es más técnico
-                >
-                    <option value="USD">USD - Dólar</option>
-                    <option value="VES">VES - Bolívar</option>
-                    <option value="EUR">EUR - Euro</option>
-                </select>
-                {formErrors.baseCurrency && <p className="text-red-400 text-xs mt-1">{formErrors.baseCurrency}</p>}
-            </div>
-            <div>
-                {/* Moneda Principal de Visualización en Listas */}
-                <label htmlFor="displayCurrency" className="block text-neutral-light text-sm font-bold mb-2">Moneda Principal de Vista:</label>
-                <select
-                    id="displayCurrency"
-                    name="displayCurrency"
-                    value={productData.displayCurrency}
-                    onChange={handleProductInputChange}
-                    className={`shadow appearance-none border ${formErrors.displayCurrency ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
-                    required={productData.variants.length === 0} // Si tiene variantes, se deriva
-                    disabled={productData.variants.length > 0} // Si tiene variantes, se deriva
-                >
-                    <option value="USD">USD - Dólar</option>
-                    <option value="VES">VES - Bolívar</option>
-                    <option value="EUR">EUR - Euro</option>
-                </select>
-                {formErrors.displayCurrency && <p className="text-red-400 text-xs mt-1">{formErrors.displayCurrency}</p>}
             </div>
             {/* Campo de Precio de Venta con selector de moneda y porcentaje de ganancia */}
             <div className="flex items-end gap-2">
@@ -636,6 +605,12 @@ const AddEditProductForm = ({
                                         formErrors={formErrors}
                                         uploadImageToCloud={uploadImageToCloud}
                                         isNewProduct={isNewProduct}
+                                        // NUEVAS PROPS PARA EL PORCENTAJE DINÁMICO (¡TIENEN QUE ESTAR AQUÍ!)
+                                        calculatedVariantProfitPercentage={calculatedVariantProfitPercentage}
+                                        calculatedVariantPricePlaceholder={calculatedVariantPricePlaceholder}
+                                        formatPrice={formatPrice} // <-- ¡AÑADIDA!
+                                        convertPrice={convertPrice} // <-- ¡AÑADIDA!
+                                        exchangeRate={exchangeRate} // <-- ¡AÑADIDA!
                                     />
                                 </React.Suspense>
                             ))}
