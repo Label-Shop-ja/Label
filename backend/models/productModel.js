@@ -27,6 +27,19 @@ const variantSchema = mongoose.Schema(
             default: 0,
             min: 0,
         },
+        costCurrency: { // Moneda en la que se registra el costo de esta variante
+            type: String,
+            required: true,
+            enum: ['USD', 'VES', 'EUR'],
+            default: 'USD',
+        },
+        saleCurrency: { // Moneda en la que se registra el precio de venta de esta variante
+            type: String,
+            required: true,
+            enum: ['USD', 'VES', 'EUR'],
+            default: 'USD',
+        },
+        // Stock y unidad de medida para la variante
         stock: {
             type: Number,
             required: [true, 'Por favor, añade el stock de la variante'],
@@ -127,6 +140,28 @@ const productSchema = mongoose.Schema(
             default: 0,
             min: 0,
         },
+        costCurrency: { // Moneda en la que se registra el costo del producto principal
+            type: String,
+            required: true,
+            enum: ['USD', 'VES', 'EUR'],
+            default: 'USD',
+        },
+        saleCurrency: { // Moneda en la que se registra el precio de venta del producto principal
+            type: String,
+            required: true,
+            enum: ['USD', 'VES', 'EUR'],
+            default: 'USD',
+        },
+        displayCurrency: { // Moneda preferida para mostrar en la UI de listas (ej. InventoryPage)
+            type: String,
+            required: true,
+            enum: ['USD', 'VES', 'EUR'],
+            default: 'USD',
+        },
+        // SKU del producto principal (Stock Keeping Unit)
+        // Este es el identificador único del producto principal, que puede ser diferente al SKU de las variantes
+        // Si el producto tiene variantes, el SKU del producto principal puede ser opcional o derivado de las variantes
+        // Si el producto no tiene variantes, el SKU es obligatorio y debe ser único
         sku: {
             type: String,
             required: true,
@@ -239,6 +274,13 @@ productSchema.pre('save', function(next) {
         this.price = this.variants.length > 0 ? this.variants[0].price : 0;
         this.costPrice = this.variants.length > 0 ? this.variants[0].costPrice : 0;
         this.unitOfMeasure = this.variants.length > 0 ? this.variants[0].unitOfMeasure : 'unidad';
+        // Nuevas líneas para manejar las monedas de costo, venta y visualización
+        // Si las variantes tienen monedas diferentes, se usa la moneda de la primera variante
+        // <-- ¡NUEVAS LÍNEAS!
+        this.costCurrency = this.variants.length > 0 ? this.variants[0].costCurrency : 'USD';
+        this.saleCurrency = this.variants.length > 0 ? this.variants[0].saleCurrency : 'USD';
+        this.displayCurrency = this.variants.length > 0 ? this.variants[0].saleCurrency : 'USD'; // Por defecto la misma que saleCurrency
+        // FIN NUEVAS LÍNEAS -->
 
         // Para el SKU del padre: si el frontend no lo envía y hay variantes, lo dejamos vacío
         // si el esquema permite que sea opcional. Actualmente es `required: true`.
