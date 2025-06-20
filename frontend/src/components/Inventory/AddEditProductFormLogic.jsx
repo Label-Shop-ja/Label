@@ -45,27 +45,6 @@ const AddEditProductFormLogic = ({
     const [calculatedVariantPricePlaceholder, setCalculatedVariantPricePlaceholder] = useState({}); // Placeholder por variante
     // --- FIN NUEVOS ESTADOS ---
     
-    // Hook para obtener la moneda base del contexto
-    const { baseCurrency } = useCurrency(); // <-- NUEVA LÍNEA!
-    // Hook para obtener la tasa de cambio actual del contexto
-    const { exchangeRate } = useCurrency(); // <-- NUEVA LÍNEA!
-    // Hook para obtener la moneda secundaria del contexto
-    const { secondaryCurrency } = useCurrency(); // <-- NUEVA LÍNEA!
-    // Hook para obtener la moneda primaria del contexto
-    const { primaryCurrency } = useCurrency(); // <-- NUEVA LÍNEA!
-    // Hook para obtener la tasa de cambio del contexto
-    const { getExchangeRate } = useCurrency(); // <-- NUEVA LÍNEA!
-    // Hook para obtener la tasa de cambio del contexto
-    const { setExchangeRate } = useCurrency(); // <-- NUEVA LÍNEA!
-    // Hook para obtener la moneda secundaria del contexto
-    const { setSecondaryCurrency } = useCurrency(); // <-- NUEVA LÍNEA!
-    // Hook para obtener la moneda primaria del contexto
-    const { setPrimaryCurrency } = useCurrency(); // <-- NUEVA LÍNEA!
-    // Hook para obtener la tasa de cambio del contexto
-    const { setBaseCurrency } = useCurrency(); // <-- NUEVA LÍNEA
-    // NUEVO: Hook para manejar el debounce de las sugerencias globales
-    const debounceTimeoutRef = useRef(null);
-
     // Función para generar un SKU único a partir de un nombre
     // ESTA FUNCIÓN HA SIDO MOVIDA AQUÍ ARRIBA PARA EVITAR EL "ReferenceError"
     const generateSkuFromName = useCallback((name) => {
