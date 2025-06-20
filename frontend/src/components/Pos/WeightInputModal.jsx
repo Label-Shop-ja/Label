@@ -3,7 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import ProductModal from '../Common/ProductModal'; // Reutilizamos el modal base
 import { calculateFractionalPrice } from '../../utils/unitConversion'; // <-- ¡Importa la utilidad!
 
-const WeightInputModal = ({ isOpen, onClose, product, onMeasureAndAdd, formatPrice, convertPrice, exchangeRate }) => {
+const WeightInputModal = ({ isOpen, onClose, product, onMeasureAndAdd, formatPrice, convertPrice, exchangeRate, loading /* <-- ¡TIENE QUE ESTAR AQUÍ! */ }) => {
     const [inputQuantity, setInputQuantity] = useState(''); // Cantidad ingresada por el usuario (ej. gramos)
     const [calculatedPrice, setCalculatedPrice] = useState(0); // Precio calculado en tiempo real
     const [error, setError] = useState('');
@@ -95,7 +95,7 @@ const WeightInputModal = ({ isOpen, onClose, product, onMeasureAndAdd, formatPri
                         step="any"
                         min="0.01"
                         placeholder={`Ej. 155 para ${minorUnitName}`}
-                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
                     />
                 </div>
 
@@ -123,6 +123,18 @@ const WeightInputModal = ({ isOpen, onClose, product, onMeasureAndAdd, formatPri
             </div>
         </ProductModal>
     );
+    console.log('WeightInputModal props recibidas:', { isOpen, onClose, product, onMeasureAndAdd, formatPrice, convertPrice, exchangeRate, loading }); // <-- Y aquí también
+};
+
+WeightInputModal.defaultProps = {
+    isOpen: false,
+    onClose: () => {},
+    product: null,
+    onMeasureAndAdd: () => {},
+    formatPrice: (price) => price.toFixed(2),
+    convertPrice: (price, fromCurrency, toCurrency) => price, // Por defecto no convierte
+    exchangeRate: null,
+    loading: false,
 };
 
 export default WeightInputModal;
