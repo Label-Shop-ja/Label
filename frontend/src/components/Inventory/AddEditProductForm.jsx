@@ -198,7 +198,8 @@ const AddEditProductForm = ({
                 {formErrors.unitOfMeasure && <p className="text-red-400 text-xs mt-1">{formErrors.unitOfMeasure}</p>}
             </div>
             <div>
-                <label htmlFor="baseCurrency" className="block text-neutral-light text-sm font-bold mb-2">Moneda Base:</label>
+                {/* Moneda Base es la moneda de registro interna del producto (ej. USD por defecto) */}
+                <label htmlFor="baseCurrency" className="block text-neutral-light text-sm font-bold mb-2">Moneda de Registro Interna:</label>
                 <select
                     id="baseCurrency"
                     name="baseCurrency"
@@ -206,12 +207,31 @@ const AddEditProductForm = ({
                     onChange={handleProductInputChange}
                     className={`shadow appearance-none border ${formErrors.baseCurrency ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
                     required
+                    disabled // Se deshabilita para que el usuario no lo cambie fácilmente, es más técnico
                 >
                     <option value="USD">USD - Dólar</option>
                     <option value="VES">VES - Bolívar</option>
                     <option value="EUR">EUR - Euro</option>
                 </select>
                 {formErrors.baseCurrency && <p className="text-red-400 text-xs mt-1">{formErrors.baseCurrency}</p>}
+            </div>
+            <div>
+                {/* Moneda Principal de Visualización en Listas */}
+                <label htmlFor="displayCurrency" className="block text-neutral-light text-sm font-bold mb-2">Moneda Principal de Vista:</label>
+                <select
+                    id="displayCurrency"
+                    name="displayCurrency"
+                    value={productData.displayCurrency}
+                    onChange={handleProductInputChange}
+                    className={`shadow appearance-none border ${formErrors.displayCurrency ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
+                    required={productData.variants.length === 0} // Si tiene variantes, se deriva
+                    disabled={productData.variants.length > 0} // Si tiene variantes, se deriva
+                >
+                    <option value="USD">USD - Dólar</option>
+                    <option value="VES">VES - Bolívar</option>
+                    <option value="EUR">EUR - Euro</option>
+                </select>
+                {formErrors.displayCurrency && <p className="text-red-400 text-xs mt-1">{formErrors.displayCurrency}</p>}
             </div>
             <div>
                 <label htmlFor="brand" className="block text-neutral-light text-sm font-bold mb-2">Marca (Opcional):</label>
@@ -274,6 +294,91 @@ const AddEditProductForm = ({
                     <option value="EUR">EUR - Euro</option>
                 </select>
                 {formErrors.displayCurrency && <p className="text-red-400 text-xs mt-1">{formErrors.displayCurrency}</p>}
+            </div>
+            {/* Campo de Precio de Venta con selector de moneda y porcentaje de ganancia */}
+            <div className="flex items-end gap-2">
+                <div className="flex-grow">
+                    <label htmlFor="price" className="block text-neutral-light text-sm font-bold mb-2">Precio de Venta (Producto Principal):</label>
+                    <input
+                        type="number"
+                        id="price"
+                        name="price"
+                        value={productData.price}
+                        onChange={(e) => handleProductInputChange(e, 'price')} // Pasa 'price' para la lógica específica
+                        step="0.01"
+                        className={`shadow appearance-none border ${formErrors.price ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                        placeholder={`Ej. ${formatPrice(calculatedProductPricePlaceholder, productData.saleCurrency || 'USD')}`} // Placeholder dinámico
+                        required={productData.variants.length === 0}
+                        disabled={productData.variants.length > 0}
+                    />
+                    {formErrors.price && <p className="text-red-400 text-xs mt-1">{formErrors.price}</p>}
+                </div>
+                <div className="w-24 flex-shrink-0">
+                    <label htmlFor="saleCurrency" className="block text-neutral-light text-sm font-bold mb-2">Moneda:</label>
+                    <select
+                        id="saleCurrency"
+                        name="saleCurrency"
+                        value={productData.saleCurrency}
+                        onChange={handleProductInputChange} //* No pasar segundo arg, ya es el name del input */}
+                        className={`shadow appearance-none border ${formErrors.saleCurrency ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
+                        required={productData.variants.length === 0}
+                        disabled={productData.variants.length > 0}
+                    >
+                        <option value="USD">USD</option>
+                        <option value="VES">VES</option>
+                        <option value="EUR">EUR</option>
+                    </select>
+                </div>
+                <div className="w-24 flex-shrink-0">
+                    <label htmlFor="profitPercentage" className="block text-neutral-light text-sm font-bold mb-2">% Ganancia:</label>
+                    <input
+                        type="number"
+                        id="profitPercentage"
+                        name="profitPercentage"
+                        value={calculatedProductProfitPercentage} // <-- Será dinámico
+                        onChange={(e) => handleProductInputChange(e, 'profitPercentage')} // Pasa 'profitPercentage' para la lógica específica
+                        step="0.1"
+                        min="0"
+                        className={`shadow appearance-none border ${formErrors.profitPercentage ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                        placeholder="%"
+                        disabled={productData.variants.length > 0}
+                    />
+                </div>
+            </div>
+            {/* Campo de Costo Unitario con selector de moneda */}
+            <div className="flex items-end gap-2">
+                <div className="flex-grow">
+                    <label htmlFor="costPrice" className="block text-neutral-light text-sm font-bold mb-2">Costo Unitario (Producto Principal):</label>
+                    <input
+                        type="number"
+                        id="costPrice"
+                        name="costPrice"
+                        value={productData.costPrice}
+                        onChange={(e) => handleProductInputChange(e, 'costPrice')} // Pasa 'costPrice' para la lógica específica
+                        step="0.01"
+                        className={`shadow appearance-none border ${formErrors.costPrice ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                        placeholder="Ej. 15.00"
+                        required={productData.variants.length === 0}
+                        disabled={productData.variants.length > 0}
+                    />
+                    {formErrors.costPrice && <p className="text-red-400 text-xs mt-1">{formErrors.costPrice}</p>}
+                </div>
+                <div className="w-24 flex-shrink-0">
+                    <label htmlFor="costCurrency" className="block text-neutral-light text-sm font-bold mb-2">Moneda:</label>
+                    <select
+                        id="costCurrency"
+                        name="costCurrency"
+                        value={productData.costCurrency}
+                        onChange={handleProductInputChange} //* No pasar segundo arg, ya es el name del input */}
+                        className={`shadow appearance-none border ${formErrors.costCurrency ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
+                        required={productData.variants.length === 0}
+                        disabled={productData.variants.length > 0}
+                    >
+                        <option value="USD">USD</option>
+                        <option value="VES">VES</option>
+                        <option value="EUR">EUR</option>
+                    </select>
+                </div>
             </div>
             <div>
                 <label htmlFor="stock" className="block text-neutral-light text-sm font-bold mb-2">Stock (Producto Principal):</label>
