@@ -225,7 +225,14 @@ const createProduct = asyncHandler(async (req, res) => {
         reorderThreshold: Number(reorderThreshold) || 0,
         optimalMaxStock: Number(optimalMaxStock) || 0,
         shelfLifeDays: Number(shelfLifeDays) || 0,
-        baseCurrency: req.body.baseCurrency || 'USD', // <-- ¡AÑADE ESTO!
+        // ¡NUEVOS CAMPOS DE MONEDA!
+        baseCurrency: req.body.baseCurrency || 'USD',
+        costCurrency: req.body.costCurrency || 'USD', // <-- Asegúrate de pasar estos
+        saleCurrency: req.body.saleCurrency || 'USD', // <-- Asegúrate de pasar estos
+        displayCurrency: req.body.displayCurrency || req.body.saleCurrency || 'USD', // <-- Asegúrate de pasar este
+
+        // Los campos `price`, `stock`, `costPrice`, `sku`, `unitOfMeasure` deben venir del `req.body`
+        // y no ser redefinidos aquí si no es necesario, ya que el `pre-save hook` los ajusta.
     };
 
     try {
@@ -394,6 +401,18 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.reorderThreshold = Number(reorderThreshold) || 0;
     product.optimalMaxStock = Number(optimalMaxStock) || 0;
     product.shelfLifeDays = Number(shelfLifeDays) || 0;
+
+    // ¡NUEVOS CAMPOS DE MONEDA!
+    product.baseCurrency = req.body.baseCurrency || 'USD';
+    product.costCurrency = req.body.costCurrency || product.costCurrency || 'USD'; // Mantener el valor existente si no se provee
+    product.saleCurrency = req.body.saleCurrency || product.saleCurrency || 'USD';
+    product.displayCurrency = req.body.displayCurrency || product.saleCurrency || product.displayCurrency || 'USD';
+
+    product.sku = sku; // Asegúrate de que este también se actualice si cambia
+    product.price = price;
+    product.stock = stock;
+    product.costPrice = costPrice;
+    product.unitOfMeasure = unitOfMeasure;
 
     product.variants = processedVariants;
     product.baseCurrency = req.body.baseCurrency || 'USD'; // <-- ¡AÑADE ESTO!

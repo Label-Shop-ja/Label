@@ -5,8 +5,10 @@ const protect = require('../middleware/authMiddleware'); // Asegúrate que la ru
 const {
   getExchangeRate,
   setExchangeRate,
+  fetchOfficialRate, // <-- ¡NUEVA LÍNEA!
 } = require('../controllers/exchangeRateController'); // Asegúrate que la ruta sea correcta
 
 router.route('/').get(protect, getExchangeRate).post(protect, setExchangeRate);
+router.route('/fetchOfficial').post(protect, fetchOfficialRate); // <-- ¡NUEVA RUTA!
 
 module.exports = router;
