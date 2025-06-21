@@ -1,7 +1,7 @@
 // C:\Proyectos\Label\frontend\src\components\Currency\ExchangeRateModal.jsx
 import React, { useState, useEffect } from 'react';
 import ProductModal from '../Common/ProductModal'; // Reutilizamos el modal base
-import { Loader2 } from 'lucide-react'; // Ícono de carga
+import { Loader2, Info } from 'lucide-react'; // Íconos de carga y de información
 
 const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, error, onSave }) => {
     // Inicializamos los estados con números o vacío para números, y con el tipo de moneda
@@ -9,21 +9,35 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
     const [defaultProfitPercentage, setDefaultProfitPercentage] = useState(''); // Se inicializa como string para el input
     const [fromCurrency, setFromCurrency] = useState('USD');
     const [toCurrency, setToCurrency] = useState('VES');
+    // NUEVO: Estado para el umbral de actualización automática
+    const [personalRateThresholdPercentage, setPersonalRateThresholdPercentage] = useState('');
     const [localError, setLocalError] = useState(''); // Errores internos del modal
 
     useEffect(() => {
         if (isOpen && currentExchangeRate) {
-            // Convertimos a string para mostrar en el input type="number"
-            setRate(currentExchangeRate.rate.toString());
-            setDefaultProfitPercentage(currentExchangeRate.defaultProfitPercentage.toString());
-            setFromCurrency(currentExchangeRate.fromCurrency);
-            setToCurrency(currentExchangeRate.toCurrency);
-        } else if (isOpen && !currentExchangeRate) {
-            // Resetear a valores por defecto si no hay tasa configurada
-            setRate(''); // Deja vacío para placeholder
-            setDefaultProfitPercentage('30'); // Default profit como string para input
+            // Si hay una tasa existente, la precargamos
+            const usdVesConversion = currentExchangeRate.conversions?.find(c => c.fromCurrency === 'USD' && c.toCurrency === 'VES');
+            if (usdVesConversion) {
+                setRate(usdVesConversion.rate.toString());
+            } else if (currentExchangeRate.officialRate) { // Fallback a officialRate si existe
+                setRate(currentExchangeRate.officialRate.toString());
+            } else {
+                setRate('');
+            }
+
+            setDefaultProfitPercentage(currentExchangeRate.defaultProfitPercentage?.toString() || '30');
+            setPersonalRateThresholdPercentage(currentExchangeRate.personalRateThresholdPercentage?.toString() || '1'); // Default a 1%
+            // Los campos fromCurrency y toCurrency para la conversión principal son fijos por ahora (USD a VES)
             setFromCurrency('USD');
             setToCurrency('VES');
+
+        } else if (isOpen && !currentExchangeRate) {
+            // Resetear a valores por defecto si no hay tasa configurada
+            setRate('');
+            setDefaultProfitPercentage('30');
+            setFromCurrency('USD');
+            setToCurrency('VES');
+            setPersonalRateThresholdPercentage('1');
         }
         setLocalError(''); // Limpiar errores al abrir/cerrar
     }, [isOpen, currentExchangeRate]);
@@ -33,6 +47,7 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
         // Validación de campos antes de enviar
         const numRate = Number(rate);
         const numProfit = Number(defaultProfitPercentage);
+        const numThreshold = Number(personalRateThresholdPercentage);
 
         if (rate.trim() === '' || isNaN(numRate) || numRate <= 0) {
             setLocalError('La tasa de cambio debe ser un número positivo.');
@@ -42,22 +57,35 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
             setLocalError('El porcentaje de ganancia debe ser un número no negativo.');
             return;
         }
-        if (numProfit > 500) { // Validación frontend adicional para defaultProfitPercentage
+        if (numProfit > 500) {
             setLocalError('El porcentaje de ganancia no puede ser mayor a 500%.');
             return;
         }
+        if (personalRateThresholdPercentage.trim() === '' || isNaN(numThreshold) || numThreshold < 0 || numThreshold > 100) {
+            setLocalError('El umbral de tasa debe ser un número entre 0 y 100.');
+            return;
+        }
+
+        // Construimos el array de conversiones esperado por el backend
+        const conversionsToSend = [
+            {
+                fromCurrency: fromCurrency,
+                toCurrency: toCurrency,
+                rate: numRate,
+            }
+        ];
+        // En este punto, solo estamos enviando la conversión principal (USD-VES o EUR-VES)
+        // La lógica para añadir múltiples conversiones (Euro a Dólar, etc.) será una mejora futura del modal.
 
         const success = await onSave({
-            fromCurrency,
-            toCurrency,
-            rate: numRate, // <-- Convertir a número aquí al enviar
-            defaultProfitPercentage: numProfit // <-- Convertir a número aquí al enviar
+            conversions: conversionsToSend, // <-- ¡AHORA SÍ ENVIAMOS EL ARRAY DE CONVERSIONES!
+            defaultProfitPercentage: numProfit,
+            personalRateThresholdPercentage: numThreshold,
         });
 
         if (success) {
             onClose(); // Cierra el modal si la operación fue exitosa
         } else {
-            // El error ya lo maneja el CurrencyContext y se propaga via 'error' prop
             setLocalError(error || 'Error al guardar la tasa. Inténtalo de nuevo.');
         }
     };
@@ -81,6 +109,7 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
                         onChange={(e) => setFromCurrency(e.target.value)}
                         className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
                     >
+                        <option value="VES">VES - Bolívar</option>
                         <option value="USD">USD - Dólar</option>
                         <option value="EUR">EUR - Euro</option>
                     </select>
@@ -95,6 +124,8 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
                         className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
                     >
                         <option value="VES">VES - Bolívar</option>
+                        <option value="USD">USD - Dólar</option>
+                        <option value="EUR">EUR - Euro</option>
                     </select>
                 </div>
 
@@ -104,11 +135,11 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
                         type="number"
                         id="rate"
                         value={rate}
-                        onChange={(e) => setRate(e.target.value)} // Mantener como string en el estado para el input
+                        onChange={(e) => setRate(e.target.value)}
                         step="0.01"
                         min="0.01"
                         placeholder="Ej. 102.81"
-                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal" // <-- Asegurar text-neutral-light aquí
+                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
                     />
                 </div>
 
@@ -118,12 +149,36 @@ const ExchangeRateModal = ({ isOpen, onClose, currentExchangeRate, loading, erro
                         type="number"
                         id="defaultProfitPercentage"
                         value={defaultProfitPercentage}
-                        onChange={(e) => setDefaultProfitPercentage(e.target.value)} // Mantener como string en el estado para el input
+                        onChange={(e) => setDefaultProfitPercentage(e.target.value)}
                         step="1"
                         min="0"
-                        max="500" // El max HTML, la validación del backend es 500
+                        max="500"
                         placeholder="Ej. 30"
-                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal" // <-- Asegurar text-neutral-light aquí
+                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                    />
+                </div>
+
+                {/* NUEVO CAMPO: Umbral de Tasa Personalizada */}
+                <div className="mb-6">
+                    <label htmlFor="personalRateThresholdPercentage" className="block text-neutral-light text-sm font-bold mb-2">
+                        Umbral de Actualización de Tasa Personalizada (%):
+                        <span className="relative inline-block ml-2 group">
+                            <Info size={16} className="text-action-blue cursor-pointer" />
+                            <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 w-64 p-2 bg-neutral-gray-800 text-xs text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-normal text-center shadow-lg">
+                                Si tu tasa personalizada difiere de la tasa oficial en más de este porcentaje, la aplicación sugerirá una actualización. Ej: 1 para 1%.
+                            </span>
+                        </span>
+                    </label>
+                    <input
+                        type="number"
+                        id="personalRateThresholdPercentage"
+                        value={personalRateThresholdPercentage}
+                        onChange={(e) => setPersonalRateThresholdPercentage(e.target.value)}
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        placeholder="Ej. 1 (para 1%)"
+                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
                     />
                 </div>
 
