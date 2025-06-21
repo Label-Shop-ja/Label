@@ -1,7 +1,7 @@
 // src/components/Inventory/AddEditProductFormLogic.jsx
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import axiosInstance from '../../api/axiosInstance';
-import { useCurrency } from '../../context/CurrencyContext'; // <-- ¡NUEVA LÍNEA!
+import { useCurrency } from '../../context/CurrencyContext';
 import { useDebounce } from '../../hooks/useDebounce'; // Asumo que tienes este hook
 import { useTranslation } from 'react-i18next'; // Asumo que tienes este hook
 import PropTypes from 'prop-types'; // Asumo que tienes PropTypes
@@ -68,7 +68,7 @@ const AddEditProductFormLogic = ({
             .slice(0, 4)
             .join('-');
         const hash = Math.random().toString(36).substring(2, 6).toUpperCase();
-        return `${cleanedName.substring(0, 15)}-${hash}`;
+        return `<span class="math-inline">\{cleanedName\.substring\(0, 15\)\}\-</span>{hash}`;
     }, []);
 
     // --- Función para subir imágenes a Cloudinary (y actualizar estado del producto) ---
@@ -181,7 +181,7 @@ const AddEditProductFormLogic = ({
             calculatedPrice = costInSaleCurrency * (1 + defaultProfit / 100);
             calculatedPercentage = defaultProfit;
         }
-        
+
         setPercentage(calculatedPercentage.toFixed(2));
         setPricePlaceholder(calculatedPrice.toFixed(2));
 
@@ -208,7 +208,7 @@ const AddEditProductFormLogic = ({
         // Validaciones generales
         if ((name === 'name' || name === 'category' || name === 'unitOfMeasure' || name === 'price' || name === 'stock' || name === 'costPrice' || name === 'sku' || name === 'baseCurrency' || name === 'costCurrency' || name === 'saleCurrency' || name === 'displayCurrency') &&
             ((isProductSimple && !isVariantField) || isVariantField)) {
-            
+
             if (name === 'sku' && isNewProduct && !isMainSkuManuallyEdited && (value === '' || value === undefined || value === null)) {
                 error = '';
             } else if (name === 'sku' && value.trim() === '') {
@@ -229,7 +229,7 @@ const AddEditProductFormLogic = ({
                  error = 'La moneda es obligatoria.';
             }
         }
-        
+
         // Validaciones específicas para perecederos
         if (currentFieldData.isPerishable) {
             if (name === 'optimalMaxStock' && (value === '' || isNaN(Number(value)) || Number(value) < 0)) {
@@ -262,7 +262,7 @@ const AddEditProductFormLogic = ({
     useEffect(() => {
         setProductData(prevData => {
             const dataToSet = { ...initialProductData };
-            
+
             // Asegurar que `initialProductData` esté completo para evitar `undefined` o `null`
             Object.keys(defaultNewProductState).forEach(key => { // <-- defaultNewProductState está aquí
                 if (dataToSet[key] === undefined) {
@@ -282,7 +282,7 @@ const AddEditProductFormLogic = ({
                 costCurrency: v.costCurrency || 'USD',
                 saleCurrency: v.costCurrency || 'USD', // ¡Modificación para que saleCurrency de variante se adapte al costo!
             })) : [];
-            
+
             // Si es un producto con variantes, ciertos campos del padre deben ser informativos
             if (dataToSet.variants.length > 0) {
                 dataToSet.stock = 0;
@@ -327,10 +327,8 @@ const AddEditProductFormLogic = ({
                     Number(v.price),
                     v.costCurrency || 'USD',
                     v.saleCurrency || 'USD',
-                    (percentage, pricePlaceholder) => {
-                        initialVariantPercentages[idx] = percentage;
-                        initialVariantPlaceholders[idx] = pricePlaceholder;
-                    }
+                    (percentage) => { initialVariantPercentages[idx] = percentage; },
+                    (pricePlaceholder) => { initialVariantPlaceholders[idx] = pricePlaceholder; }
                 );
             }
         });
@@ -388,7 +386,7 @@ const AddEditProductFormLogic = ({
                     setIsMainSkuManuallyEdited(false);
                 }
             }
-            
+
             // Lógica de imagen URL si el input es imageUrl
             if (name === 'imageUrl') {
                 setImageFile(null);
@@ -421,18 +419,18 @@ const AddEditProductFormLogic = ({
             let profitPercentageInput = name === 'profitPercentage' ? Number(inputValue) : calculatedVariantProfitPercentage[index];
 
             if (name === 'costPrice' || name === 'costCurrency' || name === 'saleCurrency') {
-                calculateProfitAndPricePlaceholder(currentCost, currentPrice, currentCostCurrency, currentSaleCurrency, (percentage, pricePlaceholder) => {
-                    setCalculatedVariantProfitPercentage(prev => ({ ...prev, [index]: percentage }));
-                    setCalculatedVariantPricePlaceholder(prev => ({ ...prev, [index]: pricePlaceholder }));
-                });
+                calculateProfitAndPricePlaceholder(currentCost, currentPrice, currentCostCurrency, currentSaleCurrency,
+                    (percentage) => setCalculatedVariantProfitPercentage(prev => ({ ...prev, [index]: percentage })),
+                    (pricePlaceholder) => setCalculatedVariantPricePlaceholder(prev => ({ ...prev, [index]: pricePlaceholder }))
+                );
                 if (name === 'costCurrency' && (updatedVariant.saleCurrency === updatedVariant.costCurrency || !updatedVariant.saleCurrency)) {
                     updatedVariant.saleCurrency = inputValue;
                 }
             } else if (name === 'price') {
-                calculateProfitAndPricePlaceholder(currentCost, Number(inputValue), currentCostCurrency, currentSaleCurrency, (percentage, pricePlaceholder) => {
-                    setCalculatedVariantProfitPercentage(prev => ({ ...prev, [index]: percentage }));
-                    setCalculatedVariantPricePlaceholder(prev => ({ ...prev, [index]: pricePlaceholder }));
-                });
+                calculateProfitAndPricePlaceholder(currentCost, Number(inputValue), currentCostCurrency, currentSaleCurrency,
+                    (percentage) => setCalculatedVariantProfitPercentage(prev => ({ ...prev, [index]: percentage })),
+                    (pricePlaceholder) => setCalculatedVariantPricePlaceholder(prev => ({ ...prev, [index]: pricePlaceholder }))
+                );
             } else if (name === 'profitPercentage') {
                 if (!isNaN(currentCost) && currentCost > 0) {
                     const costInSaleCurrency = convertPrice(currentCost, currentCostCurrency, currentSaleCurrency);
@@ -468,276 +466,277 @@ const AddEditProductFormLogic = ({
 
         setFormErrors(prev => ({
             ...prev,
-            [`variant-${index}-${name}`]: validateField(name, inputValue, { ...productData, variants: productData.variants.map((v, i) => i === index ? { ...v, [name]: inputValue } : v) }, index)
+            [`variant-<span class="math-inline">\{index\}\-</span>{name}`]: validateField(name, inputValue, { ...productData, variants: productData.variants.map((v, i) => i === index ? { ...v, [name]: inputValue } : v) }, index)
         }));
 
         displayMessage('', '');
     }, [generateSkuFromName, validateField, productData, displayMessage, setFormErrors, calculateProfitAndPricePlaceholder, convertPrice, calculatedVariantProfitPercentage, calculatedVariantPricePlaceholder]);
 
-    // NUEVO: Manejador para el input de tipo 'file' de la imagen principal
-    const handleMainImageFileChange = useCallback(async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setImageFile(file);
-            setImagePreviewUrl(URL.createObjectURL(file));
-            setProductData(prev => ({ ...prev, imageUrl: '' })); // Borrar cualquier URL si se carga un archivo
-            setFormErrors(prev => ({ ...prev, imageUrl: '' }));
-            await uploadImageToCloud(file, false, null); // Sube la imagen automáticamente al seleccionar
-        } else {
-            setImageFile(null);
-            setImagePreviewUrl(productData.imageUrl || ''); // Vuelve a la URL existente si no se selecciona nada
-            setProductData(prev => ({ ...prev, imageUrl: productData.imageUrl || '' }));
-        }
-        displayMessage('', '');
-    }, [productData.imageUrl, displayMessage, uploadImageToCloud, setFormErrors]);
+// NUEVO: Manejador para el input de tipo 'file' de la imagen principal
+const handleMainImageFileChange = useCallback(async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        setImageFile(file);
+        setImagePreviewUrl(URL.createObjectURL(file));
+        setProductData(prev => ({ ...prev, imageUrl: '' })); // Borrar cualquier URL si se carga un archivo
+        setFormErrors(prev => ({ ...prev, imageUrl: '' }));
+        await uploadImageToCloud(file, false, null); // Sube la imagen automáticamente al seleccionar
+    } else {
+        setImageFile(null);
+        setImagePreviewUrl(productData.imageUrl || ''); // Vuelve a la URL existente si no se selecciona nada
+        setProductData(prev => ({ ...prev, imageUrl: productData.imageUrl || '' }));
+    }
+    displayMessage('', '');
+}, [productData.imageUrl, displayMessage, uploadImageToCloud, setFormErrors]);
 
-    // NUEVO: Manejador para el evento onBlur del input de URL de imagen principal
-    const handleMainImageUrlBlur = useCallback(async (e) => {
-        const value = e.target.value;
-        // Solo intenta subir si la URL no está vacía y ha cambiado, y no es una URL de Cloudinary ya
-        if (value && value.trim() !== productData.imageUrl && !value.includes('res.cloudinary.com')) {
-            await uploadImageToCloud(value, false, null); // Sube la URL al perder el foco
-        }
-    }, [productData.imageUrl, uploadImageToCloud]);
-
-
-    // Maneja los cambios cuando se selecciona un archivo de imagen local para una variante
-    const handleVariantImageFileChange = useCallback(async (index, e) => {
-        const file = e.target.files[0];
-        if (file) {
-            await uploadImageToCloud(file, true, index); // `true` para isVariant
-        }
-    }, [uploadImageToCloud]);
+// NUEVO: Manejador para el evento onBlur del input de URL de imagen principal
+const handleMainImageUrlBlur = useCallback(async (e) => {
+    const value = e.target.value;
+    // Solo intenta subir si la URL no está vacía y ha cambiado, y no es una URL de Cloudinary ya
+    if (value && value.trim() !== productData.imageUrl && !value.includes('res.cloudinary.com')) {
+        await uploadImageToCloud(value, false, null); // Sube la URL al perder el foco
+    }
+}, [productData.imageUrl, uploadImageToCloud]);
 
 
-    // Añade una nueva variante al producto actual
-    const handleAddVariant = useCallback(() => {
-        const newVariant = {
-            name: '', sku: '', price: '', costPrice: '', stock: '',
-            unitOfMeasure: 'unidad', imageUrl: '', color: '', size: '', material: '',
-            autoGeneratedVariantSku: '', // Se autogenerará si no se introduce
-            isPerishable: false, reorderThreshold: 0, optimalMaxStock: 0, shelfLifeDays: 0,
-            costCurrency: productData.costCurrency || 'USD', // Hereda la moneda de costo del padre o USD
-            saleCurrency: productData.saleCurrency || 'USD', // Hereda la moneda de venta del padre o USD
-        };
-        setProductData(prev => ({ ...prev, variants: [...prev.variants, newVariant] }));
-    }, [productData.costCurrency, productData.saleCurrency]); // Dependencias para heredar monedas del padre
+// Maneja los cambios cuando se selecciona un archivo de imagen local para una variante
+const handleVariantImageFileChange = useCallback(async (index, e) => {
+    const file = e.target.files[0];
+    if (file) {
+        await uploadImageToCloud(file, true, index); // `true` para isVariant
+    }
+}, [uploadImageToCloud]);
 
-    // Función para eliminar una variante por su índice.
-    const handleRemoveVariant = useCallback((indexToRemove) => {
-        setFormErrors(prevErrors => {
-            const newErrors = { ...prevErrors };
-            Object.keys(newErrors).forEach(key => {
-                if (key.startsWith(`variant-${indexToRemove}-`)) {
-                    delete newErrors[key];
-                }
-            });
-            // Reajustar índices de errores si se elimina una variante intermedia
-            const adjustedErrors = {};
-            for (const key in newErrors) {
-                const parts = key.split('-');
-                if (parts[0] === 'variant' && parseInt(parts[1]) > indexToRemove) {
-                    const newIndex = parseInt(parts[1]) - 1;
-                    adjustedErrors[`variant-${newIndex}-${parts[2]}`] = newErrors[key];
-                } else {
-                    adjustedErrors[key] = newErrors[key];
-                }
+
+// Añade una nueva variante al producto actual
+const handleAddVariant = useCallback(() => {
+    const newVariant = {
+        name: '', sku: '', price: '', costPrice: '', stock: '',
+        unitOfMeasure: 'unidad', imageUrl: '', color: '', size: '', material: '',
+        autoGeneratedVariantSku: '', // Se autogenerará si no se introduce
+        isPerishable: false, reorderThreshold: 0, optimalMaxStock: 0, shelfLifeDays: 0,
+        costCurrency: productData.costCurrency || 'USD', // Hereda la moneda de costo del padre o USD
+        saleCurrency: productData.saleCurrency || 'USD', // Hereda la moneda de venta del padre o USD
+    };
+    setProductData(prev => ({ ...prev, variants: [...prev.variants, newVariant] }));
+}, [productData.costCurrency, productData.saleCurrency]); // Dependencias para heredar monedas del padre
+
+// Función para eliminar una variante por su índice.
+const handleRemoveVariant = useCallback((indexToRemove) => {
+    setFormErrors(prevErrors => {
+        const newErrors = { ...prevErrors };
+        Object.keys(newErrors).forEach(key => {
+            if (key.startsWith(`variant-${indexToRemove}-`)) {
+                delete newErrors[key];
             }
-            return adjustedErrors;
         });
+        // Reajustar índices de errores si se elimina una variante intermedia
+        const adjustedErrors = {};
+        for (const key in newErrors) {
+            const parts = key.split('-');
+            if (parts[0] === 'variant' && parseInt(parts[1]) > indexToRemove) {
+                const newIndex = parseInt(parts[1]) - 1;
+                adjustedErrors[`variant-<span class="math-inline">\{newIndex\}\-</span>{parts[2]}`] = newErrors[key];
+            } else {
+                adjustedErrors[key] = newErrors[key];
+            }
+        }
+        return adjustedErrors;
+    });
 
-        setProductData(prev => ({
-            ...prev,
-            variants: prev.variants.filter((_, index) => index !== indexToRemove)
-        }));
-    }, [setFormErrors]);
+    setProductData(prev => ({
+        ...prev,
+        variants: prev.variants.filter((_, index) => index !== indexToRemove)
+    }));
+}, [setFormErrors]);
 
-    // Función para validar todo el formulario de producto (producto principal y todas las variantes) antes del envío.
-    const validateForm = useCallback((currentProductData) => {
-        let errors = {};
-        let isValid = true;
+// Función para validar todo el formulario de producto (producto principal y todas las variantes) antes del envío.
+const validateForm = useCallback((currentProductData) => {
+    let errors = {};
+    let isValid = true;
 
-        // Determina el SKU final para el producto principal basado en la entrada del usuario o auto-generación
-        const finalMainSku = isMainSkuManuallyEdited ? currentProductData.sku : (currentProductData.sku || autoGeneratedSku);
+    // Determina el SKU final para el producto principal basado en la entrada del usuario o auto-generación
+    const finalMainSku = isMainSkuManuallyEdited ? currentProductData.sku : (currentProductData.sku || autoGeneratedSku);
 
 
-        // Validaciones del producto principal
-        const fieldsToValidate = ['name', 'category', 'sku', 'price', 'costPrice', 'stock', 'unitOfMeasure', 'reorderThreshold', 'baseCurrency', 'costCurrency', 'saleCurrency', 'displayCurrency'];
-        if (currentProductData.isPerishable) {
-            fieldsToValidate.push('optimalMaxStock', 'shelfLifeDays');
+    // Validaciones del producto principal
+    const fieldsToValidate = ['name', 'category', 'sku', 'price', 'costPrice', 'stock', 'unitOfMeasure', 'reorderThreshold', 'baseCurrency', 'costCurrency', 'saleCurrency', 'displayCurrency'];
+    if (currentProductData.isPerishable) {
+        fieldsToValidate.push('optimalMaxStock', 'shelfLifeDays');
+    }
+
+    fieldsToValidate.forEach(fieldName => {
+        let value = currentProductData[fieldName];
+        // Para SKU, usar el SKU final calculado
+        if (fieldName === 'sku') value = finalMainSku;
+
+        const errorMsg = validateField(fieldName, value, currentProductData, null); // Pasa null para variantIndex para producto principal
+        if (errorMsg) {
+            errors[fieldName] = errorMsg;
+            isValid = false;
+        }
+    });
+
+    // Validaciones de variantes
+    currentProductData.variants.forEach((variant, index) => {
+        const variantPrefix = `variant-${index}-`;
+        const finalVariantSku = variant.sku.trim() === '' ? variant.autoGeneratedVariantSku : variant.sku;
+
+        const variantFieldsToValidate = ['name', 'sku', 'price', 'costPrice', 'stock', 'unitOfMeasure', 'reorderThreshold', 'costCurrency', 'saleCurrency'];
+        if (variant.isPerishable) {
+            variantFieldsToValidate.push('optimalMaxStock', 'shelfLifeDays');
         }
 
-        fieldsToValidate.forEach(fieldName => {
-            let value = currentProductData[fieldName];
-            // Para SKU, usar el SKU final calculado
-            if (fieldName === 'sku') value = finalMainSku;
+        variantFieldsToValidate.forEach(fieldName => {
+            let value = variant[fieldName];
+            if (fieldName === 'sku') value = finalVariantSku;
 
-            const errorMsg = validateField(fieldName, value, currentProductData, null); // Pasa null para variantIndex para producto principal
+            const errorMsg = validateField(fieldName, value, currentProductData, index);
             if (errorMsg) {
-                errors[fieldName] = errorMsg;
+                errors[`<span class="math-inline">\{variantPrefix\}</span>{fieldName}`] = errorMsg;
                 isValid = false;
             }
         });
+    });
 
-        // Validaciones de variantes
-        currentProductData.variants.forEach((variant, index) => {
-            const variantPrefix = `variant-${index}-`;
-            const finalVariantSku = variant.sku.trim() === '' ? variant.autoGeneratedVariantSku : variant.sku;
-
-            const variantFieldsToValidate = ['name', 'sku', 'price', 'costPrice', 'stock', 'unitOfMeasure', 'reorderThreshold', 'costCurrency', 'saleCurrency'];
-            if (variant.isPerishable) {
-                variantFieldsToValidate.push('optimalMaxStock', 'shelfLifeDays');
-            }
-
-            variantFieldsToValidate.forEach(fieldName => {
-                let value = variant[fieldName];
-                if (fieldName === 'sku') value = finalVariantSku;
-
-                const errorMsg = validateField(fieldName, value, currentProductData, index);
-                if (errorMsg) {
-                    errors[`${variantPrefix}${fieldName}`] = errorMsg;
-                    isValid = false;
-                }
-            });
-        });
-
-        setFormErrors(errors);
-        return isValid;
-    }, [isNewProduct, autoGeneratedSku, validateField, setFormErrors, isMainSkuManuallyEdited]);
+    setFormErrors(errors);
+    return isValid;
+}, [isNewProduct, autoGeneratedSku, validateField, setFormErrors, isMainSkuManuallyEdited]);
 
 
-    const handleSubmit = useCallback(async (e) => {
-        e.preventDefault();
-        const isValid = validateForm(productData);
-        if (!isValid) {
-            displayMessage('Por favor, corrige los errores en el formulario.', 'error');
-            return;
-        }
+const handleSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    const isValid = validateForm(productData);
+    if (!isValid) {
+        displayMessage('Por favor, corrige los errores en el formulario.', 'error');
+        return;
+    }
 
-        // Antes de guardar, asegurarse de que el SKU principal final sea el autogenerado si no fue editado
-        const productDataToSend = { ...productData };
-        if (isNewProduct && !isMainSkuManuallyEdited && productData.sku.trim() === '') {
-            productDataToSend.sku = autoGeneratedSku;
-        }
-
-
-        await onProductSave(productDataToSend);
-    }, [onProductSave, productData, validateForm, displayMessage, isNewProduct, isMainSkuManuallyEdited, autoGeneratedSku]);
+    // Antes de guardar, asegurarse de que el SKU principal final sea el autogenerado si no fue editado
+    const productDataToSend = { ...productData };
+    if (isNewProduct && !isMainSkuManuallyEdited && productData.sku.trim() === '') {
+        productDataToSend.sku = autoGeneratedSku;
+    }
 
 
-    // Maneja la selección de un producto desde las sugerencias del catálogo global.
-    const handleSelectGlobalProduct = useCallback((suggestedProduct) => {
-        setProductData(prev => {
-            const newProductData = {
-                ...prev, // Mantén otros campos que no se sobrescriben
-                name: suggestedProduct.name,
-                description: suggestedProduct.description || '',
-                category: suggestedProduct.category || '',
-                sku: suggestedProduct.sku || '',
-                unitOfMeasure: suggestedProduct.unitOfMeasure || 'unidad',
-                brand: suggestedProduct.brand || '',
-                supplier: suggestedProduct.supplier || '',
-                imageUrl: suggestedProduct.imageUrl || '',
-                color: suggestedProduct.color || '',
-                size: suggestedProduct.size || '',
-                material: suggestedProduct.material || '',
-                isPerishable: suggestedProduct.isPerishable || false,
-                reorderThreshold: suggestedProduct.reorderThreshold || 0,
-                optimalMaxStock: suggestedProduct.optimalMaxStock || 0,
-                shelfLifeDays: suggestedProduct.shelfLifeDays || 0,
-                
-                // Nuevos campos de moneda
-                baseCurrency: suggestedProduct.baseCurrency || 'USD',
-                costCurrency: suggestedProduct.costCurrency || 'USD',
-                saleCurrency: suggestedProduct.saleCurrency || 'USD',
-                displayCurrency: suggestedProduct.displayCurrency || suggestedProduct.saleCurrency || 'USD',
-
-                // Porcentaje y precio placeholder (se recalcularán en el useEffect)
-                price: suggestedProduct.price || '', // Mantener el precio del suggestedProduct
-                costPrice: suggestedProduct.costPrice || '', // Mantener el costo del suggestedProduct
-
-                variants: suggestedProduct.variants ? suggestedProduct.variants.map(v => ({
-                    ...v,
-                    autoGeneratedVariantSku: v.sku && v.sku.trim() !== '' ? '' : generateSkuFromName(v.name || ''),
-                    isPerishable: v.isPerishable || false,
-                    reorderThreshold: v.reorderThreshold || 0,
-                    optimalMaxStock: v.optimalMaxStock || 0,
-                    shelfLifeDays: v.shelfLifeDays || 0,
-                    costCurrency: v.costCurrency || 'USD',
-                    saleCurrency: v.costCurrency || 'USD', // Asegurarse que saleCurrency se adapte al costo de la variante
-                })) : [],
-            };
-
-            return newProductData;
-        });
-
-        // Actualizar estados adicionales
-        setIsEditing(false); // Al seleccionar un producto global, se asume que se está creando uno nuevo basado en él
-        setIsNewProduct(true); // Se fuerza a modo "nuevo producto" al seleccionar uno global
-        setImageFile(null);
-        setImagePreviewUrl(suggestedProduct.imageUrl || '');
-        setGlobalProductSuggestions([]);
-        setShowGlobalSuggestions(false);
-        setNoGlobalSuggestionsFound(false);
-        setAutoGeneratedSku(suggestedProduct.name ? generateSkuFromName(suggestedProduct.name) : '');
-        setIsMainSkuManuallyEdited(suggestedProduct.sku?.trim() !== '');
-        setFormErrors({});
-        displayMessage('Producto global cargado. Puedes modificarlo y guardarlo como nuevo.', 'info');
-    }, [generateSkuFromName, displayMessage]);
+    await onProductSave(productDataToSend);
+}, [onProductSave, productData, validateForm, displayMessage, isNewProduct, isMainSkuManuallyEdited, autoGeneratedSku]);
 
 
-     return (
-        <Suspense fallback={<div>Cargando formulario...</div>}>
-            <AddEditProductFormUI
-                isNewProduct={isNewProduct}
-                productData={productData}
-                onProductDataChange={setProductData}
-                onSubmit={handleSubmit}
-                loading={loading}
-                displayMessage={displayMessage}
-                autoGeneratedSku={autoGeneratedSku}
-                isMainSkuManuallyEdited={isMainSkuManuallyEdited}
-                setIsMainSkuManuallyEdited={setIsMainSkuManuallyEdited}
-                imageFile={imageFile}
-                setImageFile={setImageFile}
-                imagePreviewUrl={imagePreviewUrl}
-                setImagePreviewUrl={setImagePreviewUrl}
-                isUploadingMainImage={isUploadingMainImage}
-                variantImageUploading={variantImageUploading}
-                setVariantImageUploading={setVariantImageUploading}
-                uploadImageToCloud={uploadImageToCloud}
-                unitOfMeasureOptions={unitOfMeasureOptions}
-                formErrors={formErrors}
-                setFormErrors={setFormErrors}
-                generateSkuFromName={generateSkuFromName}
-                globalProductSuggestions={globalProductSuggestions}
-                showGlobalSuggestions={showGlobalSuggestions}
-                setShowGlobalSuggestions={setShowGlobalSuggestions}
-                setNoGlobalSuggestionsFound={setNoGlobalSuggestionsFound}
-                noGlobalSuggestionsFound={noGlobalSuggestionsFound}
-                handleSelectGlobalProduct={handleSelectGlobalProduct}
-                debounceTimeoutRef={debounceTimeoutRef}
-                setShowAdvancedOptions={setShowAdvancedOptions}
-                showAdvancedOptions={showAdvancedOptions}
-                // Props con los handlers completos para la UI
-                handleAddVariant={handleAddVariant}
-                handleRemoveVariant={handleRemoveVariant}
-                handleProductInputChange={handleProductInputChange}
-                handleVariantInputChange={handleVariantInputChange}
-                handleMainImageFileChange={handleMainImageFileChange}
-                handleMainImageUrlBlur={handleMainImageUrlBlur}
-                handleVariantImageFileChange={handleVariantImageFileChange}
-                // NUEVAS PROPS PARA EL PORCENTAJE DINÁMICO
-                calculatedProductProfitPercentage={calculatedProductProfitPercentage}
-                calculatedProductPricePlaceholder={calculatedProductPricePlaceholder}
-                calculatedVariantProfitPercentage={calculatedVariantProfitPercentage}
-                calculatedVariantPricePlaceholder={calculatedVariantPricePlaceholder}
-                // ¡ESTAS FALTABAN!
-                formatPrice={formatPrice} // <-- ¡AÑADIDA!
-                convertPrice={convertPrice} // <-- ¡AÑADIDA!
-            />
-        </Suspense>
-    );
+// Maneja la selección de un producto desde las sugerencias del catálogo global.
+const handleSelectGlobalProduct = useCallback((suggestedProduct) => {
+    setProductData(prev => {
+        const newProductData = {
+            ...prev, // Mantén otros campos que no se sobrescriben
+            name: suggestedProduct.name,
+            description: suggestedProduct.description || '',
+            category: suggestedProduct.category || '',
+            sku: suggestedProduct.sku || '',
+            unitOfMeasure: suggestedProduct.unitOfMeasure || 'unidad',
+            brand: suggestedProduct.brand || '',
+            supplier: suggestedProduct.supplier || '',
+            imageUrl: suggestedProduct.imageUrl || '',
+            color: suggestedProduct.color || '',
+            size: suggestedProduct.size || '',
+            material: suggestedProduct.material || '',
+            isPerishable: suggestedProduct.isPerishable || false,
+            reorderThreshold: suggestedProduct.reorderThreshold || 0,
+            optimalMaxStock: suggestedProduct.optimalMaxStock || 0,
+            shelfLifeDays: suggestedProduct.shelfLifeDays || 0,
+
+            // Nuevos campos de moneda
+            baseCurrency: suggestedProduct.baseCurrency || 'USD',
+            costCurrency: suggestedProduct.costCurrency || 'USD',
+            saleCurrency: suggestedProduct.saleCurrency || 'USD',
+            displayCurrency: suggestedProduct.displayCurrency || suggestedProduct.saleCurrency || 'USD',
+
+            // Porcentaje y precio placeholder (se recalcularán en el useEffect)
+            price: suggestedProduct.price || '', // Mantener el precio del suggestedProduct
+            costPrice: suggestedProduct.costPrice || '', // Mantener el costo del suggestedProduct
+
+            variants: suggestedProduct.variants ? suggestedProduct.variants.map(v => ({
+                ...v,
+                autoGeneratedVariantSku: v.sku && v.sku.trim() !== '' ? '' : generateSkuFromName(v.name || ''),
+                isPerishable: v.isPerishable || false,
+                reorderThreshold: v.reorderThreshold || 0,
+                optimalMaxStock: v.optimalMaxStock || 0,
+                shelfLifeDays: v.shelfLifeDays || 0,
+                costCurrency: v.costCurrency || 'USD',
+                saleCurrency: v.costCurrency || 'USD', // Asegurarse que saleCurrency se adapte al costo de la variante
+            })) : [],
+        };
+
+        return newProductData;
+    });
+
+    // Actualizar estados adicionales
+    setIsEditing(false); // Al seleccionar un producto global, se asume que se está creando uno nuevo basado en él
+    setIsNewProduct(true); // Se fuerza a modo "nuevo producto" al seleccionar uno global
+    setImageFile(null);
+    setImagePreviewUrl(suggestedProduct.imageUrl || '');
+    setGlobalProductSuggestions([]);
+    setShowGlobalSuggestions(false);
+    setNoGlobalSuggestionsFound(false);
+    setAutoGeneratedSku(suggestedProduct.name ? generateSkuFromName(suggestedProduct.name) : '');
+    setIsMainSkuManuallyEdited(suggestedProduct.sku?.trim() !== '');
+    setFormErrors({});
+    displayMessage('Producto global cargado. Puedes modificarlo y guardarlo como nuevo.', 'info');
+}, [generateSkuFromName, displayMessage]);
+
+
+ return (
+    <Suspense fallback={<div>Cargando formulario...</div>}>
+        <AddEditProductFormUI
+            isNewProduct={isNewProduct}
+            productData={productData}
+            onProductDataChange={setProductData}
+            onSubmit={handleSubmit}
+            loading={loading}
+            displayMessage={displayMessage}
+            autoGeneratedSku={autoGeneratedSku}
+            isMainSkuManuallyEdited={isMainSkuManuallyEdited}
+            setIsMainSkuManuallyEdited={setIsMainSkuManuallyEdited}
+            imageFile={imageFile}
+            setImageFile={setImageFile}
+            imagePreviewUrl={imagePreviewUrl}
+            setImagePreviewUrl={setImagePreviewUrl}
+            isUploadingMainImage={isUploadingMainImage}
+            variantImageUploading={variantImageUploading}
+            setVariantImageUploading={setVariantImageUploading}
+            uploadImageToCloud={uploadImageToCloud}
+            unitOfMeasureOptions={unitOfMeasureOptions}
+            formErrors={formErrors}
+            setFormErrors={setFormErrors}
+            generateSkuFromName={generateSkuFromName}
+            globalProductSuggestions={globalProductSuggestions}
+            showGlobalSuggestions={showGlobalSuggestions}
+            setShowGlobalSuggestions={setShowGlobalSuggestions}
+            setNoGlobalSuggestionsFound={setNoGlobalSuggestionsFound}
+            noGlobalSuggestionsFound={noGlobalSuggestionsFound}
+            handleSelectGlobalProduct={handleSelectGlobalProduct}
+            debounceTimeoutRef={debounceTimeoutRef}
+            setShowAdvancedOptions={setShowAdvancedOptions}
+            showAdvancedOptions={showAdvancedOptions}
+            // Props con los handlers completos para la UI
+            handleAddVariant={handleAddVariant}
+            handleRemoveVariant={handleRemoveVariant}
+            handleProductInputChange={handleProductInputChange}
+            handleVariantInputChange={handleVariantInputChange}
+            handleMainImageFileChange={handleMainImageFileChange}
+            handleMainImageUrlBlur={handleMainImageUrlBlur}
+            handleVariantImageFileChange={handleVariantImageFileChange}
+            // NUEVAS PROPS PARA EL PORCENTAJE DINÁMICO
+            calculatedProductProfitPercentage={calculatedProductProfitPercentage}
+            calculatedProductPricePlaceholder={calculatedProductPricePlaceholder}
+            calculatedVariantProfitPercentage={calculatedVariantProfitPercentage}
+            calculatedVariantPricePlaceholder={calculatedVariantPricePlaceholder}
+            // ¡ESTAS FALTABAN!
+            formatPrice={formatPrice} // <-- ¡AÑADIDA!
+            convertPrice={convertPrice} // <-- ¡AÑADIDA!
+            exchangeRate={exchangeRate} // <-- ¡AÑADIDA!
+        />
+    </Suspense>
+);
 };
 
 export default AddEditProductFormLogic;

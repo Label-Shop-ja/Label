@@ -36,6 +36,7 @@ const AddEditProductForm = ({
     debounceTimeoutRef,
     setShowAdvancedOptions,
     showAdvancedOptions,
+    exchangeRate, // <-- AGREGA ESTA LÍNEA
     // Funciones pasadas desde AddEditProductFormLogic (Ahora son callbacks directos)
     handleAddVariant,
     handleRemoveVariant,

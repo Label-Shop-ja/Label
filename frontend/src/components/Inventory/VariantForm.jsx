@@ -20,7 +20,6 @@ const VariantForm = ({
     calculatedVariantProfitPercentage,
     calculatedVariantPricePlaceholder,
     // Handler para la imagen de URL (si lo tienes separado o si lo integraste en handleVariantInputChange)
-    handleImageUrlBlur,
 }) => {
     // Función auxiliar para subir imagen de variante al perder el foco en la URL
     const handleImageUrlBlur = useCallback(async (e) => {
