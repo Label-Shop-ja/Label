@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext'; // Para pasar el usuario al Header
+import ErrorBoundary from './ErrorBoundary'; // <-- NUEVO
 
 /**
  * Componente de Layout para el Dashboard.
@@ -22,10 +23,11 @@ function DashboardLayout() {
                 {/* El Sidebar es común para todas las rutas del dashboard */}
                 <Sidebar />
                 {/* El área principal de contenido donde se renderizarán las rutas hijas */}
-                {/* Cambiado el fondo a un gris más oscuro y sutil que armonice */}
                 <main className="flex-1 p-8 bg-gray-900 overflow-y-auto custom-scrollbar">
-                    {/* Outlet renderizará el componente de la ruta anidada actual (ej. DashboardHome, InventoryPage) */}
-                    <Outlet />
+                    {/* ErrorBoundary SOLO para el contenido principal */}
+                    <ErrorBoundary>
+                        <Outlet />
+                    </ErrorBoundary>
                 </main>
             </div>
         </div>

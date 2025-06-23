@@ -1,7 +1,8 @@
 // C:\Proyectos\Label\frontend\src\components\PosPage.jsx
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import axiosInstance from '../api/axiosInstance';
-import { useCurrency } from '../context/CurrencyContext'; // <-- ¡NUEVA IMPORTACIÓN!
+import { useCurrency } from '../context/CurrencyContext';
+import ErrorBoundary from './ErrorBoundary';
 
 // Importaciones perezosas de los nuevos componentes
 const ProductSearchPanel = lazy(() => import('./Pos/ProductSearchPanel'));
@@ -260,13 +261,13 @@ const PosPage = () => {
     }
   };
 
-  return (
-    <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen flex flex-col lg:flex-row gap-6">
-      {/* Columna de Búsqueda de Productos y Resultados */}
-      <div className="lg:w-2/3 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col">
-        <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Punto de Venta (POS)</h2>
+  // Loader global para carga inicial de productos
+  const isLoadingGlobal = loading || loadingCurrency;
 
-        {/* Mensajes de error y éxito */}
+  return (
+    <ErrorBoundary>
+      <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen flex flex-col lg:flex-row gap-6">
+        {/* Mensaje de error destacado */}
         {error && (
           <div className="bg-red-700 bg-opacity-30 border border-red-500 text-red-300 px-4 py-3 rounded relative mb-6" role="alert">
             <strong className="font-bold">¡Error!</strong>
@@ -280,90 +281,99 @@ const PosPage = () => {
           </div>
         )}
         {currencyError && (
-            <div className="bg-orange-700 bg-opacity-30 border border-orange-500 text-orange-300 px-4 py-3 rounded relative mb-6" role="alert">
-                <strong className="font-bold">¡Alerta de Moneda!</strong>
-                <span className="block sm:inline ml-2">{currencyError} Si tienes un perfil nuevo, configura la tasa del día en Ajustes.</span>
+          <div className="bg-orange-700 bg-opacity-30 border border-orange-500 text-orange-300 px-4 py-3 rounded relative mb-6" role="alert">
+            <strong className="font-bold">¡Alerta de Moneda!</strong>
+            <span className="block sm:inline ml-2">{currencyError} Si tienes un perfil nuevo, configura la tasa del día en Ajustes.</span>
+          </div>
+        )}
+
+        {/* Loader global */}
+        {isLoadingGlobal ? (
+          <div className="w-full flex justify-center items-center h-64">
+            <span className="animate-spin text-action-blue text-3xl">Cargando...</span>
+          </div>
+        ) : (
+          <>
+            {/* Columna de Búsqueda de Productos y Resultados */}
+            <div className="lg:w-2/3 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col">
+              <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Punto de Venta (POS)</h2>
+              <Suspense fallback={<div className="h-48 bg-neutral-gray-700 rounded-lg animate-pulse"></div>}>
+                <ProductSearchPanel
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                  searchResults={searchResults}
+                  products={products}
+                  loading={loading}
+                  addProductToSale={addProductToSale}
+                  searchInputRef={searchInputRef}
+                  formatPrice={formatPrice}
+                  convertPrice={convertPrice}
+                  exchangeRate={exchangeRate}
+                />
+              </Suspense>
             </div>
-        )}
 
-        {/* Componente de Búsqueda de Productos */}
-        <Suspense fallback={<div className="h-48 bg-neutral-gray-700 rounded-lg animate-pulse"></div>}>
-          <ProductSearchPanel
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            searchResults={searchResults}
-            products={products}
-            loading={loading}
-            addProductToSale={addProductToSale}
-            searchInputRef={searchInputRef}
-            formatPrice={formatPrice} // Pasar la función de formateo
-            convertPrice={convertPrice} // Pasar la función de conversión
-            exchangeRate={exchangeRate} // Pasar la tasa de cambio
-          />
-        </Suspense>
+            {/* Columna del Carrito de Venta y Pago */}
+            <div className="lg:w-1/3 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col">
+              <Suspense fallback={<div className="h-48 bg-neutral-gray-700 rounded-lg animate-pulse mb-6"></div>}>
+                <PaymentSection
+                  totalAmount={totalAmount}
+                  paymentMethod={paymentMethod}
+                  setPaymentMethod={setPaymentMethod}
+                  customerName={customerName}
+                  setCustomerName={setCustomerName}
+                  handleProcessSale={handleProcessSale}
+                  loading={loading}
+                  saleItemsLength={saleItems.length}
+                  formatPrice={formatPrice}
+                  convertPrice={convertPrice}
+                  exchangeRate={exchangeRate}
+                />
+              </Suspense>
+
+              <h3 className="text-3xl font-semibold text-neutral-light my-6 border-b border-neutral-gray-200 pb-3">Carrito</h3>
+              <Suspense fallback={<div className="flex-1 overflow-y-auto pr-2 h-64 bg-neutral-gray-700 rounded-lg animate-pulse"></div>}>
+                <SaleCartPanel
+                  saleItems={saleItems}
+                  adjustQuantity={adjustQuantity}
+                  removeItemFromSale={removeItemFromSale}
+                  formatPrice={formatPrice}
+                  convertPrice={convertPrice}
+                  exchangeRate={exchangeRate}
+                />
+              </Suspense>
+            </div>
+
+            {/* Modales para selección de variante y peso digital */}
+            <Suspense fallback={<div>Cargando modales...</div>}>
+              {showVariantModal && selectedProductForVariant && (
+                <VariantSelectModal
+                  isOpen={showVariantModal}
+                  onClose={() => setShowVariantModal(false)}
+                  product={selectedProductForVariant}
+                  onSelectVariant={(selectedVariant) => addProductToSale(selectedProductForVariant, selectedVariant)}
+                  formatPrice={formatPrice}
+                  convertPrice={convertPrice}
+                  exchangeRate={exchangeRate}
+                />
+              )}
+              {showWeightModal && selectedProductForWeight && (
+                <WeightInputModal
+                  isOpen={showWeightModal}
+                  onClose={() => setShowWeightModal(false)}
+                  product={selectedProductForWeight}
+                  onMeasureAndAdd={(measuredQuantity) => addProductToSale(selectedProductForWeight, null, measuredQuantity)}
+                  formatPrice={formatPrice}
+                  convertPrice={convertPrice}
+                  exchangeRate={exchangeRate}
+                  loading={loading}
+                />
+              )}
+            </Suspense>
+          </>
+        )}
       </div>
-
-      {/* Columna del Carrito de Venta y Pago */}
-      <div className="lg:w-1/3 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col">
-        {/* Aquí va el nuevo componente PaymentSection - Parte Superior Fija */}
-        <Suspense fallback={<div className="h-48 bg-neutral-gray-700 rounded-lg animate-pulse mb-6"></div>}>
-            <PaymentSection
-                totalAmount={totalAmount}
-                paymentMethod={paymentMethod}
-                setPaymentMethod={setPaymentMethod}
-                customerName={customerName}
-                setCustomerName={setCustomerName}
-                handleProcessSale={handleProcessSale}
-                loading={loading}
-                saleItemsLength={saleItems.length}
-                formatPrice={formatPrice}
-                convertPrice={convertPrice}
-                exchangeRate={exchangeRate}
-            />
-        </Suspense>
-
-        <h3 className="text-3xl font-semibold text-neutral-light my-6 border-b border-neutral-gray-200 pb-3">Carrito</h3>
-
-        {/* Aquí va el nuevo componente SaleCartPanel - Parte Central Desplazable */}
-        <Suspense fallback={<div className="flex-1 overflow-y-auto pr-2 h-64 bg-neutral-gray-700 rounded-lg animate-pulse"></div>}>
-            <SaleCartPanel
-                saleItems={saleItems}
-                adjustQuantity={adjustQuantity}
-                removeItemFromSale={removeItemFromSale}
-                formatPrice={formatPrice}
-                convertPrice={convertPrice}
-                exchangeRate={exchangeRate}
-            />
-        </Suspense>
-      </div>
-
-      {/* Modales para selección de variante y peso digital */}
-      <Suspense fallback={<div></div>}>
-        {showVariantModal && selectedProductForVariant && (
-          <VariantSelectModal
-            isOpen={showVariantModal}
-            onClose={() => setShowVariantModal(false)}
-            product={selectedProductForVariant}
-            onSelectVariant={(selectedVariant) => addProductToSale(selectedProductForVariant, selectedVariant)}
-            formatPrice={formatPrice}
-            convertPrice={convertPrice}
-            exchangeRate={exchangeRate}
-          />
-        )}
-        {showWeightModal && selectedProductForWeight && (
-          <WeightInputModal
-            isOpen={showWeightModal}
-            onClose={() => setShowWeightModal(false)}
-            product={selectedProductForWeight}
-            onMeasureAndAdd={(measuredQuantity) => addProductToSale(selectedProductForWeight, null, measuredQuantity)}
-            formatPrice={formatPrice}
-            convertPrice={convertPrice}
-            exchangeRate={exchangeRate}
-            loading={loading} //* <-- ¡IMPORTANTE: Pasar la prop 'loading'! */}
-          />
-        )}
-      </Suspense>
-    </div>
+    </ErrorBoundary>
   );
 };
 

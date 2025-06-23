@@ -18,6 +18,7 @@ const statsRoutes = require('./routes/statsRoutes');
 const globalProductRoutes = require('./routes/globalProductRoutes');
 const uploadRoutes = require('./routes/uploadRoutes'); // ¡Nueva importación para la subida de imágenes!
 const exchangeRateRoutes = require('./routes/exchangeRateRoutes'); // <-- ¡NUEVA LÍNEA!
+const customExchangeRateRoutes = require('./routes/customExchangeRateRoutes');
 
 console.log('Valor de MONGO_URI en server.js:', process.env.MONGO_URI.magenta); // Usando colors
 
@@ -57,6 +58,8 @@ console.log('Cargando rutas de subida de imágenes...'); // Nuevo log para la nu
 app.use('/api/upload', uploadRoutes); // ¡Nueva ruta para la subida de imágenes!
 console.log('Cargando rutas de Tasa de Cambio...'); // Nuevo log para la nueva ruta Tasa de Cambio
 app.use('/api/exchangeRate', exchangeRateRoutes); // <-- ¡NUEVA LÍNEA!
+app.use('/api/custom-rates', customExchangeRateRoutes); // ¡NUEVA RUTA!
+// Middleware para servir archivos estáticos (útil en producción)
 
 // Middleware de manejo de errores personalizado - DEBE IR AL FINAL DE LAS RUTAS
 app.use(errorHandler);

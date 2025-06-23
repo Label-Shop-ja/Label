@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }) => {
   const register = useCallback(async (userData) => {
     setLoading(true);
     try {
-      const response = await axiosInstance.post('/users/register', userData);
+      const response = await axiosInstance.post('/auth/register', userData);
       localStorage.setItem('user', JSON.stringify(response.data)); // Almacena el objeto 'user' completo
 
       const { token: _, ...userDetails } = response.data;

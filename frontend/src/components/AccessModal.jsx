@@ -180,26 +180,24 @@ function AccessModal({ onClose }) {
 
                     {/* Panel Izquierdo: Carrusel de Texto (MOVido desde la derecha) */}
                     <div className="lg:w-1/2 w-full p-8 md:p-12 flex flex-col justify-between items-center text-center bg-black bg-opacity-70 relative z-10">
-                        <div className="relative w-full h-full flex flex-col justify-center items-center overflow-hidden"> {/* Añadido overflow-hidden para el carrusel vertical */}
-                            <AnimatePresence mode="wait"> {/* AnimatePresence para animaciones de salida */}
-                                {carouselContent.map((slide, index) => (
-                                    <motion.div
-                                        key={index}
-                                        initial="hidden"
-                                        animate={index === currentSlide ? "visible" : "hidden"}
-                                        exit="exit" // Se activa la variante de salida
-                                        variants={carouselSlideVariants} // Usa las variantes de animación vertical
-                                        transition={{ duration: 0.8, ease: "easeOut" }}
-                                        className={`absolute w-full`} // Mantener absolute w-full para superposición
-                                    >
-                                        <h2 className="text-2xl md:text-3xl font-bold mb-4 text-copper-rose-accent font-['Cinzel']">
-                                            {slide.title}
-                                        </h2>
-                                        <p className="text-lg md:text-xl text-neutral-light">
-                                            {slide.description}
-                                        </p>
-                                    </motion.div>
-                                ))}
+                        <div className="relative w-full h-full flex flex-col justify-center items-center overflow-hidden">
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={currentSlide}
+                                    initial="hidden"
+                                    animate="visible"
+                                    exit="exit"
+                                    variants={carouselSlideVariants}
+                                    transition={{ duration: 0.8, ease: "easeOut" }}
+                                    className="absolute w-full"
+                                >
+                                    <h2 className="text-2xl md:text-3xl font-bold mb-4 text-copper-rose-accent font-['Cinzel']">
+                                        {carouselContent[currentSlide].title}
+                                    </h2>
+                                    <p className="text-lg md:text-xl text-neutral-light">
+                                        {carouselContent[currentSlide].description}
+                                    </p>
+                                </motion.div>
                             </AnimatePresence>
                         </div>
                         {/* Indicadores de carrusel */}
@@ -307,6 +305,17 @@ function AccessModal({ onClose }) {
                                         {loadingAuth ? 'Iniciando...' : 'Iniciar Sesión'}
                                     </button>
                                     <p className="text-center text-sm text-neutral-gray">
+                                        ¿No tienes una cuenta?{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsLogin(false)}
+                                            className="text-action-blue hover:underline focus:outline-none"
+                                            disabled={loadingAuth}
+                                        >
+                                            Registrarse Aquí
+                                        </button>
+                                    </p>
+                                    <p className="text-center text-sm text-neutral-gray">
                                         ¿Olvidaste tu contraseña?{' '}
                                         <a href="#" className="text-action-blue hover:underline">
                                             Recuperar
@@ -380,6 +389,7 @@ function AccessModal({ onClose }) {
                                                 {document.getElementById('regPassword')?.type === 'password' ? (
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                                     </svg>
                                                 ) : (
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -413,6 +423,7 @@ function AccessModal({ onClose }) {
                                                 {document.getElementById('regConfirmPassword')?.type === 'password' ? (
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                                     </svg>
                                                 ) : (
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -430,38 +441,19 @@ function AccessModal({ onClose }) {
                                     >
                                         {loadingAuth ? 'Registrando...' : 'Registrarse'}
                                     </button>
+                                    <p className="text-center text-sm text-neutral-gray">
+                                        ¿Ya tienes una cuenta?{' '}
+                                        <button
+                                            onClick={() => setIsLogin(true)}
+                                            className="text-action-blue hover:underline focus:outline-none"
+                                            disabled={loadingAuth}
+                                        >
+                                            Iniciar sesión
+                                        </button>
+                                    </p>
                                 </motion.form>
                             )}
                         </AnimatePresence>
-
-                        {/* Enlaces para cambiar entre Login y Registro */}
-                        <p className="text-center text-sm text-neutral-gray mt-6">
-                            {isLogin ? (
-                                <>
-                                    ¿No tienes cuenta?{' '}
-                                    <button
-                                        type="button"
-                                        className="text-action-blue hover:underline font-medium focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                        onClick={() => setIsLogin(false)}
-                                        disabled={loadingAuth}
-                                    >
-                                        Regístrate aquí
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    ¿Ya tienes una cuenta?{' '}
-                                    <button
-                                        type="button"
-                                        className="text-action-blue hover:underline font-medium focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                        onClick={() => setIsLogin(true)}
-                                        disabled={loadingAuth}
-                                    >
-                                        Inicia sesión
-                                    </button>
-                                </>
-                            )}
-                        </p>
                     </div>
                 </motion.div>
             </motion.div>

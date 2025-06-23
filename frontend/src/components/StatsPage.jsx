@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import ErrorBoundary from './ErrorBoundary';
 
 // Registrar los componentes de Chart.js que vamos a usar
 ChartJS.register(
@@ -55,25 +56,6 @@ const StatsPage = () => {
 
     fetchStats();
   }, []);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-full min-h-screen">
-        <p className="text-xl text-action-blue">Cargando estadísticas...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen">
-        <div className="bg-red-700 bg-opacity-30 border border-red-500 text-red-300 px-4 py-3 rounded relative mb-6" role="alert">
-          <strong className="font-bold">¡Error!</strong>
-          <span className="block sm:inline ml-2">{error}</span>
-        </div>
-      </div>
-    );
-  }
 
   // --- Datos para gráficos ---
 
@@ -266,75 +248,97 @@ const StatsPage = () => {
 
 
   return (
-    <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen">
-      <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Estadísticas y Análisis</h2>
+    <ErrorBoundary>
+      <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen">
+        <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Estadísticas y Análisis</h2>
 
-      {/* Resumen General */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 text-center">
-        <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner border border-action-blue-light">
-          <p className="text-action-blue-light text-2xl font-bold">Total de Ventas</p>
-          <p className="text-neutral-light text-3xl font-extrabold mt-2">${stats?.sales?.totalSalesAmount.toFixed(2) || '0.00'}</p>
-          <p className="text-neutral-gray-300 text-sm">({stats?.sales?.totalSalesCount} transacciones)</p>
-        </div>
-        <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner border border-green-500">
-          <p className="text-green-400 text-2xl font-bold">Ingresos Totales</p>
-          <p className="text-neutral-light text-3xl font-extrabold mt-2">${financialSummary?.totalIncome.toFixed(2) || '0.00'}</p>
-        </div>
-        <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner border border-red-500">
-          <p className="text-red-400 text-2xl font-bold">Gastos Totales</p>
-          <p className="text-neutral-light text-3xl font-extrabold mt-2">${financialSummary?.totalExpense.toFixed(2) || '0.00'}</p>
-        </div>
-        <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner border border-purple-500">
-          <p className="text-purple-400 text-2xl font-bold">Total Clientes</p>
-          <p className="text-neutral-light text-3xl font-extrabold mt-2">{stats?.clients?.totalClients || 0}</p>
-        </div>
+        {/* Loader global */}
+        {loading && (
+          <div className="flex justify-center items-center h-full min-h-screen">
+            <p className="text-xl text-action-blue">Cargando estadísticas...</p>
+          </div>
+        )}
+
+        {/* Mensaje de error destacado */}
+        {error && (
+          <div className="bg-red-700 bg-opacity-30 border border-red-500 text-red-300 px-4 py-3 rounded relative mb-6" role="alert">
+            <strong className="font-bold">¡Error!</strong>
+            <span className="block sm:inline ml-2">{error}</span>
+          </div>
+        )}
+
+        {/* El resto del contenido solo si no hay loading ni error */}
+        {!loading && !error && (
+          <>
+            {/* Resumen General */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 text-center">
+              <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner border border-action-blue-light">
+                <p className="text-action-blue-light text-2xl font-bold">Total de Ventas</p>
+                <p className="text-neutral-light text-3xl font-extrabold mt-2">${stats?.sales?.totalSalesAmount.toFixed(2) || '0.00'}</p>
+                <p className="text-neutral-gray-300 text-sm">({stats?.sales?.totalSalesCount} transacciones)</p>
+              </div>
+              <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner border border-green-500">
+                <p className="text-green-400 text-2xl font-bold">Ingresos Totales</p>
+                <p className="text-neutral-light text-3xl font-extrabold mt-2">${financialSummary?.totalIncome.toFixed(2) || '0.00'}</p>
+              </div>
+              <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner border border-red-500">
+                <p className="text-red-400 text-2xl font-bold">Gastos Totales</p>
+                <p className="text-neutral-light text-3xl font-extrabold mt-2">${financialSummary?.totalExpense.toFixed(2) || '0.00'}</p>
+              </div>
+              <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner border border-purple-500">
+                <p className="text-purple-400 text-2xl font-bold">Total Clientes</p>
+                <p className="text-neutral-light text-3xl font-extrabold mt-2">{stats?.clients?.totalClients || 0}</p>
+              </div>
+            </div>
+
+            {/* Sección de Gráficos */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-neutral-gray-700">
+                <Bar data={balanceData} options={balanceOptions} />
+              </div>
+
+              <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-neutral-gray-700">
+                {expenseCategoryLabels.length > 0 ? (
+                  <Doughnut data={expenseCategoryChartData} options={categoryOptions} />
+                ) : (
+                  <p className="text-neutral-gray-300 text-lg text-center mt-4">No hay datos de gastos por categoría para mostrar.</p>
+                )}
+              </div>
+
+              <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-neutral-gray-700">
+                {topProductsLabels.length > 0 ? (
+                  <Bar data={topProductsChartData} options={topProductsOptions} />
+                ) : (
+                  <p className="text-neutral-gray-300 text-lg text-center mt-4">No hay datos de productos más vendidos para mostrar.</p>
+                )}
+              </div>
+
+              <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-neutral-gray-700">
+                {paymentMethodLabels.length > 0 ? (
+                  <Pie data={paymentMethodChartData} options={paymentMethodOptions} />
+                ) : (
+                  <p className="text-neutral-gray-300 text-lg text-center mt-4">No hay datos de ventas por método de pago para mostrar.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Detalles adicionales de inventario */}
+            <div className="mt-8 bg-deep-night-blue p-6 rounded-lg shadow-inner border border-action-blue-light">
+              <h3 className="text-2xl font-semibold text-neutral-light mb-4">Información de Inventario</h3>
+              <p className="text-neutral-light mb-2">
+                <span className="font-semibold">Total de Productos:</span> {stats?.products?.totalProducts || 0}
+              </p>
+              <p className="text-neutral-light">
+                <span className="font-semibold">Productos con Stock Bajo (&lt;= 10):</span>{' '}
+                <span className={`${stats?.products?.lowStockProducts > 0 ? 'text-red-400 font-bold' : 'text-green-400'}`}>
+                  {stats?.products?.lowStockProducts || 0}
+                </span>
+              </p>
+            </div>
+          </>
+        )}
       </div>
-
-      {/* Sección de Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-neutral-gray-700">
-          <Bar data={balanceData} options={balanceOptions} />
-        </div>
-
-        <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-neutral-gray-700">
-          {expenseCategoryLabels.length > 0 ? (
-            <Doughnut data={expenseCategoryChartData} options={categoryOptions} />
-          ) : (
-            <p className="text-neutral-gray-300 text-lg text-center mt-4">No hay datos de gastos por categoría para mostrar.</p>
-          )}
-        </div>
-
-        <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-neutral-gray-700">
-          {topProductsLabels.length > 0 ? (
-            <Bar data={topProductsChartData} options={topProductsOptions} />
-          ) : (
-            <p className="text-neutral-gray-300 text-lg text-center mt-4">No hay datos de productos más vendidos para mostrar.</p>
-          )}
-        </div>
-
-        <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-neutral-gray-700">
-          {paymentMethodLabels.length > 0 ? (
-            <Pie data={paymentMethodChartData} options={paymentMethodOptions} />
-          ) : (
-            <p className="text-neutral-gray-300 text-lg text-center mt-4">No hay datos de ventas por método de pago para mostrar.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Detalles adicionales de inventario */}
-      <div className="mt-8 bg-deep-night-blue p-6 rounded-lg shadow-inner border border-action-blue-light">
-        <h3 className="text-2xl font-semibold text-neutral-light mb-4">Información de Inventario</h3>
-        <p className="text-neutral-light mb-2">
-          <span className="font-semibold">Total de Productos:</span> {stats?.products?.totalProducts || 0}
-        </p>
-        <p className="text-neutral-light">
-          <span className="font-semibold">Productos con Stock Bajo (&lt;= 10):</span>{' '}
-          <span className={`${stats?.products?.lowStockProducts > 0 ? 'text-red-400 font-bold' : 'text-green-400'}`}>
-            {stats?.products?.lowStockProducts || 0}
-          </span>
-        </p>
-      </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 

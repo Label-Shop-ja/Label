@@ -1,6 +1,7 @@
 // C:\Proyectos\Label\frontend\src\components\Inventory\InventoryPage.jsx
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
-import axiosInstance from '../../api/axiosInstance'; // Importa la instancia de Axios
+import axiosInstance from '../../api/axiosInstance';
+import ErrorBoundary from '../ErrorBoundary';
 
 // Importaciones de componentes lazily loaded
 const ProductModal = lazy(() => import('../Common/ProductModal'));
@@ -23,7 +24,7 @@ const ExchangeRateModal = lazy(() => import('../Currency/ExchangeRateModal'));  
 // Íconos de Lucide React, si se usan directamente en este componente principal
 import { Loader2, Upload } from 'lucide-react';
 
-const InventoryPage = () => {
+function InventoryPage() {
     // Estados principales para la gestión de productos y la interfaz de usuario
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -480,18 +481,23 @@ const InventoryPage = () => {
 
     // JSX para renderizar el componente de la página de inventario
     return (
-        <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen font-inter">
-            <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Gestión de Inventario</h2>
-            {/* Sección de Tasa del Día y Configuración */}
-            <div className="bg-deep-night-blue p-4 rounded-lg shadow-inner mb-6 border border-neutral-gray-700 flex items-center justify-between">
+        <ErrorBoundary>
+            <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen font-inter">
+                {/* Mensaje de error destacado */}
+                {error && (
+                    <div className="mb-4 p-4 bg-red-900 bg-opacity-30 text-red-300 rounded-lg text-center font-semibold">
+                        {error}
+                    </div>
+                )}
+
                 <Suspense fallback={<div>Cargando tasa...</div>}>
                     <ExchangeRateDisplay
                         exchangeRate={exchangeRate}
                         loading={loadingCurrency}
                         error={currencyError}
-                        formatPrice={formatPrice} // Pasa formatPrice desde useCurrency
-                        primaryCurrency={exchangeRate?.fromCurrency || 'USD'} // Pasa la moneda base
-                        secondaryCurrency={exchangeRate?.toCurrency || 'VES'} // Pasa la moneda secundaria
+                        formatPrice={formatPrice}
+                        primaryCurrency={exchangeRate?.fromCurrency || 'USD'}
+                        secondaryCurrency={exchangeRate?.toCurrency || 'VES'}
                     />
                 </Suspense>
                 <button
@@ -500,248 +506,250 @@ const InventoryPage = () => {
                 >
                     Configurar Tasa
                 </button>
-            </div>
 
-            {/* Visualización de Mensajes de Éxito y Error */}
-            <Suspense fallback={<div></div>}>
-                <MessageDisplay successMessage={successMessage} error={error} />
-            </Suspense>
+                {/* Visualización de Mensajes de Éxito y Error */}
+                <Suspense fallback={<div>Cargando mensajes...</div>}>
+                    <MessageDisplay successMessage={successMessage} error={error} />
+                </Suspense>
 
-            {/* Modal de Confirmación para Eliminación (Lazy Loaded) */}
-            <Suspense fallback={<div></div>}>
-                <ConfirmDeleteModal
-                    isOpen={showConfirmModal}
-                    onClose={closeModal}
-                    onConfirm={handleDeleteProduct}
-                    title="Confirmar Eliminación"
-                    message="¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer."
-                />
-            </Suspense>
-
-            {/* Sección de Búsqueda, Filtros y Añadir Producto (Lazy Loaded) */}
-            <Suspense fallback={<div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 h-32 flex items-center justify-center text-neutral-light">Cargando filtros...</div>}>
-                <ProductFilterAndSearch
-                    searchTerm={searchTerm}
-                    setSearchTerm={setSearchTerm}
-                    selectedCategory={selectedCategory}
-                    setSelectedCategory={setSelectedCategory}
-                    availableCategories={availableCategories}
-                    selectedBrand={selectedBrand}
-                    setSelectedBrand={setSelectedBrand}
-                    availableBrands={availableBrands}
-                    selectedSupplier={selectedSupplier}
-                    setSelectedSupplier={setSelectedSupplier}
-                    availableSuppliers={availableSuppliers}
-                    selectedVariantColor={selectedVariantColor}
-                    setSelectedVariantColor={setSelectedVariantColor}
-                    availableVariantColors={availableVariantColors}
-                    selectedVariantSize={selectedVariantSize}
-                    setSelectedVariantSize={setSelectedVariantSize}
-                    availableVariantSizes={availableVariantSizes}
-                    sortBy={sortBy}
-                    setSortBy={setSortBy}
-                    sortOrder={sortOrder}
-                    setSortOrder={setSortOrder}
-                    onAddProductClick={openAddModal}
-                />
-            </Suspense>
-
-            {/* Controles para Reportes y Acciones Masivas */}
-            <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 flex flex-wrap gap-4 justify-between items-center">
-                {/* Botón para Reporte de Variantes */}
-                <button
-                    onClick={() => {
-                        if (!showVariantReport) {
-                            fetchVariantInventoryReport();
-                        } else {
-                            setShowVariantReport(false);
-                            setVariantReport([]);
-                        }
-                    }}
-                    className="bg-action-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center text-sm shadow-md"
-                >
-                    {showVariantReport ? 'Ocultar Reporte de Variantes' : 'Mostrar Reporte de Variantes'}
-                </button>
-
-                {/* Botón de Exportar Reporte a CSV (solo si el reporte está visible y tiene datos) */}
-                {showVariantReport && variantReport.length > 0 && (
-                     <Suspense fallback={<div></div>}>
-                        <button
-                            onClick={() => exportVariantReportToCSV(variantReport)}
-                            className="bg-success-green hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center text-sm shadow-md"
-                        >
-                            Exportar Reporte a CSV
-                            <Upload size={16} className="ml-2" />
-                        </button>
-                     </Suspense>
-                )}
-            </div>
-
-            {/* Modal para Configurar Tasa de Cambio (Lazy Loaded) */}
-            <Suspense fallback={<div></div>}>
-                {showExchangeRateModal && (
-                    <ExchangeRateModal
-                        isOpen={showExchangeRateModal}
-                        onClose={() => setShowExchangeRateModal(false)}
-                        currentExchangeRate={exchangeRate} // Si hay una tasa ya cargada
-                        loading={loadingCurrency}
-                        error={currencyError}
-                        onSave={updateExchangeRate} // Función para guardar/actualizar en el backend
-                    />
-                )}
-            </Suspense>
-
-            {/* Botón para la Lógica de Actualización Inteligente de Precios */}
-            <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 flex flex-wrap gap-4 justify-between items-center">
-                <button
-                    onClick={() => displayMessage('La lógica de actualización inteligente de precios se implementará aquí.', 'info')} // Placeholder
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md flex items-center justify-center text-sm"
-                >
-                    Sugerir Actualización de Precios (Devaluación)
-                </button>
-            </div>
-
-            {/* Sección de Alertas de Stock (Lazy Loaded) */}
-            <Suspense fallback={<div className="mb-6 p-4 border rounded-md bg-yellow-900 bg-opacity-20 text-yellow-300">Cargando alertas...</div>}>
-                <InventoryAlerts lowStockAlerts={lowStockAlerts} highStockAlerts={highStockAlerts} />
-            </Suspense>
-
-            <h3 className="text-3xl font-semibold text-neutral-light mb-6 border-b border-neutral-gray-700 pb-3">Lista de Productos</h3>
-
-            {/* Renderizado condicional para carga, no hay productos o lista de productos */}
-            {loading && !products.length ? (
-                <div className="flex justify-center items-center h-48">
-                    <Loader2 size={48} className="animate-spin text-copper-rose-accent" />
-                    <span className="sr-only">Cargando...</span>
-                </div>
-            ) : products.length === 0 ? (
-                <p className="text-neutral-gray-300 text-lg text-center mt-10">No hay productos que coincidan con la búsqueda o el filtro. ¡Intenta añadir uno!</p>
-            ) : (
-                <Suspense fallback={<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"><div className="h-64 bg-deep-night-blue rounded-lg animate-pulse"></div><div className="h-64 bg-deep-night-blue rounded-lg animate-pulse"></div><div className="h-64 bg-deep-night-blue rounded-lg animate-pulse"></div></div>}>
-                    <ProductList
-                        products={products}
-                        handleEditClick={(product) => {
-                            // Prepara los datos del producto para el modal de edición
-                            setEditingProduct({
-                                ...product,
-                                price: product.price !== undefined && product.price !== null ? parseFloat(product.price).toFixed(2) : '',
-                                costPrice: product.costPrice !== undefined && product.costPrice !== null ? parseFloat(product.costPrice).toFixed(2) : '',
-                                unitOfMeasure: product.unitOfMeasure || 'unidad',
-                                brand: product.brand || '',
-                                supplier: product.supplier || '',
-                                description: product.description || '',
-                                imageUrl: product.imageUrl || '',
-                                color: product.color || '',
-                                size: product.size || '',
-                                material: product.material || '',
-                                isPerishable: product.isPerishable || false,
-                                reorderThreshold: product.reorderThreshold || 0,
-                                optimalMaxStock: product.optimalMaxStock || 0,
-                                shelfLifeDays: product.shelfLifeDays || 0,
-                                variants: product.variants ? product.variants.map(v => ({
-                                    ...v,
-                                    price: parseFloat(v.price).toFixed(2),
-                                    costPrice: parseFloat(v.costPrice).toFixed(2),
-                                    stock: Number(v.stock),
-                                    unitOfMeasure: v.unitOfMeasure || 'unidad',
-                                    color: v.color || '',
-                                    size: v.size || '',
-                                    material: v.material || '',
-                                    imageUrl: v.imageUrl || '',
-                                    // SKU autogenerado de variante (si no tiene uno manual)
-                                    autoGeneratedVariantSku: v.sku && v.sku.trim() !== '' ? '' : generateSkuFromName(v.name || ''),
-                                    isPerishable: v.isPerishable || false,
-                                    reorderThreshold: v.reorderThreshold || 0,
-                                    optimalMaxStock: v.optimalMaxStock || 0,
-                                    shelfLifeDays: v.shelfLifeDays || 0,
-                                })) : [],
-                            });
-                            setShowEditModal(true);
-                            setShowAddModal(false);
-                            setError('');
-                            setSuccessMessage('');
-                        }}
-                        confirmDeleteProduct={confirmDeleteProduct}
-                        expandedProducts={expandedProducts}
-                        toggleProductExpansion={toggleProductExpansion}
+                {/* Modal de Confirmación para Eliminación */}
+                <Suspense fallback={<div>Cargando confirmación...</div>}>
+                    <ConfirmDeleteModal
+                        isOpen={showConfirmModal}
+                        onClose={closeModal}
+                        onConfirm={handleDeleteProduct}
+                        title="Confirmar Eliminación"
+                        message="¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer."
                     />
                 </Suspense>
-            )}
 
-            {/* Modal para Añadir Producto (Lazy Loaded) */}
-            <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"><Loader2 size={48} className="animate-spin text-action-blue" /></div>}>
-                {showAddModal && (
-                    <ProductModal
-                        isOpen={showAddModal}
-                        onClose={closeModal}
-                        title="Añadir Nuevo Producto"
-                    >
-                        {/* Ahora renderizamos AddEditProductFormLogic */}
-                        <AddEditProductFormLogic
-                            isNewProduct={true}
-                            initialProductData={newProductInitialData} // Pasa el estado inicial para el nuevo producto
-                            onProductSave={handleAddProduct} // Callback para guardar
-                            loading={loading}
-                            displayMessage={displayMessage}
-                            unitOfMeasureOptions={unitOfMeasureOptions}
-                            debounceTimeoutRef={debounceTimeoutRef}
-                        />
-                    </ProductModal>
-                )}
-            </Suspense>
-
-            {/* Modal para Editar Producto (Lazy Loaded) */}
-            <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"><Loader2 size={48} className="animate-spin text-action-blue" /></div>}>
-                {showEditModal && editingProduct && (
-                    <ProductModal
-                        isOpen={showEditModal}
-                        onClose={closeModal}
-                        title={`Editar Producto: ${editingProduct?.name || ''}`}
-                    >
-                        {/* Ahora renderizamos AddEditProductFormLogic */}
-                        <AddEditProductFormLogic
-                            isNewProduct={false}
-                            initialProductData={editingProduct} // Pasa el producto a editar
-                            onProductSave={handleUpdateProduct} // Callback para actualizar
-                            loading={loading}
-                            displayMessage={displayMessage}
-                            unitOfMeasureOptions={unitOfMeasureOptions}
-                            debounceTimeoutRef={debounceTimeoutRef}
-                        />
-                    </ProductModal>
-                )}
-            </Suspense>
-
-
-            {/* Reporte de Inventario por Variante (Lazy Loaded) */}'
-            <Suspense fallback={<div className="mt-12 bg-deep-night-blue p-8 rounded-lg shadow-2xl border border-action-blue-light h-64 flex items-center justify-center text-neutral-light">Cargando reporte...</div>}>
-                {showVariantReport && variantReport.length > 0 && (
-                    <VariantReportTable
-                        variantReport={variantReport}
-                        loading={loading}
-                        exportVariantReportToCSV={exportVariantReportToCSV}
+                {/* Sección de Búsqueda, Filtros y Añadir Producto */}
+                <Suspense fallback={<div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 h-32 flex items-center justify-center text-neutral-light">Cargando filtros...</div>}>
+                    <ProductFilterAndSearch
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        selectedCategory={selectedCategory}
+                        setSelectedCategory={setSelectedCategory}
+                        availableCategories={availableCategories}
+                        selectedBrand={selectedBrand}
+                        setSelectedBrand={setSelectedBrand}
+                        availableBrands={availableBrands}
+                        selectedSupplier={selectedSupplier}
+                        setSelectedSupplier={setSelectedSupplier}
+                        availableSuppliers={availableSuppliers}
+                        selectedVariantColor={selectedVariantColor}
+                        setSelectedVariantColor={setSelectedVariantColor}
+                        availableVariantColors={availableVariantColors}
+                        selectedVariantSize={selectedVariantSize}
+                        setSelectedVariantSize={setSelectedVariantSize}
+                        availableVariantSizes={availableVariantSizes}
+                        sortBy={sortBy}
+                        setSortBy={setSortBy}
+                        sortOrder={sortOrder}
+                        setSortOrder={setSortOrder}
+                        onAddProductClick={openAddModal}
                     />
+                </Suspense>
+
+                {/* Controles para Reportes y Acciones Masivas */}
+                <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 flex flex-wrap gap-4 justify-between items-center">
+                    <button
+                        onClick={() => {
+                            if (!showVariantReport) {
+                                fetchVariantInventoryReport();
+                            } else {
+                                setShowVariantReport(false);
+                                setVariantReport([]);
+                            }
+                        }}
+                        className="bg-action-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center text-sm shadow-md"
+                    >
+                        {showVariantReport ? 'Ocultar Reporte de Variantes' : 'Mostrar Reporte de Variantes'}
+                    </button>
+                    {showVariantReport && variantReport.length > 0 && (
+                        <Suspense fallback={<div>Cargando exportación...</div>}>
+                            <button
+                                onClick={() => exportVariantReportToCSV(variantReport)}
+                                className="bg-success-green hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center text-sm shadow-md"
+                            >
+                                Exportar Reporte a CSV
+                                <Upload size={16} className="ml-2" />
+                            </button>
+                        </Suspense>
+                    )}
+                </div>
+
+                {/* Modal para Configurar Tasa de Cambio */}
+                <Suspense fallback={<div>Cargando modal de tasa...</div>}>
+                    {showExchangeRateModal && (
+                        <ExchangeRateModal
+                            isOpen={showExchangeRateModal}
+                            onClose={() => setShowExchangeRateModal(false)}
+                            currentExchangeRate={exchangeRate}
+                            loading={loadingCurrency}
+                            error={currencyError}
+                            onSave={updateExchangeRate}
+                        />
+                    )}
+                </Suspense>
+
+                {/* Botón para la Lógica de Actualización Inteligente de Precios */}
+                <div className="bg-deep-night-blue p-6 rounded-lg shadow-inner mb-8 border border-neutral-gray-700 flex flex-wrap gap-4 justify-between items-center">
+                    <button
+                        onClick={() => displayMessage('La lógica de actualización inteligente de precios se implementará aquí.', 'info')}
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md flex items-center justify-center text-sm"
+                    >
+                        Sugerir Actualización de Precios (Devaluación)
+                    </button>
+                </div>
+
+                {/* Sección de Alertas de Stock */}
+                <Suspense fallback={<div className="mb-6 p-4 border rounded-md bg-yellow-900 bg-opacity-20 text-yellow-300">Cargando alertas...</div>}>
+                    <InventoryAlerts lowStockAlerts={lowStockAlerts} highStockAlerts={highStockAlerts} />
+                </Suspense>
+
+                <h3 className="text-3xl font-semibold text-neutral-light mb-6 border-b border-neutral-gray-700 pb-3">Lista de Productos</h3>
+
+                {/* Renderizado condicional para carga, no hay productos o lista de productos */}
+                {loading && !products?.length ? (
+                    <div className="flex justify-center items-center h-48">
+                        <Loader2 size={48} className="animate-spin text-copper-rose-accent" />
+                        <span className="sr-only">Cargando...</span>
+                    </div>
+                ) : products?.length === 0 ? (
+                    <p className="text-neutral-gray-300 text-lg text-center mt-10">No hay productos que coincidan con la búsqueda o el filtro. ¡Intenta añadir uno!</p>
+                ) : (
+                    <Suspense fallback={
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            <div className="h-64 bg-deep-night-blue rounded-lg animate-pulse"></div>
+                            <div className="h-64 bg-deep-night-blue rounded-lg animate-pulse"></div>
+                            <div className="h-64 bg-deep-night-blue rounded-lg animate-pulse"></div>
+                        </div>
+                    }>
+                        <ProductList
+                            products={products}
+                            handleEditClick={(product) => {
+                                // Prepara los datos del producto para el modal de edición
+                                setEditingProduct({
+                                    ...product,
+                                    price: product.price !== undefined && product.price !== null ? parseFloat(product.price).toFixed(2) : '',
+                                    costPrice: product.costPrice !== undefined && product.costPrice !== null ? parseFloat(product.costPrice).toFixed(2) : '',
+                                    unitOfMeasure: product.unitOfMeasure || 'unidad',
+                                    brand: product.brand || '',
+                                    supplier: product.supplier || '',
+                                    description: product.description || '',
+                                    imageUrl: product.imageUrl || '',
+                                    color: product.color || '',
+                                    size: product.size || '',
+                                    material: product.material || '',
+                                    isPerishable: product.isPerishable || false,
+                                    reorderThreshold: product.reorderThreshold || 0,
+                                    optimalMaxStock: product.optimalMaxStock || 0,
+                                    shelfLifeDays: product.shelfLifeDays || 0,
+                                    variants: product.variants ? product.variants.map(v => ({
+                                        ...v,
+                                        price: parseFloat(v.price).toFixed(2),
+                                        costPrice: parseFloat(v.costPrice).toFixed(2),
+                                        stock: Number(v.stock),
+                                        unitOfMeasure: v.unitOfMeasure || 'unidad',
+                                        color: v.color || '',
+                                        size: v.size || '',
+                                        material: v.material || '',
+                                        imageUrl: v.imageUrl || '',
+                                        // SKU autogenerado de variante (si no tiene uno manual)
+                                        autoGeneratedVariantSku: v.sku && v.sku.trim() !== '' ? '' : generateSkuFromName(v.name || ''),
+                                        isPerishable: v.isPerishable || false,
+                                        reorderThreshold: v.reorderThreshold || 0,
+                                        optimalMaxStock: v.optimalMaxStock || 0,
+                                        shelfLifeDays: v.shelfLifeDays || 0,
+                                    })) : [],
+                                });
+                                setShowEditModal(true);
+                                setShowAddModal(false);
+                                setError('');
+                                setSuccessMessage('');
+                            }}
+                            confirmDeleteProduct={confirmDeleteProduct}
+                            expandedProducts={expandedProducts}
+                            toggleProductExpansion={toggleProductExpansion}
+                        />
+                    </Suspense>
                 )}
-                 {showVariantReport && variantReport.length === 0 && !loading && (
-                    <p className="text-neutral-gray-300 text-lg text-center mt-10">No hay datos de variantes para generar el reporte.</p>
-                )}
-            </Suspense>
+
+                {/* Modal para Añadir Producto */}
+                <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"><Loader2 size={48} className="animate-spin text-action-blue" /></div>}>
+                    {showAddModal && (
+                        <ProductModal
+                            isOpen={showAddModal}
+                            onClose={closeModal}
+                            title="Añadir Nuevo Producto"
+                        >
+                            {/* Ahora renderizamos AddEditProductFormLogic */}
+                            <AddEditProductFormLogic
+                                isNewProduct={true}
+                                initialProductData={newProductInitialData} // Pasa el estado inicial para el nuevo producto
+                                onProductSave={handleAddProduct} // Callback para guardar
+                                loading={loading}
+                                displayMessage={displayMessage}
+                                unitOfMeasureOptions={unitOfMeasureOptions}
+                                debounceTimeoutRef={debounceTimeoutRef}
+                            />
+                        </ProductModal>
+                    )}
+                </Suspense>
+
+                {/* Modal para Editar Producto */}
+                <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"><Loader2 size={48} className="animate-spin text-action-blue" /></div>}>
+                    {showEditModal && editingProduct && (
+                        <ProductModal
+                            isOpen={showEditModal}
+                            onClose={closeModal}
+                            title={`Editar Producto: ${editingProduct?.name || ''}`}
+                        >
+                            {/* Ahora renderizamos AddEditProductFormLogic */}
+                            <AddEditProductFormLogic
+                                isNewProduct={false}
+                                initialProductData={editingProduct} // Pasa el producto a editar
+                                onProductSave={handleUpdateProduct} // Callback para actualizar
+                                loading={loading}
+                                displayMessage={displayMessage}
+                                unitOfMeasureOptions={unitOfMeasureOptions}
+                                debounceTimeoutRef={debounceTimeoutRef}
+                            />
+                        </ProductModal>
+                    )}
+                </Suspense>
 
 
-            {/* Controles de Paginación (Lazy Loaded) */}
-            <Suspense fallback={<div></div>}>
-                {totalPages > 1 && (
-                    <PaginationControls
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        goToPrevPage={goToPrevPage}
-                        goToNextPage={goToNextPage}
-                        loading={loading}
-                    />
-                )}
-            </Suspense>
-        </div>
+                {/* Reporte de Inventario por Variante */}
+                <Suspense fallback={<div className="mt-12 bg-deep-night-blue p-8 rounded-lg shadow-2xl border border-action-blue-light h-64 flex items-center justify-center text-neutral-light">Cargando reporte...</div>}>
+                    {showVariantReport && variantReport.length > 0 && (
+                        <VariantReportTable
+                            variantReport={variantReport}
+                            loading={loading}
+                            exportVariantReportToCSV={exportVariantReportToCSV}
+                        />
+                    )}
+                    {showVariantReport && variantReport.length === 0 && !loading && (
+                        <p className="text-neutral-gray-300 text-lg text-center mt-10">No hay datos de variantes para generar el reporte.</p>
+                    )}
+                </Suspense>
+
+                {/* Controles de Paginación */}
+                <Suspense fallback={<div>Cargando paginación...</div>}>
+                    {totalPages > 1 && (
+                        <PaginationControls
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            goToPrevPage={goToPrevPage}
+                            goToNextPage={goToNextPage}
+                            loading={loading}
+                        />
+                    )}
+                </Suspense>
+            </div>
+        </ErrorBoundary>
     );
-};
+}
 
 export default InventoryPage;
