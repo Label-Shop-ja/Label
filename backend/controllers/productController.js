@@ -1,16 +1,15 @@
 // C:\Proyectos\Label\backend\controllers\productController.js
 const asyncHandler = require('express-async-handler');
 const Product = require('../models/productModel'); // Asegúrate de que esta línea sea correcta
-const logInventoryMovement = require('../utils/inventoryLogger'); // <-- ¡NUEVA LÍNEA!
+const ExchangeRate = require('../models/ExchangeRate'); // ¡IMPORTAMOS EL MODELO DE TASAS!
+const { calculateSalePrice, calculateProfitAndPriceForDisplay } = require('../utils/currencyCalculator'); // ¡IMPORTAMOS LA CALCULADORA!
+const logInventoryMovement = require('../utils/inventoryLogger');
 
 // @desc    Obtener todos los productos
 // @route   GET /api/products
 // @access  Private
 const getProducts = asyncHandler(async (req, res) => {
-    // Asegura que solo se vean los productos del usuario autenticado
     const userId = req.user.id;
-
-    // Destructure new sorting parameters
     const { searchTerm, category, brand, supplier, variantColor, variantSize, page, limit, sortBy, sortOrder } = req.query;
 
     const query = { user: userId };
@@ -25,7 +24,6 @@ const getProducts = asyncHandler(async (req, res) => {
             { color: { $regex: searchTerm, '$options': 'i' } },
             { size: { $regex: searchTerm, '$options': 'i' } },
             { material: { $regex: searchTerm, '$options': 'i' } },
-            // Search also in variants
             { 'variants.name': { $regex: searchTerm, $options: 'i' } },
             { 'variants.sku': { $regex: searchTerm, '$options': 'i' } },
             { 'variants.color': { $regex: searchTerm, '$options': 'i' } },
@@ -54,7 +52,6 @@ const getProducts = asyncHandler(async (req, res) => {
     const limitNum = parseInt(limit) || 10;
     const skip = (pageNum - 1) * limitNum;
 
-    // Define sorting options based on sortBy and sortOrder
     let sortOptions = {};
     if (sortBy) {
         const order = sortOrder === 'desc' ? -1 : 1;
@@ -85,7 +82,7 @@ const getProducts = asyncHandler(async (req, res) => {
     }
 
     const products = await Product.find(query)
-        .sort(sortOptions) // Apply the dynamic sortOptions
+        .sort(sortOptions)
         .skip(skip)
         .limit(limitNum);
 
@@ -132,9 +129,8 @@ const createProduct = asyncHandler(async (req, res) => {
         name,
         description,
         category,
-        price,
-        stock,
-        costPrice,
+        stock, // Este stock es solo para el producto principal sin variantes
+        costPrice, // Este costPrice es solo para el producto principal sin variantes
         sku,
         unitOfMeasure,
         brand,
@@ -147,17 +143,33 @@ const createProduct = asyncHandler(async (req, res) => {
         reorderThreshold,
         optimalMaxStock,
         shelfLifeDays,
-        variants
+        variants,
+        // ¡NUEVOS CAMPOS DE MONEDA Y GANANCIA!
+        baseCurrency,
+        costCurrency,
+        saleCurrency,
+        displayCurrency,
+        profitPercentage // <-- Este campo lo esperamos del frontend para el producto principal/default
     } = req.body;
 
+    // --- OBTENER LA CONFIGURACIÓN DE TASAS DE CAMBIO DEL USUARIO ---
+    // Esta configuración es vital para los cálculos de precios
+    const exchangeRateConfig = await ExchangeRate.findOne({ user: req.user.id });
+
+    if (!exchangeRateConfig) {
+        res.status(400);
+        throw new Error('¡Coño! No se encontró la configuración de tasas de cambio para este usuario. Por favor, configura las tasas.');
+    }
+
+    // Usar el profitPercentage del body si viene, o el default del usuario
+    const actualProfitPercentage = profitPercentage !== undefined ? Number(profitPercentage) : exchangeRateConfig.defaultProfitPercentage;
+
+    // Validaciones iniciales para campos mandatorios
+    // La validación de price se moverá al cálculo
     if (!variants || variants.length === 0) {
-        if (!name || !category || price === undefined || stock === undefined || costPrice === undefined || !sku || !unitOfMeasure) {
+        if (!name || !category || stock === undefined || costPrice === undefined || !sku || !unitOfMeasure) {
             res.status(400);
             throw new Error('Please complete all mandatory fields for the main product if there are no variants.');
-        }
-        if (isNaN(Number(price)) || Number(price) <= 0) {
-            res.status(400);
-            throw new Error('Selling price must be a positive number.');
         }
         if (isNaN(Number(costPrice)) || Number(costPrice) < 0) {
             res.status(400);
@@ -169,13 +181,9 @@ const createProduct = asyncHandler(async (req, res) => {
         }
     } else {
         for (const variant of variants) {
-            if (!variant.name || variant.price === undefined || variant.costPrice === undefined || variant.stock === undefined || !variant.unitOfMeasure) {
+            if (!variant.name || variant.stock === undefined || variant.costPrice === undefined || !variant.unitOfMeasure) {
                 res.status(400);
-                throw new Error('All variants must have name, price, cost, stock, and unit of measure.');
-            }
-            if (isNaN(Number(variant.price)) || Number(variant.price) <= 0) {
-                res.status(400);
-                throw new Error('Variant price must be a positive number.');
+                throw new Error('All variants must have name, cost, stock, and unit of measure.');
             }
             if (isNaN(Number(variant.costPrice)) || Number(variant.costPrice) < 0) {
                 res.status(400);
@@ -185,16 +193,59 @@ const createProduct = asyncHandler(async (req, res) => {
                 res.status(400);
                 throw new Error('Variant stock must be a non-negative number.');
             }
+            // La validación del precio de venta de la variante se hará después del cálculo
         }
     }
 
+    // --- PROCESAMIENTO Y CÁLCULO DE PRECIOS PARA EL PRODUCTO PRINCIPAL ---
+    let finalPriceForMainProduct = null;
+    if (!variants || variants.length === 0) {
+        finalPriceForMainProduct = calculateSalePrice(
+            Number(costPrice),
+            costCurrency || 'USD', // Usar el currency del body o default
+            actualProfitPercentage,
+            exchangeRateConfig,
+            saleCurrency || 'USD' // Usar el currency del body o default
+        );
+
+        if (finalPriceForMainProduct === null) {
+            res.status(500);
+            throw new Error('¡Peo! No se pudo calcular el precio de venta para el producto principal. Revisa las tasas de cambio o los datos de costo/ganancia.');
+        }
+        // Validación de precio de venta calculado
+        if (finalPriceForMainProduct <= 0) {
+            res.status(400);
+            throw new Error('Selling price must be a positive number after calculation.');
+        }
+    }
+
+    // --- PROCESAMIENTO Y CÁLCULO DE PRECIOS PARA LAS VARIANTES ---
     const processedVariants = variants ? variants.map(variant => {
         const finalVariantSku = variant.sku || variant.autoGeneratedVariantSku || '';
         
+        // Calcular el precio de venta de la variante usando la calculadora
+        const calculatedVariantPrice = calculateSalePrice(
+            Number(variant.costPrice),
+            costCurrency || 'USD', // Las variantes usan la moneda de costo del producto principal
+            variant.profitPercentage !== undefined ? Number(variant.profitPercentage) : actualProfitPercentage, // Si la variante tiene su propio %, úsalo, sino el del producto
+            exchangeRateConfig,
+            saleCurrency || 'USD' // Las variantes usan la moneda de venta del producto principal
+        );
+
+        if (calculatedVariantPrice === null) {
+            // Esto solo se loguea, pero el error general se manejará al nivel del product.create
+            console.error(`¡Peo! No se pudo calcular el precio de venta para la variante ${variant.name || variant.sku}.`);
+            // Puedes decidir si abortar aquí o dejar que el error lo maneje el catch principal
+            throw new Error(`No se pudo calcular el precio para la variante ${variant.name || variant.sku}.`);
+        }
+        if (calculatedVariantPrice <= 0) {
+            throw new Error(`El precio de venta de la variante ${variant.name || variant.sku} debe ser un número positivo después del cálculo.`);
+        }
+
         return {
             ...variant,
             sku: finalVariantSku,
-            price: Number(variant.price),
+            price: calculatedVariantPrice, // ¡Asignamos el precio CALCULADO!
             costPrice: Number(variant.costPrice),
             stock: Number(variant.stock),
             isPerishable: Boolean(variant.isPerishable),
@@ -217,60 +268,57 @@ const createProduct = asyncHandler(async (req, res) => {
         material: material || '',
         variants: processedVariants,
         sku: sku,
-        price: price,
-        stock: stock,
-        costPrice: costPrice,
+        price: finalPriceForMainProduct, // ¡Asignamos el precio CALCULADO para el producto principal!
+        stock: Number(stock),
+        costPrice: Number(costPrice),
         unitOfMeasure: unitOfMeasure,
         isPerishable: Boolean(isPerishable),
         reorderThreshold: Number(reorderThreshold) || 0,
         optimalMaxStock: Number(optimalMaxStock) || 0,
         shelfLifeDays: Number(shelfLifeDays) || 0,
-        // ¡NUEVOS CAMPOS DE MONEDA!
-        baseCurrency: req.body.baseCurrency || 'USD',
-        costCurrency: req.body.costCurrency || 'USD', // <-- Asegúrate de pasar estos
-        saleCurrency: req.body.saleCurrency || 'USD', // <-- Asegúrate de pasar estos
-        displayCurrency: req.body.displayCurrency || req.body.saleCurrency || 'USD', // <-- Asegúrate de pasar este
-
-        // Los campos `price`, `stock`, `costPrice`, `sku`, `unitOfMeasure` deben venir del `req.body`
-        // y no ser redefinidos aquí si no es necesario, ya que el `pre-save hook` los ajusta.
+        baseCurrency: baseCurrency || 'USD',
+        costCurrency: costCurrency || 'USD',
+        saleCurrency: saleCurrency || 'USD',
+        displayCurrency: displayCurrency || saleCurrency || 'USD',
+        profitPercentage: actualProfitPercentage, // Guardamos el porcentaje de ganancia usado
     };
 
     try {
         const product = await Product.create(productFields);
 
         // --- REGISTRAR MOVIMIENTO DE INVENTARIO POR CREACIÓN DE PRODUCTO ---
-    if (product.variants && product.variants.length > 0) {
-        for (const variant of product.variants) {
-            if (variant.stock > 0) {
-                await logInventoryMovement({
-                    user: req.user.id,
-                    product: product._id,
-                    variantId: variant._id,
-                    productName: product.name,
-                    variantName: variant.name,
-                    sku: variant.sku,
-                    movementType: 'in',
-                    quantityChange: variant.stock,
-                    finalStock: variant.stock, // Stock inicial de la variante
-                    reason: 'initial_stock',
-                    session: undefined, // No es parte de una transacción de venta
-                });
+        if (product.variants && product.variants.length > 0) {
+            for (const variant of product.variants) {
+                if (variant.stock > 0) {
+                    await logInventoryMovement({
+                        user: req.user.id,
+                        product: product._id,
+                        variantId: variant._id,
+                        productName: product.name,
+                        variantName: variant.name,
+                        sku: variant.sku,
+                        movementType: 'in',
+                        quantityChange: variant.stock,
+                        finalStock: variant.stock,
+                        reason: 'initial_stock',
+                        session: undefined,
+                    });
+                }
             }
+        } else if (product.stock > 0) {
+            await logInventoryMovement({
+                user: req.user.id,
+                product: product._id,
+                productName: product.name,
+                sku: product.sku,
+                movementType: 'in',
+                quantityChange: product.stock,
+                finalStock: product.stock,
+                reason: 'initial_stock',
+                session: undefined,
+            });
         }
-    } else if (product.stock > 0) {
-        await logInventoryMovement({
-            user: req.user.id,
-            product: product._id,
-            productName: product.name,
-            sku: product.sku,
-            movementType: 'in',
-            quantityChange: product.stock,
-            finalStock: product.stock, // Stock inicial del producto principal
-            reason: 'initial_stock',
-            session: undefined,
-        });
-    }
-    // --- FIN REGISTRO MOVIMIENTO DE INVENTARIO ---
+        // --- FIN REGISTRO MOVIMIENTO DE INVENTARIO ---
 
         res.status(201).json(product);
     } catch (error) {
@@ -298,9 +346,8 @@ const updateProduct = asyncHandler(async (req, res) => {
         name,
         description,
         category,
-        price,
-        stock,
-        costPrice,
+        stock, // Este stock es para el producto principal sin variantes
+        costPrice, // Este costPrice es para el producto principal sin variantes
         sku,
         unitOfMeasure,
         brand,
@@ -313,7 +360,13 @@ const updateProduct = asyncHandler(async (req, res) => {
         reorderThreshold,
         optimalMaxStock,
         shelfLifeDays,
-        variants
+        variants,
+        // ¡NUEVOS CAMPOS DE MONEDA Y GANANCIA!
+        baseCurrency,
+        costCurrency,
+        saleCurrency,
+        displayCurrency,
+        profitPercentage // <-- Este campo lo esperamos del frontend para el producto principal/default
     } = req.body;
 
     const product = await Product.findById(id);
@@ -328,14 +381,22 @@ const updateProduct = asyncHandler(async (req, res) => {
         throw new Error('Not authorized to update this product');
     }
 
+    // --- OBTENER LA CONFIGURACIÓN DE TASAS DE CAMBIO DEL USUARIO ---
+    const exchangeRateConfig = await ExchangeRate.findOne({ user: req.user.id });
+
+    if (!exchangeRateConfig) {
+        res.status(400);
+        throw new Error('¡Coño! No se encontró la configuración de tasas de cambio para este usuario. Por favor, configura las tasas.');
+    }
+
+    // Usar el profitPercentage del body si viene, o el default del usuario
+    const actualProfitPercentage = profitPercentage !== undefined ? Number(profitPercentage) : exchangeRateConfig.defaultProfitPercentage;
+
+    // Validaciones iniciales
     if (!variants || variants.length === 0) {
-        if (!name || !category || price === undefined || stock === undefined || costPrice === undefined || !sku || !unitOfMeasure) {
+        if (!name || !category || stock === undefined || costPrice === undefined || !sku || !unitOfMeasure) {
             res.status(400);
             throw new Error('Please complete all mandatory fields for the main product if there are no variants.');
-        }
-        if (isNaN(Number(price)) || Number(price) <= 0) {
-            res.status(400);
-            throw new Error('Selling price must be a positive number.');
         }
         if (isNaN(Number(costPrice)) || Number(costPrice) < 0) {
             res.status(400);
@@ -347,13 +408,9 @@ const updateProduct = asyncHandler(async (req, res) => {
         }
     } else {
         for (const variant of variants) {
-            if (!variant.name || variant.price === undefined || variant.costPrice === undefined || variant.stock === undefined || !variant.unitOfMeasure) { // Corrected: variant.price !== undefined
+            if (!variant.name || variant.stock === undefined || variant.costPrice === undefined || !variant.unitOfMeasure) {
                 res.status(400);
-                throw new Error('All variants must have name, price, cost, stock, and unit of measure.');
-            }
-            if (isNaN(Number(variant.price)) || Number(variant.price) <= 0) {
-                res.status(400);
-                throw new Error('Variant price must be a positive number.');
+                throw new Error('All variants must have name, cost, stock, and unit of measure.');
             }
             if (isNaN(Number(variant.costPrice)) || Number(variant.costPrice) < 0) {
                 res.status(400);
@@ -366,19 +423,58 @@ const updateProduct = asyncHandler(async (req, res) => {
         }
     }
 
+    // --- PROCESAMIENTO Y CÁLCULO DE PRECIOS PARA EL PRODUCTO PRINCIPAL ---
+    let finalPriceForMainProduct = null;
+    if (!variants || variants.length === 0) {
+        finalPriceForMainProduct = calculateSalePrice(
+            Number(costPrice),
+            costCurrency || product.costCurrency || 'USD', // Usar del body, del producto o default
+            actualProfitPercentage,
+            exchangeRateConfig,
+            saleCurrency || product.saleCurrency || 'USD' // Usar del body, del producto o default
+        );
+
+        if (finalPriceForMainProduct === null) {
+            res.status(500);
+            throw new Error('¡Peo! No se pudo calcular el precio de venta para el producto principal. Revisa las tasas de cambio o los datos de costo/ganancia.');
+        }
+        if (finalPriceForMainProduct <= 0) {
+            res.status(400);
+            throw new Error('Selling price must be a positive number after calculation.');
+        }
+    }
+
+    // --- PROCESAMIENTO Y CÁLCULO DE PRECIOS PARA LAS VARIANTES ---
     const processedVariants = variants ? variants.map(variant => {
         const finalVariantSku = variant.sku || variant.autoGeneratedVariantSku || '';
+
+        // Calcular el precio de venta de la variante usando la calculadora
+        const calculatedVariantPrice = calculateSalePrice(
+            Number(variant.costPrice),
+            costCurrency || product.costCurrency || 'USD', // Las variantes usan la moneda de costo del producto principal o la existente
+            variant.profitPercentage !== undefined ? Number(variant.profitPercentage) : actualProfitPercentage, // Si la variante tiene su propio %, úsalo, sino el del producto
+            exchangeRateConfig,
+            saleCurrency || product.saleCurrency || 'USD' // Las variantes usan la moneda de venta del producto principal o la existente
+        );
+
+        if (calculatedVariantPrice === null) {
+            console.error(`¡Peo! No se pudo calcular el precio de venta para la variante ${variant.name || variant.sku}.`);
+            throw new Error(`No se pudo calcular el precio para la variante ${variant.name || variant.sku}.`);
+        }
+        if (calculatedVariantPrice <= 0) {
+            throw new Error(`El precio de venta de la variante ${variant.name || variant.sku} debe ser un número positivo después del cálculo.`);
+        }
 
         return {
             ...variant,
             sku: finalVariantSku,
-            price: Number(variant.price),
+            price: calculatedVariantPrice, // ¡Asignamos el precio CALCULADO!
             costPrice: Number(variant.costPrice),
             stock: Number(variant.stock),
             isPerishable: Boolean(variant.isPerishable),
             reorderThreshold: Number(variant.reorderThreshold) || 0,
-            optimalMaxStock: Number(variant.optimalMaxStock) || 0,
-            shelfLifeDays: Number(variant.shelfLifeDays) || 0,
+            optimalMaxStock: Number(optimalMaxStock) || 0,
+            shelfLifeDays: Number(shelfLifeDays) || 0,
         };
     }) : [];
 
@@ -390,9 +486,8 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.imageUrl = imageUrl || '';
     
     product.sku = sku;
-    product.price = price;
-    product.stock = stock;
-    product.costPrice = costPrice;
+    product.stock = Number(stock);
+    product.costPrice = Number(costPrice);
     product.unitOfMeasure = unitOfMeasure;
     product.color = color;
     product.size = size;
@@ -402,20 +497,17 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.optimalMaxStock = Number(optimalMaxStock) || 0;
     product.shelfLifeDays = Number(shelfLifeDays) || 0;
 
-    // ¡NUEVOS CAMPOS DE MONEDA!
-    product.baseCurrency = req.body.baseCurrency || 'USD';
-    product.costCurrency = req.body.costCurrency || product.costCurrency || 'USD'; // Mantener el valor existente si no se provee
-    product.saleCurrency = req.body.saleCurrency || product.saleCurrency || 'USD';
-    product.displayCurrency = req.body.displayCurrency || product.saleCurrency || product.displayCurrency || 'USD';
+    // ¡Asignamos el precio CALCULADO para el producto principal!
+    product.price = finalPriceForMainProduct;
 
-    product.sku = sku; // Asegúrate de que este también se actualice si cambia
-    product.price = price;
-    product.stock = stock;
-    product.costPrice = costPrice;
-    product.unitOfMeasure = unitOfMeasure;
+    // Actualizamos los campos de moneda y ganancia
+    product.baseCurrency = baseCurrency || product.baseCurrency || 'USD';
+    product.costCurrency = costCurrency || product.costCurrency || 'USD';
+    product.saleCurrency = saleCurrency || product.saleCurrency || 'USD';
+    product.displayCurrency = displayCurrency || product.saleCurrency || product.displayCurrency || 'USD';
+    product.profitPercentage = actualProfitPercentage; // Guardamos el porcentaje de ganancia usado
 
     product.variants = processedVariants;
-    product.baseCurrency = req.body.baseCurrency || 'USD'; // <-- ¡AÑADE ESTO!
 
 // --- LÓGICA DE REGISTRO DE MOVIMIENTOS DE INVENTARIO POR ACTUALIZACIÓN ---
 const oldProduct = await Product.findById(id); // Traemos el producto viejo para comparar stock
@@ -432,7 +524,7 @@ try {
                 if (oldVariant && oldVariant.stock !== updatedVariant.stock) {
                     const quantityDiff = Math.abs(updatedVariant.stock - oldVariant.stock);
                     const movementType = updatedVariant.stock > oldVariant.stock ? 'in' : 'out';
-                    const reason = 'adjustment'; // Asumimos que es un ajuste manual por update
+                    const reason = 'adjustment';
 
                     await logInventoryMovement({
                         user: req.user.id,
@@ -802,13 +894,13 @@ const getVariantInventoryReport = asyncHandler(async (req, res) => {
                 productCategory: '$category',
                 productBrand: '$brand',
                 productImageUrl: '$imageUrl',
-
+                
                 variantId: '$variants._id',
                 variantName: '$variants.name',
                 variantSku: '$variants.sku',
                 variantStock: '$variants.stock',
-                variantPrice: '$variants.price',
-                variantCostPrice: '$variants.costPrice',
+                variantPrice: '$variants.price', // OJO: Este price ya está en la saleCurrency guardada
+                variantCostPrice: '$variants.costPrice', // Este costPrice ya está en la costCurrency guardada
                 variantUnitOfMeasure: '$variants.unitOfMeasure',
                 variantColor: '$variants.color',
                 variantSize: '$variants.size',
@@ -842,7 +934,7 @@ module.exports = {
     updateProduct,
     deleteProduct,
     getGlobalProducts,
-    getLowStockProducts, // Export new function
-    getHighStockProducts, // Export new function
-    getVariantInventoryReport, // <-- NUEVA FUNCIÓN EXPORTADA
+    getLowStockProducts,
+    getHighStockProducts,
+    getVariantInventoryReport,
 };

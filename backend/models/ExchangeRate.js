@@ -1,22 +1,30 @@
 // C:\Proyectos\Label\backend\models\ExchangeRate.js
 const mongoose = require('mongoose');
 
+// --- INICIO: LISTA DE MONEDAS DISPONIBLES EN EL MODELO ---
+// ¡CRÍTICO! Esta lista DEBE ser la misma que en el controlador exchangeRateController.js
+const ALL_CURRENCIES = [
+    'USD', 'VES', 'EUR', 'COP', 'BRL', 'MXN', 'CLP', 'PEN', 'ARS', 'UYU',
+    'DOP', 'GTQ', 'CRC', 'HNL', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY'
+];
+// --- FIN: LISTA DE MONEDAS DISPONIBLES EN EL MODELO ---
+
 // Esquema para cada conversión individual (ej. USD-VES, EUR-USD)
-const conversionSchema = mongoose.Schema({
+const conversionSchema = new mongoose.Schema({
     fromCurrency: {
         type: String,
         required: true,
-        enum: ['USD', 'VES', 'EUR'],
+        enum: ALL_CURRENCIES, // Valida que la moneda sea una de las permitidas
     },
     toCurrency: {
         type: String,
         required: true,
-        enum: ['USD', 'VES', 'EUR'],
+        enum: ALL_CURRENCIES, // Valida que la moneda sea una de las permitidas
     },
     rate: {
         type: Number,
-        required: [true, 'Por favor, añade la tasa de cambio'],
-        min: 0.000001, // Tasa mínima
+        required: true,
+        min: 0.0000000001, // Tasa mínima muy pequeña para manejar decimales ínfimos
     },
     lastUpdated: { // Para saber cuándo fue actualizada esta conversión específica
         type: Date,
@@ -25,44 +33,52 @@ const conversionSchema = mongoose.Schema({
 }, { _id: false }); // No queremos IDs automáticos para cada subdocumento de conversión
 
 // Esquema principal de la Tasa de Cambio por usuario
-const exchangeRateSchema = mongoose.Schema({
-    user: { // Para saber qué usuario configuró esta tasa, si se quiere multi-usuario
+const exchangeRateSchema = new mongoose.Schema({
+    user: { // Para saber qué usuario configuró esta tasa
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
+        unique: true // Cada usuario solo tiene un documento de configuración de tasas
     },
-    // Este array guardará todas las conversiones que el usuario configure (ej. USD-VES, EUR-USD)
+    // Este array guardará TODAS las conversiones oficiales calculadas
     conversions: [conversionSchema],
 
-    // Campo para la tasa oficial (la que viene de una API externa)
-    officialRate: {
-        type: Number,
-        required: false, // No es requerido si no se usa fuente externa aún
-        min: 0.000001,
-    },
-    lastOfficialUpdate: { // Fecha de la última actualización de la tasa oficial
-        type: Date,
-        required: false,
-    },
     // Un porcentaje de ganancia estándar para auto-calcular precios (se mantiene)
     defaultProfitPercentage: {
         type: Number,
-        default: 30, // 30% de ganancia por defecto
-        min: 0,
-        max: 500, // Un límite razonable
+        default: 20, // 20% de ganancia por defecto
     },
-    // Nuevo: Umbral para auto-actualización de tasa personalizada vs. oficial
+    // Umbral para auto-actualización de tasa personalizada vs. oficial (para alertas)
     personalRateThresholdPercentage: {
         type: Number,
-        default: 1, // 1% de diferencia por defecto
-        min: 0,
-        max: 100,
-    }
+        default: 5, // 5% de diferencia por defecto
+    },
+    // La tasa de cambio USD-VES que el usuario puede definir manualmente (su preferencia)
+    personalRate: { 
+        type: Number,
+        default: 0 // Se inicializa en 0 o se actualizará con la oficial al inicio
+    },
+    // La tasa oficial de USD-VES obtenida de la API externa
+    officialRate: { 
+        type: Number,
+        default: 0 // Se inicializa en 0 o se actualizará con la obtenida de la API
+    },
+    lastOfficialUpdate: { // Fecha de la última actualización de la tasa oficial (del fetch de la API)
+        type: Date,
+    },
+    // fromCurrency, toCurrency, rate a nivel raíz del documento son redundantes si las conversiones están en el array
+    // Se eliminan si tu modelo los tenía aquí directamente
 }, {
-    timestamps: true, // Añade `createdAt` y `updatedAt` automáticamente (para la entidad ExchangeRate global)
+    timestamps: true, // Añade `createdAt` y `updatedAt` automáticamente
 });
 
-// Asegúrate de que las conversiones sean únicas por fromCurrency y toCurrency para el mismo usuario
-exchangeRateSchema.index({ user: 1, 'conversions.fromCurrency': 1, 'conversions.toCurrency': 1 }, { unique: true, partialFilterExpression: { 'conversions.fromCurrency': { $exists: true } } });
+// ¡IMPORTANTE! Eliminamos el índice único en subdocumentos `conversions.fromCurrency/toCurrency`.
+// La unicidad de los pares de conversión DENTRO del array `conversions` para un mismo documento
+// se maneja a nivel de aplicación (en `exchangeRateController.js` con el `Map`).
+// Un índice `unique` aquí aplicaría a través de TODOS los documentos `ExchangeRate`,
+// lo que impediría que diferentes usuarios tuvieran el mismo par de conversión (ej. USD-VES),
+// lo cual es incorrecto. El `user: unique` ya asegura que cada usuario solo tiene un documento.
+// exchangeRateSchema.index({ user: 1, 'conversions.fromCurrency': 1, 'conversions.toCurrency': 1 }, { unique: true, partialFilterExpression: { 'conversions.fromCurrency': { $exists: true } } }); // ¡ELIMINAR O COMENTAR!
+
 
 module.exports = mongoose.model('ExchangeRate', exchangeRateSchema);

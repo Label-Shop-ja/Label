@@ -5,7 +5,7 @@ import { X, Upload, Loader2, Info } from 'lucide-react'; // Íconos
 const VariantForm = ({
     variant,
     index,
-    handleVariantInputChange, // Este es el handler general para todos los inputs
+    handleVariantInputChange,
     removeVariant,
     unitOfMeasureOptions,
     handleVariantImageFileChange,
@@ -13,20 +13,19 @@ const VariantForm = ({
     formErrors,
     uploadImageToCloud,
     isNewProduct,
-    // ¡NUEVAS PROPS PARA EL PORCENTAJE Y MONEDA DESDE LOGIC (¡TIENEN QUE ESTAR AQUÍ!)
     formatPrice,
     convertPrice,
     exchangeRate,
     calculatedVariantProfitPercentage,
     calculatedVariantPricePlaceholder,
-    // Handler para la imagen de URL (si lo tienes separado o si lo integraste en handleVariantInputChange)
+    // ¡NUEVA PROP! Recibimos la lista de monedas
+    availableCurrencies, 
 }) => {
     // Función auxiliar para subir imagen de variante al perder el foco en la URL
     const handleImageUrlBlur = useCallback(async (e) => {
         const value = e.target.value;
-        // Solo intenta subir si la URL no está vacía y ha cambiado, y no es una URL de Cloudinary ya
         if (value && value.trim() !== variant.imageUrl && !value.includes('res.cloudinary.com')) {
-            await uploadImageToCloud(value, true, index); // Pasa `true` para isVariant y el index
+            await uploadImageToCloud(value, true, index);
         }
     }, [variant.imageUrl, index, uploadImageToCloud]);
 
@@ -77,12 +76,13 @@ const VariantForm = ({
                             type="number"
                             id={`variantPrice-${index}`}
                             name="price"
-                            value={variant.price}
-                            onChange={(e) => handleVariantInputChange(index, e, 'price')} // Pasa 'price' para la lógica específica
+                            value={calculatedVariantPricePlaceholder !== null ? parseFloat(calculatedVariantPricePlaceholder).toFixed(2) : ''}
+                            onChange={() => {}}
                             step="0.01"
                             className={`shadow appearance-none border ${formErrors[`variant-${index}-price`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                            placeholder={`Ej. 25.99 (${formatPrice(calculatedVariantPricePlaceholder[index], variant.saleCurrency || 'USD')})`} // Placeholder dinámico
+                            placeholder={`Ej. 25.99 (${formatPrice(calculatedVariantPricePlaceholder, variant.saleCurrency || 'USD')})`}
                             required
+                            readOnly={true}
                         />
                         {formErrors[`variant-${index}-price`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-price`]}</p>}
                     </div>
@@ -96,9 +96,10 @@ const VariantForm = ({
                             className={`shadow appearance-none border ${formErrors[`variant-${index}-saleCurrency`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
                             required
                         >
-                            <option value="USD">USD</option>
-                            <option value="VES">VES</option>
-                            <option value="EUR">EUR</option>
+                            {/* Generar opciones dinámicamente */}
+                            {availableCurrencies.map(currency => (
+                                <option key={currency} value={currency}>{currency}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="w-24 flex-shrink-0">
@@ -107,8 +108,8 @@ const VariantForm = ({
                             type="number"
                             id={`variantProfitPercentage-${index}`}
                             name="profitPercentage"
-                            value={calculatedVariantProfitPercentage[index] || ''} // <-- Será dinámico
-                            onChange={(e) => handleVariantInputChange(index, e, 'profitPercentage')} // Pasa 'profitPercentage'
+                            value={calculatedVariantProfitPercentage !== null ? parseFloat(calculatedVariantProfitPercentage).toFixed(2) : ''}
+                            onChange={(e) => handleVariantInputChange(index, e)}
                             step="0.1"
                             min="0"
                             className={`shadow appearance-none border ${formErrors[`variant-${index}-profitPercentage`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
@@ -125,7 +126,7 @@ const VariantForm = ({
                             id={`variantCostPrice-${index}`}
                             name="costPrice"
                             value={variant.costPrice}
-                            onChange={(e) => handleVariantInputChange(index, e, 'costPrice')} // Pasa 'costPrice' para la lógica específica
+                            onChange={(e) => handleVariantInputChange(index, e)}
                             step="0.01"
                             className={`shadow appearance-none border ${formErrors[`variant-${index}-costPrice`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
                             placeholder="Ej. 12.50"
@@ -143,9 +144,10 @@ const VariantForm = ({
                             className={`shadow appearance-none border ${formErrors[`variant-${index}-costCurrency`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
                             required
                         >
-                            <option value="USD">USD</option>
-                            <option value="VES">VES</option>
-                            <option value="EUR">EUR</option>
+                            {/* Generar opciones dinámicamente */}
+                            {availableCurrencies.map(currency => (
+                                <option key={currency} value={currency}>{currency}</option>
+                            ))}
                         </select>
                     </div>
                 </div>
