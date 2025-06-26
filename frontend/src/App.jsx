@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-import AccessModal from './components/AccessModal'; // El modal de acceso y registro
-import DashboardHome from './components/DashboardHome';
+import AccessModal from './components/Auth/AccessModal';
+import DashboardHome from './components/Dashboard/DashboardHome';
 
 // Importar los componentes de "páginas"
 import InventoryPage from "./components/Inventory/InventoryPage";
@@ -17,7 +17,11 @@ import CustomRatesSettings from './pages/Settings/CustomRatesSettings'; // ¡El 
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 import { useAuth } from './context/AuthContext'; // Asegúrate de que esta ruta sea correcta para tu AuthContext
-import ErrorBoundary from './components/ErrorBoundary';
+import ErrorBoundary from "./components/Common/ErrorBoundary";
+import Toast from './components/Common/Toast';
+import LanguageSelector from './components/Common/LanguageSelector';
+
+const lang = 'es'; // O 'en' para inglés
 
 function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -118,6 +122,9 @@ function App() {
                     {/* Ruta comodín para cualquier otra ruta no definida (redirige a la raíz) */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+
+                {/* Componente Toast para mostrar notificaciones, fuera del <Routes> pero dentro del layout general */}
+                <Toast />
             </div>
         </ErrorBoundary>
     );

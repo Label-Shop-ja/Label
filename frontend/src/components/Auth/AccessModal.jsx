@@ -1,7 +1,15 @@
-// C:\Proyectos\Label\frontend\src\components\AccessModal.jsx
+// C:\Proyectos\Label\frontend\src\components\Auth\AccessModal.jsx
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
+import { MESSAGES, LABELS, PLACEHOLDERS } from '../../constants/messages';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { loginSchema, registerSchema } from '../../schemas/authSchemas';
+import { useTranslation } from 'react-i18next'; // NUEVO
+
+const lang = 'es'; // O usa un contexto/estado global
 
 /**
  * Componente AccessModal que incluye los formularios de inicio de sesión y registro,
@@ -10,18 +18,11 @@ import { useAuth } from '../context/AuthContext';
  */
 function AccessModal({ onClose }) {
     const [isLogin, setIsLogin] = useState(true); // Estado para alternar entre login y registro
-    const [message, setMessage] = useState(''); // Mensajes de éxito/error
-    const [messageType, setMessageType] = useState(''); // Tipo de mensaje: 'success' o 'error'
     const { login, register } = useAuth(); // Funciones de autenticación del contexto
-
-    // Estados para los campos de los formularios
-    const [loginEmail, setLoginEmail] = useState('');
-    const [loginPassword, setLoginPassword] = useState('');
-    const [regFullName, setRegFullName] = useState('');
-    const [regEmail, setRegEmail] = useState('');
-    const [regPassword, setRegPassword] = useState('');
-    const [regConfirmPassword, setRegConfirmPassword] = useState('');
+    const { showNotification } = useNotification();
     const [loadingAuth, setLoadingAuth] = useState(false); // Estado de carga para las peticiones de autenticación
+    const [message, setMessage] = useState(""); // Estado para mensajes de estado (éxito/error)
+    const [messageType, setMessageType] = useState("success"); // Estado para tipo de mensaje (éxito/error)
 
     // Estado y contenido para el carrusel de texto en el MODAL (ahora con descripciones de registro/beneficios)
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -48,61 +49,88 @@ function AccessModal({ onClose }) {
         return () => clearInterval(intervalId); // Limpia el intervalo al desmontar
     }, [carouselContent.length]);
 
-    // Función para mostrar mensajes de estado (éxito/error)
-    const displayMessage = (msg, type) => {
-        setMessage(msg);
-        setMessageType(type);
-        setTimeout(() => {
-            setMessage('');
-            setMessageType('');
-        }, 5000); // El mensaje desaparece después de 5 segundos
-    };
+    // Visibilidad de contraseñas
+    const [showLoginPassword, setShowLoginPassword] = useState(false);
+    const [showRegPassword, setShowRegPassword] = useState(false);
+    const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
 
-    // Manejador para el envío del formulario de inicio de sesión
-    const handleLoginSubmit = async (e) => {
-        e.preventDefault();
-        setLoadingAuth(true); // Activa el estado de carga
-        displayMessage(''); // Limpia mensajes anteriores
+    // React Hook Form para login
+    const {
+        register: registerLogin,
+        handleSubmit: handleLogin,
+        formState: { errors: loginErrors },
+        reset: resetLogin
+    } = useForm({
+        resolver: yupResolver(loginSchema),
+    });
 
+    // React Hook Form para registro
+    const {
+        register: registerRegister,
+        handleSubmit: handleRegister,
+        formState: { errors: registerErrors },
+        reset: resetRegister
+    } = useForm({
+        resolver: yupResolver(registerSchema),
+    });
+
+    // Envío login
+    const handleLoginSubmit = async (data) => {
+        setLoadingAuth(true);
         try {
-            await login(loginEmail, loginPassword); // Llama a la función de login del contexto
-            // Si la promesa se resuelve (no lanza error), significa que el login fue exitoso
-            onClose(); // Cierra el modal
-        } catch (error) {
-            // Si la promesa lanza un error, lo capturamos y mostramos el mensaje
-            displayMessage(error, 'error'); // 'error' contendrá el mensaje lanzado por AuthContext
-        } finally {
-            setLoadingAuth(false); // Desactiva el estado de carga al finalizar, sea éxito o error
-        }
-    };
-
-    // Manejador para el envío del formulario de registro
-    const handleRegisterSubmit = async (e) => {
-        e.preventDefault();
-        setLoadingAuth(true); // Activa el estado de carga
-        displayMessage(''); // Limpia mensajes anteriores
-
-        if (regPassword !== regConfirmPassword) {
-            displayMessage('Las contraseñas no coinciden.', 'error');
+            console.log('data:', data); // <-- Añade esto para depurar
+            const email = typeof data.email === 'string' ? data.email : data.email?.target?.value || '';
+            const password = typeof data.password === 'string' ? data.password : data.password?.target?.value || '';
+            const response = await login(email, password); // <--- Guarda la respuesta en una variable
+            // Si tu función register retorna un objeto con code, verifica aquí:
+        if (response && response.code === 403) {
+            setMessage("No tienes permisos para registrarte.");
+            setMessageType("error");
             setLoadingAuth(false);
             return;
         }
-
-        try {
-            await register({ fullName: regFullName, email: regEmail, password: regPassword }); // Llama a la función de registro del contexto
-            // Si la promesa se resuelve (no lanza error), significa que el registro fue exitoso
-            displayMessage('¡Registro exitoso! Por favor, inicia sesión.', 'success'); // Mensaje de éxito
-            setIsLogin(true); // Cambia a la vista de login
-            // Limpia los campos del formulario de registro
-            setRegFullName('');
-            setRegEmail('');
-            setRegPassword('');
-            setRegConfirmPassword('');
+            resetLogin();
+            setMessage("¡Inicio de sesión exitoso!");
+            setMessageType("success");
+            setTimeout(() => {
+                setMessage("");
+            }, 5000); // Ocultar mensaje después de 5 segundos
+            onClose();
         } catch (error) {
-            // Si la promesa lanza un error, lo capturamos y mostramos el mensaje
-            displayMessage(error, 'error'); // 'error' contendrá el mensaje lanzado por AuthContext
+            
         } finally {
-            setLoadingAuth(false); // Desactiva el estado de carga al finalizar, sea éxito o error
+            setLoadingAuth(false);
+        }
+    };
+
+    // Envío registro
+    const handleRegisterSubmit = async (data) => {
+        setLoadingAuth(true);
+        try {
+            const response = await register({
+            fullName: data.fullName,
+            email: data.email,
+            password: data.password
+        }); // <--- Guarda la respuesta en una variable
+            // Si tu función register retorna un objeto con code, verifica aquí:
+        if (response && response.code === 403) {
+            setMessage("No tienes permisos para registrarte.");
+            setMessageType("error");
+            setLoadingAuth(false);
+            return;
+        }
+            setIsLogin(true);
+            resetRegister();
+            setMessage("¡Registro exitoso!");
+            setMessageType("success");
+        } catch (error) {
+            setMessage("Error al registrarse.");
+            setMessageType("error"); // Puedes personalizar el mensaje según el error
+            // Usa el mensaje traducible si existe, si no, usa uno genérico
+            const errorMessage = t(error.translatedMessage || 'CLIENT_ADD_ERROR');
+            showNotification(errorMessage, 'error');
+        } finally {
+            setLoadingAuth(false);
         }
     };
 
@@ -217,7 +245,7 @@ function AccessModal({ onClose }) {
                     {/* Panel Derecho: Formulario (MOVido desde la izquierda) */}
                     <div className="lg:w-1/2 w-full p-8 md:p-12 flex flex-col justify-center bg-deep-night-blue bg-opacity-90 relative z-10">
                         <h2 className="text-3xl md:text-4xl font-bold text-copper-rose-accent mb-6 text-center font-['Cinzel']">
-                            {isLogin ? 'Iniciar Sesión' : 'Registrarse'}
+                            {isLogin ? LABELS.LOGIN_TITLE || 'Iniciar Sesión' : LABELS.REGISTER_TITLE || 'Registrarse'}
                         </h2>
 
                         {/* Mensajes de estado */}
@@ -241,49 +269,50 @@ function AccessModal({ onClose }) {
                                 <motion.form
                                     key="loginForm"
                                     className="space-y-6"
-                                    onSubmit={handleLoginSubmit}
+                                    onSubmit={handleLogin(handleLoginSubmit)}
                                     variants={formContentVariants}
                                     initial="hidden"
                                     animate="visible"
                                     exit="hidden"
                                 >
                                     <div>
-                                        <label htmlFor="loginEmail" className="block text-neutral-light text-sm font-medium mb-2">
-                                            Correo Electrónico
+                                        <label htmlFor="email" className="block text-neutral-light text-sm font-medium mb-2">
+                                            {LABELS.EMAIL}
                                         </label>
                                         <input
                                             type="email"
-                                            id="loginEmail"
-                                            name="loginEmail"
+                                            id="email"
+                                            name="email"
                                             className="w-full p-3 bg-neutral-gray/20 rounded-md border border-neutral-gray/30 text-neutral-light focus:outline-none focus:ring-2 focus:ring-copper-rose-accent"
-                                            placeholder="tu@correo.com"
-                                            value={loginEmail}
-                                            onChange={(e) => setLoginEmail(e.target.value)}
-                                            required
+                                            placeholder={PLACEHOLDERS.EMAIL}
+                                            {...registerLogin("email")}
                                             disabled={loadingAuth}
                                         />
+                                        {loginErrors.email && (
+                                            <p className="mt-2 text-error-red text-sm">
+                                                {loginErrors.email.message}
+                                            </p>
+                                        )}
                                     </div>
                                     <div>
-                                        <label htmlFor="loginPassword" className="block text-neutral-light text-sm font-medium mb-2">
-                                            Contraseña
+                                        <label htmlFor="password" className="block text-neutral-light text-sm font-medium mb-2">
+                                            {LABELS.PASSWORD}
                                         </label>
                                         <div className="relative">
                                             <input
-                                                type="password"
-                                                id="loginPassword"
-                                                name="loginPassword"
+                                                type={showLoginPassword ? "text" : "password"}
+                                                id="password"
+                                                name="password"
                                                 className="w-full p-3 pr-10 bg-neutral-gray/20 rounded-md border border-neutral-gray/30 text-neutral-light focus:outline-none focus:ring-2 focus:ring-copper-rose-accent"
-                                                placeholder="••••••••"
-                                                value={loginPassword}
-                                                onChange={(e) => setLoginPassword(e.target.value)}
-                                                required
+                                                placeholder={PLACEHOLDERS.PASSWORD}
+                                                {...registerLogin("password")}
                                                 disabled={loadingAuth}
                                             />
                                             <span
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-neutral-gray hover:text-neutral-light"
-                                                onClick={() => togglePasswordVisibility('loginPassword')}
+                                                onClick={() => setShowLoginPassword((v) => !v)}
                                             >
-                                                {document.getElementById('loginPassword')?.type === 'password' ? (
+                                                {showLoginPassword ? (
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -328,65 +357,69 @@ function AccessModal({ onClose }) {
                                 <motion.form
                                     key="registerForm"
                                     className="space-y-6"
-                                    onSubmit={handleRegisterSubmit}
+                                    onSubmit={handleRegister(handleRegisterSubmit)}
                                     variants={formContentVariants}
                                     initial="hidden"
                                     animate="visible"
                                     exit="hidden"
                                 >
                                     <div>
-                                        <label htmlFor="regFullName" className="block text-neutral-light text-sm font-medium mb-2">
-                                            Nombre Completo
+                                        <label htmlFor="fullName" className="block text-neutral-light text-sm font-medium mb-2">
+                                            {LABELS.FULL_NAME}
                                         </label>
                                         <input
                                             type="text"
-                                            id="regFullName"
-                                            name="regFullName"
+                                            id="fullName"
+                                            name="fullName"
                                             className="w-full p-3 bg-neutral-gray/20 rounded-md border border-neutral-gray/30 text-neutral-light focus:outline-none focus:ring-2 focus:ring-copper-rose-accent"
-                                            placeholder="Ej. Juan Pérez"
-                                            value={regFullName}
-                                            onChange={(e) => setRegFullName(e.target.value)}
-                                            required
+                                            placeholder={PLACEHOLDERS.FULL_NAME}
+                                            {...registerRegister("fullName")}
                                             disabled={loadingAuth}
                                         />
+                                        {registerErrors.fullName && (
+                                            <p className="mt-2 text-error-red text-sm">
+                                                {registerErrors.fullName.message}
+                                            </p>
+                                        )}
                                     </div>
                                     <div>
-                                        <label htmlFor="regEmail" className="block text-neutral-light text-sm font-medium mb-2">
-                                            Correo Electrónico
+                                        <label htmlFor="email" className="block text-neutral-light text-sm font-medium mb-2">
+                                            {LABELS.EMAIL}
                                         </label>
                                         <input
                                             type="email"
-                                            id="regEmail"
-                                            name="regEmail"
+                                            id="email"
+                                            name="email"
                                             className="w-full p-3 bg-neutral-gray/20 rounded-md border border-neutral-gray/30 text-neutral-light focus:outline-none focus:ring-2 focus:ring-copper-rose-accent"
-                                            placeholder="tu@correo.com"
-                                            value={regEmail}
-                                            onChange={(e) => setRegEmail(e.target.value)}
-                                            required
+                                            placeholder={PLACEHOLDERS.EMAIL}
+                                            {...registerRegister("email")}
                                             disabled={loadingAuth}
                                         />
+                                        {registerErrors.email && (
+                                            <p className="mt-2 text-error-red text-sm">
+                                                {registerErrors.email.message}
+                                            </p>
+                                        )}
                                     </div>
                                     <div>
-                                        <label htmlFor="regPassword" className="block text-neutral-light text-sm font-medium mb-2">
-                                            Contraseña
+                                        <label htmlFor="password" className="block text-neutral-light text-sm font-medium mb-2">
+                                            {LABELS.PASSWORD}
                                         </label>
                                         <div className="relative">
                                             <input
-                                                type="password"
-                                                id="regPassword"
-                                                name="regPassword"
+                                                type={showRegPassword ? "text" : "password"}
+                                                id="password"
+                                                name="password"
                                                 className="w-full p-3 pr-10 bg-neutral-gray/20 rounded-md border border-neutral-gray/30 text-neutral-light focus:outline-none focus:ring-2 focus:ring-copper-rose-accent"
-                                                placeholder="••••••••"
-                                                value={regPassword}
-                                                onChange={(e) => setRegPassword(e.target.value)}
-                                                required
+                                                placeholder={PLACEHOLDERS.PASSWORD}
+                                                {...registerRegister("password")}
                                                 disabled={loadingAuth}
                                             />
                                             <span
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-neutral-gray hover:text-neutral-light"
-                                                onClick={() => togglePasswordVisibility('regPassword')}
+                                                onClick={() => setShowRegPassword((v) => !v)}
                                             >
-                                                {document.getElementById('regPassword')?.type === 'password' ? (
+                                                {showRegPassword ? (
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -401,26 +434,24 @@ function AccessModal({ onClose }) {
                                         </div>
                                     </div>
                                     <div>
-                                        <label htmlFor="regConfirmPassword" className="block text-neutral-light text-sm font-medium mb-2">
-                                            Confirmar Contraseña
+                                        <label htmlFor="confirmPassword" className="block text-neutral-light text-sm font-medium mb-2">
+                                            {LABELS.CONFIRM_PASSWORD}
                                         </label>
                                         <div className="relative">
                                             <input
-                                                type="password"
-                                                id="regConfirmPassword"
-                                                name="regConfirmPassword"
+                                                type={showRegConfirmPassword ? "text" : "password"}
+                                                id="confirmPassword"
+                                                name="confirmPassword"
                                                 className="w-full p-3 pr-10 bg-neutral-gray/20 rounded-md border border-neutral-gray/30 text-neutral-light focus:outline-none focus:ring-2 focus:ring-copper-rose-accent"
-                                                placeholder="••••••••"
-                                                value={regConfirmPassword}
-                                                onChange={(e) => setRegConfirmPassword(e.target.value)}
-                                                required
+                                                placeholder={PLACEHOLDERS.PASSWORD}
+                                                {...registerRegister("confirmPassword")}
                                                 disabled={loadingAuth}
                                             />
                                             <span
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-neutral-gray hover:text-neutral-light"
-                                                onClick={() => togglePasswordVisibility('regConfirmPassword')}
+                                                onClick={() => setShowRegConfirmPassword((v) => !v)}
                                             >
-                                                {document.getElementById('regConfirmPassword')?.type === 'password' ? (
+                                                {showRegConfirmPassword ? (
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -433,6 +464,11 @@ function AccessModal({ onClose }) {
                                                 )}
                                             </span>
                                         </div>
+                                        {registerErrors.confirmPassword && (
+                                            <p className="mt-2 text-error-red text-sm">
+                                                {registerErrors.confirmPassword.message}
+                                            </p>
+                                        )}
                                     </div>
                                     <button
                                         type="submit"
@@ -444,6 +480,7 @@ function AccessModal({ onClose }) {
                                     <p className="text-center text-sm text-neutral-gray">
                                         ¿Ya tienes una cuenta?{' '}
                                         <button
+                                            type="button"
                                             onClick={() => setIsLogin(true)}
                                             className="text-action-blue hover:underline focus:outline-none"
                                             disabled={loadingAuth}

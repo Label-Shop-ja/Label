@@ -2,7 +2,9 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import { useCurrency } from '../context/CurrencyContext';
-import ErrorBoundary from './ErrorBoundary';
+import { useNotification } from '../context/NotificationContext';
+import { useTranslation } from 'react-i18next';
+import ErrorBoundary from "./Common/ErrorBoundary";
 
 // Importaciones perezosas de los nuevos componentes
 const ProductSearchPanel = lazy(() => import('./Pos/ProductSearchPanel'));
@@ -11,7 +13,7 @@ const PaymentSection = lazy(() => import('./Pos/PaymentSection'));
 const VariantSelectModal = lazy(() => import('./Pos/VariantSelectModal')); // Para la selección de variantes
 const WeightInputModal = lazy(() => import('./Pos/WeightInputModal')); // Para el peso digital
 
-const PosPage = () => {
+function PosPage() {
   // Estados principales
   const [products, setProducts] = useState([]); // Todos los productos del inventario
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,21 +25,6 @@ const PosPage = () => {
   const [loading, setLoading] = useState(false); // <-- Estado de loading del PosPage
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-
-  // Función auxiliar para mostrar mensajes de éxito o error al usuario
-  const displayMessage = useCallback((msg, type) => {
-      if (type === 'success') {
-          setSuccessMessage(msg);
-          setError('');
-      } else {
-          setError(msg);
-          setSuccessMessage('');
-      }
-      setTimeout(() => {
-          setSuccessMessage('');
-          setError('');
-      }, 5000); // Los mensajes desaparecen después de 5 segundos
-  }, []);
 
   // Estados para modales de selección de variante y peso digital
   const [showVariantModal, setShowVariantModal] = useState(false);
@@ -102,6 +89,13 @@ const PosPage = () => {
       setSearchResults([]);
     }
   }, [searchTerm, products]);
+
+  // Función global para mostrar mensajes
+  const { showNotification } = useNotification();
+  const { t } = useTranslation();
+  const displayMessage = useCallback((msg, type) => {
+    showNotification(msg, type);
+  }, [showNotification]);
 
   // --- Función principal para añadir producto (o abrir modal) al carrito de venta ---
   const addProductToSale = useCallback((productToAdd, selectedVariant = null, measuredQuantity = null) => {
@@ -263,6 +257,10 @@ const PosPage = () => {
 
   // Loader global para carga inicial de productos
   const isLoadingGlobal = loading || loadingCurrency;
+
+  useEffect(() => {
+    displayMessage("Bienvenido al POS", "info");
+  }, []);
 
   return (
     <ErrorBoundary>

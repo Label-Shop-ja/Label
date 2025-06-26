@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { SlidersHorizontal } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
 import { AuthContext } from '../context/AuthContext';
-import ErrorBoundary from './ErrorBoundary';
+import ErrorBoundary from "./Common/ErrorBoundary";
 
 const SettingsPage = () => {
   const { user, login } = useContext(AuthContext);

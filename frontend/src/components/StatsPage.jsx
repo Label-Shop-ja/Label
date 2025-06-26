@@ -12,7 +12,8 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import ErrorBoundary from './ErrorBoundary';
+
+import ErrorBoundary from "./Common/ErrorBoundary";
 
 // Registrar los componentes de Chart.js que vamos a usar
 ChartJS.register(

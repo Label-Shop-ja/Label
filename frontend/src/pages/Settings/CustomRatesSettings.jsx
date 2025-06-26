@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useCurrency } from '../../context/CurrencyContext';
 import { toast } from 'react-toastify';
 import { PlusCircle, Edit, Trash2, Loader2, Save, XCircle, AlertTriangle } from 'lucide-react';
-import ErrorBoundary from '../../components/ErrorBoundary'; // Asegúrate de que la ruta sea correcta
+import ErrorBoundary from "../../components/Common/ErrorBoundary";
 
 // Un pequeño componente pa' mostrar la tasa oficial y que el usuario se guíe
 const OfficialRateHelper = ({ from, to }) => {

@@ -4,7 +4,7 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext'; // Para pasar el usuario al Header
-import ErrorBoundary from './ErrorBoundary'; // <-- NUEVO
+import ErrorBoundary from "./Common/ErrorBoundary";
 
 /**
  * Componente de Layout para el Dashboard.

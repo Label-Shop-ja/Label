@@ -1,7 +1,7 @@
 // C:\Proyectos\Label\frontend\src\components\FinancialPage.jsx
 import React, { useState, useEffect, Suspense } from 'react';
 import axiosInstance from '../api/axiosInstance'; // Asegúrate de importar tu instancia de Axios
-import ErrorBoundary from './ErrorBoundary';
+import ErrorBoundary from "./Common/ErrorBoundary";
 
 const FinancialPage = () => {
   const [transactions, setTransactions] = useState([]);

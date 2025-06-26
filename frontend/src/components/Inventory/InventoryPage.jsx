@@ -1,7 +1,9 @@
 // C:\Proyectos\Label\frontend\src\components\Inventory\InventoryPage.jsx
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import axiosInstance from '../../api/axiosInstance';
-import ErrorBoundary from '../ErrorBoundary';
+import ErrorBoundary from "../Common/ErrorBoundary";
+import { useNotification } from '../../context/NotificationContext';
+import { useTranslation } from 'react-i18next';
 
 // Importaciones de componentes lazily loaded
 const ProductModal = lazy(() => import('../Common/ProductModal'));
@@ -25,6 +27,14 @@ const ExchangeRateModal = lazy(() => import('../Currency/ExchangeRateModal'));  
 import { Loader2, Upload } from 'lucide-react';
 
 function InventoryPage() {
+    const { showNotification } = useNotification();
+    const { t } = useTranslation();
+
+    // 1. Declara displayMessage al inicio del componente
+    const displayMessage = (msg, type) => {
+        showNotification(msg, type);
+    };
+
     // Estados principales para la gestión de productos y la interfaz de usuario
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -89,21 +99,6 @@ function InventoryPage() {
 
     // Estado para controlar la visibilidad del modal de tasa de cambio
     const [showExchangeRateModal, setShowExchangeRateModal] = useState(false); // <-- ¡NUEVA LÍNEA!
-
-    // Función auxiliar para mostrar mensajes de éxito o error al usuario
-    const displayMessage = useCallback((msg, type) => {
-        if (type === 'success') {
-            setSuccessMessage(msg);
-            setError('');
-        } else {
-            setError(msg);
-            setSuccessMessage('');
-        }
-        setTimeout(() => {
-            setSuccessMessage('');
-            setError('');
-        }, 5000);
-    }, []);
 
     // Función para generar un SKU único a partir de un nombre, limpiando y añadiendo un hash
     // Se mueve a AddEditProductFormLogic si solo se usa allí. Si ProductFilterAndSearch la necesita, se mantiene aquí.

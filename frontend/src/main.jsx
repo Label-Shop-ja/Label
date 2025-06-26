@@ -8,17 +8,23 @@ import store from './redux/store'; // <-- ¡ESTA LÍNEA ES CLAVE Y TIENE QUE EST
 import { AuthProvider } from './context/AuthContext.jsx';
 import { BrowserRouter } from 'react-router-dom';
 import { CurrencyProvider } from './context/CurrencyContext.jsx';
+import { NotificationProvider } from './context/NotificationContext';
+import './i18n'; // Importa antes de renderizar la app
+
+const lang = 'es'; // O 'en' para inglés
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  // <React.StrictMode> // TEMPORALMENTE COMENTA ESTA LÍNEA PARA DEBUGGING EN DESARROLLO
-      <BrowserRouter>
-          <Provider store={store}>
-              <AuthProvider>
-                  <CurrencyProvider>
-                      <App />
-                  </CurrencyProvider>
-              </AuthProvider>
-          </Provider>
-      </BrowserRouter>
-  // </React.StrictMode> // TEMPORALMENTE COMENTA ESTA LÍNEA PARA DEBUGGING EN DESARROLLO
+  <React.StrictMode>
+    <BrowserRouter>
+        <Provider store={store}>
+            <AuthProvider>
+                <CurrencyProvider>
+                    <NotificationProvider>
+                        <App />
+                    </NotificationProvider>
+                </CurrencyProvider>
+            </AuthProvider>
+        </Provider>
+    </BrowserRouter>
+  </React.StrictMode>
 );

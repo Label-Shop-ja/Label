@@ -2,7 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import { FaUserPlus, FaEdit, FaTrash } from 'react-icons/fa';
-import ErrorBoundary from './ErrorBoundary';
+import ErrorBoundary from "./Common/ErrorBoundary";
+import { useNotification } from '../context/NotificationContext';
+import { useTranslation } from 'react-i18next';
 
 const ClientsPage = () => {
   const [clients, setClients] = useState([]);
@@ -15,6 +17,9 @@ const ClientsPage = () => {
     phone: '',
     address: '',
   });
+
+  const { showNotification } = useNotification();
+  const { t } = useTranslation();
 
   // --- Cargar clientes al montar el componente ---
   useEffect(() => {
@@ -50,26 +55,21 @@ const ClientsPage = () => {
     e.preventDefault();
     setError('');
     try {
-      // Validar campos requeridos antes de enviar
-      if (!newClient.name) {
-        setError('Por favor, ingresa el nombre del cliente.');
-        return;
-      }
+        if (!newClient.name) {
+            setError(t('CLIENT_NAME_REQUIRED'));
+            return;
+        }
 
-      const response = await axiosInstance.post('/clients', newClient);
-      setClients((prev) => [response.data, ...prev]); // Añadir el nuevo cliente al principio de la lista
-      setNewClient({ // Limpiar el formulario
-        name: '',
-        email: '',
-        phone: '',
-        address: '',
-      });
-      setShowAddForm(false); // Ocultar el formulario después de agregar
-      setError(''); // Limpiar cualquier error previo
+        const response = await axiosInstance.post('/clients', newClient);
+        setClients((prev) => [response.data, ...prev]);
+        setNewClient({ name: '', email: '', phone: '', address: '' });
+        setShowAddForm(false);
+        setError('');
+        showNotification(t('CLIENT_ADD_SUCCESS'), 'success');
     } catch (err) {
-      console.error('Error al añadir cliente:', err);
-      const errorMessage = err.response?.data?.message || 'Error al añadir cliente';
-      setError(errorMessage);
+        const errorMessage = err.response?.data?.message || t('CLIENT_ADD_ERROR');
+        setError(errorMessage);
+        showNotification(errorMessage, 'error');
     }
   };
 

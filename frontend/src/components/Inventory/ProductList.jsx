@@ -1,22 +1,47 @@
 // src/components/Inventory/ProductList.jsx
 import React, { lazy, Suspense } from 'react';
-import { Loader2 } from 'lucide-react'; // Ícono de carga
-import { useCurrency } from '../../context/CurrencyContext'; // <-- ¡NUEVA LÍNEA!
-import ErrorBoundary from '../ErrorBoundary'; // <-- ¡NUEVA LÍNEA!
-
+import { Loader2 } from 'lucide-react';
+import { useCurrency } from '../../context/CurrencyContext';
+import ErrorBoundary from '../Common/ErrorBoundary';
+import { useNotification } from '../../context/NotificationContext';
+import { useTranslation } from 'react-i18next';
+import axiosInstance from "../../api/axiosInstance";
 // Importación perezosa del componente ProductCard
 const ProductCard = lazy(() => import('./ProductCard'));
 
 const ProductList = ({ products, handleEditClick, confirmDeleteProduct, expandedProducts, toggleProductExpansion, loading, error, onEdit, onDelete }) => {
-    const { exchangeRate, convertPrice, formatPrice } = useCurrency(); // <-- ¡NUEVA LÍNEA!
+    const { exchangeRate, convertPrice, formatPrice } = useCurrency();
+    const { showNotification } = useNotification();
+    const { t } = useTranslation();
+
+    const handleDelete = async (id) => {
+        try {
+            await eliminarProducto(id);
+            showNotification(t('PRODUCT_DELETE_SUCCESS'), 'success');
+        } catch (error) {
+            showNotification(t('PRODUCT_DELETE_ERROR'), 'error');
+        }
+    };
+
+    const handleAddClient = async (nuevoCliente) => {
+        try {
+            await axiosInstance.post('/clients', nuevoCliente);
+            showNotification(t('CLIENT_ADD_SUCCESS'), 'success');
+        } catch (err) {
+            // Usa el mensaje traducible si existe, si no, usa uno genérico
+            const errorMessage = t(err.translatedMessage || 'CLIENT_ADD_ERROR');
+            showNotification(errorMessage, 'error');
+        }
+    };
+
     return (
         <ErrorBoundary>
             <div className="w-full">
                 {/* Loader global */}
                 {loading && (
                     <div className="flex justify-center items-center h-32">
-                        <span className="animate-spin text-action-blue text-2xl">Cargando productos...</span>
-                    </div>
+            <span className="animate-spin text-action-blue text-2xl">{t('LOADING_PRODUCTS') || 'Cargando productos...'}</span>
+          </div>
                 )}
 
                 {/* Mensaje de error destacado */}
@@ -29,7 +54,7 @@ const ProductList = ({ products, handleEditClick, confirmDeleteProduct, expanded
                 {/* Lista de productos */}
                 {!loading && !error && (
                     products.length === 0 ? (
-                        <p className="text-neutral-gray-300 text-lg text-center mt-10">No hay productos para mostrar.</p>
+                        <p className="text-neutral-gray-300 text-lg text-center mt-10">{t('NO_PRODUCTS') || 'No hay productos para mostrar.'}</p>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {products.map((product) => (

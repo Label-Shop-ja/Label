@@ -64,6 +64,15 @@ axiosInstance.interceptors.response.use(
           // La redirección se hará a través del ProtectedRoute o lógica en App.jsx
         }
       }
+    } else {
+      // Manejo de errores cuando no hay respuesta del servidor
+      let message = 'ERROR_DEFAULT';
+      if (error.request) {
+        // No hay respuesta del servidor
+        message = 'ERROR_NETWORK';
+      }
+      // Adjunta el mensaje traducible al error para usarlo en los componentes
+      error.translatedMessage = message;
     }
     return Promise.reject(error);
   }
