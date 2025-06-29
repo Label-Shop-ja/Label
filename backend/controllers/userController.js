@@ -1,27 +1,25 @@
-// C:\Proyectos\Label\backend\controllers\userController.js
-const asyncHandler = require('express-async-handler');
-const User = require('../models/User'); // Asegúrate de que User está importado
+import asyncHandler from 'express-async-handler';
+import User from '../models/userModel.js'; // Asegúrate de que la ruta sea correcta
 
-// @desc    Obtener el perfil del usuario autenticado
+// @desc    Obtener el perfil del usuario
 // @route   GET /api/users/profile
 // @access  Private
-const getMyProfile = asyncHandler(async (req, res) => {
-    // El middleware 'protect' ya ha adjuntado el objeto 'user' completo a 'req'
-    // por lo que simplemente podemos devolver los datos del usuario.
-    // Ya vienen sin la contraseña gracias a .select('-password') en authMiddleware.
-    res.status(200).json(req.user);
+const getUserProfile = asyncHandler(async (req, res) => {
+  // Gracias al middleware `protect`, ya tenemos `req.user` disponible aquí.
+  if (req.user) {
+    res.json(req.user);
+  } else {
+    res.status(404);
+    throw new Error('Usuario no encontrado');
+  }
 });
 
-// @desc    Obtener todos los usuarios (Ejemplo, puede ser para administradores)
+// @desc    Obtener todos los usuarios (Solo para Admin)
 // @route   GET /api/users
-// @access  Private/Admin (se necesitaría un middleware de rol)
+// @access  Private/Admin
 const getAllUsers = asyncHandler(async (req, res) => {
-    // En una app real, esto estaría protegido por un middleware de rol (isAdmin)
-    const users = await User.find({}).select('-password'); // Excluye contraseñas
-    res.status(200).json(users);
+  const users = await User.find({}).select('-password'); // Obtenemos todos los usuarios sin su contraseña
+  res.json(users);
 });
 
-module.exports = {
-    getMyProfile,
-    getAllUsers,
-};
+export { getUserProfile, getAllUsers };

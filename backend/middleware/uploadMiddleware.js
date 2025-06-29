@@ -1,5 +1,5 @@
 // E:\Proyectos\Label\backend\middleware\uploadMiddleware.js
-const multer = require('multer');
+import multer from 'multer';
 
 // Configuración de almacenamiento de Multer:
 // Usamos 'memoryStorage()' para que Multer almacene el archivo en la memoria del servidor.
@@ -24,4 +24,4 @@ const upload = multer({
     }
 });
 
-module.exports = upload; // <--- ¡Importante! Exportamos la instancia 'upload' directamente
+export default upload;

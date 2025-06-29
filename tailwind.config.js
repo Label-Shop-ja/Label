@@ -1,7 +1,10 @@
 // tailwind.config.js
+const plugin = require('tailwindcss/plugin');
+
 /** @type {import('tailwindcss').Config} */
 export default {
   // Configura los archivos donde Tailwind debe buscar clases
+  darkMode: 'class', // Habilitamos el modo oscuro basado en la clase `.dark`
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -10,6 +13,7 @@ export default {
     extend: {
       // Define tus colores personalizados para usar en Tailwind
       colors: {
+        // Colores para el tema "Clásico" (el original)
         'deep-night-blue': '#1a202c', // Fondo principal del dashboard y modal
         'copper-rose-accent': '#FF6B6B', // Color de acento para títulos y elementos interactivos
         'action-blue': '#4A90E2', // Azul para botones de acción y enlaces
@@ -23,6 +27,14 @@ export default {
         'neutral-gray-700': '#4A5568', // Gris oscuro para bordes de inputs
         'action-blue-light': '#74B9FF', // Una variante más clara del azul de acción para bordes/sombras
         'dark-slate-gray': '#2a313c', // Un gris azulado oscuro para el fondo de las páginas
+
+        // Colores para el nuevo tema "Claro"
+        'light-bg': '#F9FAFB', // Fondo principal claro
+        'light-surface': '#FFFFFF', // Superficie de tarjetas y modales
+        'light-text': '#1F2937', // Texto principal
+        'light-text-secondary': '#6B7280', // Texto secundario
+        'light-accent': '#EF4444', // Acento (rojo)
+        'light-action': '#3B82F6', // Acción (azul)
       },
       // Define tus keyframes para animaciones CSS
       keyframes: {
@@ -47,5 +59,11 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Plugin para añadir la variante "classic"
+    // Esto nos permitirá usar clases como `classic:bg-deep-night-blue`
+    plugin(function({ addVariant }) {
+      addVariant('classic', '.classic &')
+    })
+  ],
 }

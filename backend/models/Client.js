@@ -1,5 +1,5 @@
 // C:\Proyectos\Label\backend\models\Client.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const clientSchema = mongoose.Schema(
   {
@@ -38,4 +38,4 @@ const clientSchema = mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('Client', clientSchema);
+export default mongoose.model('Client', clientSchema);

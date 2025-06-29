@@ -1,7 +1,7 @@
 // C:\Proyectos\Label\backend\routes\globalProductRoutes.js
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { getGlobalProducts } = require('../controllers/globalProductController'); // Importa solo la función de búsqueda pública
+import { getGlobalProducts } from '../controllers/globalProductController.js'; // Importa solo la función de búsqueda pública
 
 console.log('Cargando rutas globalProductRoutes...'); // <-- Log de depuración
 
@@ -10,4 +10,4 @@ console.log('Cargando rutas globalProductRoutes...'); // <-- Log de depuración
 // @access  Public (estas rutas son para la búsqueda de sugerencias, no requieren protección inicial por token)
 router.get('/', getGlobalProducts);
 
-module.exports = router;
+export default router;

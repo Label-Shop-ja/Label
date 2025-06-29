@@ -6,5 +6,8 @@
     "react-hook-form": "^7.58.1",
     "react-i18next": "^15.5.3",
     "yup": "^1.6.1"
+  },
+  "scripts": {
+    "prepare": "husky"
   }
 }

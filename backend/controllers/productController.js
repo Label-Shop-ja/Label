@@ -1,14 +1,14 @@
 // C:\Proyectos\Label\backend\controllers\productController.js
-const asyncHandler = require('express-async-handler');
-const Product = require('../models/productModel'); // Asegúrate de que esta línea sea correcta
-const ExchangeRate = require('../models/ExchangeRate'); // ¡IMPORTAMOS EL MODELO DE TASAS!
-const { calculateSalePrice, calculateProfitAndPriceForDisplay } = require('../utils/currencyCalculator'); // ¡IMPORTAMOS LA CALCULADORA!
-const logInventoryMovement = require('../utils/inventoryLogger');
+import asyncHandler from 'express-async-handler';
+import Product from '../models/productModel.js';
+import ExchangeRate from '../models/ExchangeRate.js';
+import { calculateSalePrice } from '../utils/currencyCalculator.js';
+import logInventoryMovement from '../utils/inventoryLogger.js';
 
 // @desc    Obtener todos los productos
 // @route   GET /api/products
 // @access  Private
-const getProducts = asyncHandler(async (req, res) => {
+export const getProducts = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { searchTerm, category, brand, supplier, variantColor, variantSize, page, limit, sortBy, sortOrder } = req.query;
 
@@ -103,7 +103,7 @@ const getProducts = asyncHandler(async (req, res) => {
 // @desc    Obtener un producto por ID
 // @route   GET /api/products/:id
 // @access  Private
-const getProduct = asyncHandler(async (req, res) => {
+export const getProduct = asyncHandler(async (req, res) => {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
@@ -122,7 +122,7 @@ const getProduct = asyncHandler(async (req, res) => {
 // @desc    Crear un nuevo producto
 // @route   POST /api/products
 // @access  Private
-const createProduct = asyncHandler(async (req, res) => {
+export const createProduct = asyncHandler(async (req, res) => {
     console.log('Product data received in createProduct:', JSON.stringify(req.body, null, 2));
 
     const {
@@ -338,7 +338,7 @@ const createProduct = asyncHandler(async (req, res) => {
 // @desc    Actualizar un producto
 // @route   PUT /api/products/:id
 // @access  Private
-const updateProduct = asyncHandler(async (req, res) => {
+export const updateProduct = asyncHandler(async (req, res) => {
     console.log('Product data received in updateProduct:', JSON.stringify(req.body, null, 2));
 
     const { id } = req.params;
@@ -597,7 +597,7 @@ try {
 // @desc    Obtener productos con stock bajo
 // @route   GET /api/products/alerts/low-stock
 // @access  Private
-const getLowStockProducts = asyncHandler(async (req, res) => {
+export const getLowStockProducts = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
     const lowStockMainProducts = await Product.aggregate([
@@ -660,7 +660,7 @@ const getLowStockProducts = asyncHandler(async (req, res) => {
 // @desc    Obtener productos con stock alto (perecederos)
 // @route   GET /api/products/alerts/high-stock
 // @access  Private
-const getHighStockProducts = asyncHandler(async (req, res) => {
+export const getHighStockProducts = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
     const highStockMainProducts = await Product.aggregate([
@@ -729,7 +729,7 @@ const getHighStockProducts = asyncHandler(async (req, res) => {
 // @desc    Eliminar un producto
 // @route   DELETE /api/products/:id
 // @access  Private
-const deleteProduct = asyncHandler(async (req, res) => {
+export const deleteProduct = asyncHandler(async (req, res) => {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
@@ -747,134 +747,10 @@ const deleteProduct = asyncHandler(async (req, res) => {
     res.status(200).json({ message: 'Product removed' });
 });
 
-// @desc    Obtener sugerencias de productos globales (para todos los usuarios)
-// @route   GET /api/products/globalproducts
-// @access  Public (o ajusta si lo quieres privado)
-const getGlobalProducts = asyncHandler(async (req, res) => {
-    const { searchTerm } = req.query;
-
-    let query = {};
-    if (searchTerm) {
-        query.name = { $regex: searchTerm, $options: 'i' };
-    }
-
-    const globalProducts = [
-        {
-            sku: 'CAMI-ALG-ROJO-M',
-            name: 'Basic Cotton T-shirt',
-            description: 'Soft and comfortable cotton t-shirt for daily use.',
-            category: 'Clothing',
-            unitOfMeasure: 'unit',
-            brand: 'Generic',
-            imageUrl: 'https://res.cloudinary.com/your_cloud_name/image/upload/v1678901234/label_products/camiseta_roja.jpg',
-            color: 'Red',
-            size: 'M',
-            material: 'Cotton',
-            variants: [
-                {
-                    name: 'Size S - Red', sku: 'CAMI-S-ROJO', price: 15.00, costPrice: 7.00, stock: 50, unitOfMeasure: 'unit', color: 'Red', size: 'S', material: 'Cotton', imageUrl: 'https://placehold.co/150x100/A02C2C/F8F8F2?text=S-Red'
-                },
-                {
-                    name: 'Size M - Red', sku: 'CAMI-M-ROJO', price: 15.00, costPrice: 7.00, stock: 45, unitOfMeasure: 'unit', color: 'Red', size: 'M', material: 'Cotton', imageUrl: 'https://placehold.co/150x100/A02C2C/F8F8F2?text=M-Red'
-                },
-                {
-                    name: 'Size L - Red', sku: 'CAMI-L-ROJO', price: 15.00, costPrice: 7.00, stock: 30, unitOfMeasure: 'unit', color: 'Red', size: 'L', material: 'Cotton', imageUrl: 'https://placehold.co/150x100/A02C2C/F8F8F2?text=L-Red'
-                },
-                {
-                    name: 'Size M - Blue', sku: 'CAMI-M-AZUL', price: 16.00, costPrice: 7.50, stock: 60, unitOfMeasure: 'unit', color: 'Blue', size: 'M', material: 'Cotton', imageUrl: 'https://placehold.co/150x100/2C3CA0/F8F8F2?text=M-Blue'
-                },
-            ]
-        },
-        {
-            sku: 'PANT-JEAN-AZUL-32',
-            name: 'Classic Blue Jean Pants',
-            description: 'Classic blue jean pants, straight fit.',
-            category: 'Clothing',
-            unitOfMeasure: 'unit',
-            brand: 'DenimCo',
-            imageUrl: 'https://res.cloudinary.com/your_cloud_name/image/upload/v1678901235/label_products/jean_azul.jpg',
-            color: 'Blue',
-            size: '32',
-            material: 'Jean',
-            variants: [
-                { name: 'Size 30', sku: 'PANT-30-AZUL', price: 45.00, costPrice: 20.00, stock: 25, unitOfMeasure: 'unit', size: '30', color: 'Blue' },
-                { name: 'Size 32', sku: 'PANT-32-AZUL', price: 45.00, costPrice: 20.00, stock: 40, unitOfMeasure: 'unit', size: '32', color: 'Blue' },
-                { name: 'Size 34', sku: 'PANT-34-AZUL', price: 45.00, costPrice: 20.00, stock: 35, unitOfMeasure: 'unit', size: '34', color: 'Blue' },
-            ]
-        },
-        {
-            sku: 'CEL-SMART-ULTRA-256',
-            name: 'Smartphone Ultra X',
-            description: 'Latest smartphone model with high-resolution camera and large storage.',
-            category: 'Electronics',
-            unitOfMeasure: 'unit',
-            brand: 'TechGadget',
-            imageUrl: 'https://res.cloudinary.com/your_cloud_name/image/upload/v1678901236/label_products/smartphone_ultra.jpg',
-            color: 'Black',
-            size: '256GB',
-            material: 'Metal/Glass',
-            variants: [
-                { name: 'Black Color - 128GB', sku: 'SMART-NEGRO-128', price: 799.99, costPrice: 500.00, stock: 15, unitOfMeasure: 'unit', color: 'Black', size: '128GB' },
-                { name: 'Black Color - 256GB', price: 899.99, costPrice: 600.00, stock: 10, unitOfMeasure: 'unit', color: 'Black', size: '256GB' },
-                { name: 'Silver Color - 256GB', price: 899.99, costPrice: 600.00, stock: 8, unitOfMeasure: 'unit', color: 'Silver', size: '256GB' },
-            ]
-        },
-        {
-            sku: 'AUDI-BLUETOOTH-SPORT',
-            name: 'Sport Bluetooth Headphones',
-            description: 'Wireless headphones ideal for exercise, with high-fidelity sound.',
-            category: 'Electronics',
-            unitOfMeasure: 'unit',
-            brand: 'SoundBlast',
-            imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Headphones',
-            color: 'Black',
-            size: 'N/A',
-            material: 'Plastic',
-            variants: []
-        },
-        {
-            sku: 'CAFE-ESPECIAL-KG',
-            name: 'Special Origin Coffee',
-            description: 'Arabica coffee beans, medium roasted, from selected farms.',
-            category: 'Food and Beverages',
-            unitOfMeasure: 'kg',
-            brand: 'AromaPuro',
-            imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Coffee',
-            color: 'Brown',
-            size: '1KG',
-            material: 'Grain',
-            variants: []
-        },
-        {
-            sku: 'ZAP-DEP-CORR-40',
-            name: 'Running Sports Shoes',
-            description: 'Lightweight and breathable running shoes.',
-            category: 'Footwear',
-            unitOfMeasure: 'unit',
-            brand: 'RunFast',
-            imageUrl: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Shoes',
-            color: 'Blue',
-            size: '40',
-            material: 'Mesh/Synthetic',
-            variants: [
-                { name: 'Size 40 - Blue', sku: 'ZAP-40-AZUL', price: 60.00, costPrice: 30.00, stock: 20, unitOfMeasure: 'unit', size: '40', color: 'Blue' },
-                { name: 'Size 42 - Black', sku: 'ZAP-42-NEGRO', price: 65.00, costPrice: 32.00, stock: 15, unitOfMeasure: 'unit', size: '42', color: 'Black' },
-            ]
-        },
-    ];
-
-    const filteredSuggestions = globalProducts.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.variants && p.variants.some(v => v.name.toLowerCase().includes(searchTerm.toLowerCase())))
-    );
-
-    res.status(200).json(filteredSuggestions.slice(0, 5));
-});
-
 // @desc    Obtener reporte de inventario detallado por variante
 // @route   GET /api/products/reports/variants
 // @access  Private
-const getVariantInventoryReport = asyncHandler(async (req, res) => {
+export const getVariantInventoryReport = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
     const report = await Product.aggregate([
@@ -926,15 +802,3 @@ const getVariantInventoryReport = asyncHandler(async (req, res) => {
 
     res.status(200).json(report);
 });
-
-module.exports = {
-    getProducts,
-    getProduct,
-    createProduct,
-    updateProduct,
-    deleteProduct,
-    getGlobalProducts,
-    getLowStockProducts,
-    getHighStockProducts,
-    getVariantInventoryReport,
-};

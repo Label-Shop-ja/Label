@@ -1,81 +1,61 @@
-// C:\Proyectos\Label\frontend\src\api\axiosInstance.js
+// f:\Proyectos\Label\frontend\src\api\axiosInstance.js
 import axios from 'axios';
-
-// Determina la URL base de tu backend.
-// Usa la variable de entorno VITE_BACKEND_URL (para producción en Render)
-// o 'http://localhost:5000' (para desarrollo local).
-// Asegúrate de que tu archivo .env.development o .env.production en la raíz del frontend
-// contenga VITE_BACKEND_URL=https://label-backend-api.onrender.com/api
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api';
+import { logoutUser, setAccessToken } from '../redux/authSlice';
 
 const axiosInstance = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true,
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
 });
 
-let logoutFunction = null;
+// Esta función es clave para romper dependencias circulares
+export const setupAxiosInterceptors = (store) => {
+    axiosInstance.interceptors.request.use(
+        (config) => {
+            const token = store.getState().auth.accessToken;
+            if (token) {
+                config.headers['Authorization'] = `Bearer ${token}`;
+            }
+            return config;
+        },
+        (error) => Promise.reject(error)
+    );
 
-export const setLogoutFunction = (callback) => {
-  logoutFunction = callback;
-};
+    axiosInstance.interceptors.response.use(
+        (response) => response,
+        async (error) => {
+            const originalRequest = error.config;
+            // Si el error es 401 y no hemos reintentado esta petición antes
+            if (error.response?.status === 401 && !originalRequest._retry) {
+                originalRequest._retry = true;
+                console.log('Access token expired. Attempting to refresh...');
+                try {
+                    const refreshToken = store.getState().auth.refreshToken;
+                    if (!refreshToken) {
+                        // Si no hay refresh token, desloguear inmediatamente.
+                        store.dispatch(logoutUser());
+                        return Promise.reject(error);
+                    }
 
-// Interceptor de solicitudes
-// Se ejecuta antes de CADA solicitud HTTP saliente
-axiosInstance.interceptors.request.use(
-  (config) => {
-    // Intenta obtener los datos del usuario del localStorage
-    const user = JSON.parse(localStorage.getItem('user'));
-    // Si el objeto 'user' existe y tiene un token, lo adjunta
-    const token = user ? user.token : null;
+                    // Petición al endpoint de refresco
+                    const { data } = await axios.post(`${axiosInstance.defaults.baseURL}/auth/refresh`, { refreshToken });
+                    
+                    // Actualizamos el nuevo token en el store de Redux
+                    store.dispatch(setAccessToken(data.accessToken));
+                    
+                    // Actualizamos el header para la petición original y la reintentamos
+                    originalRequest.headers['Authorization'] = `Bearer ${data.accessToken}`;
+                    return axiosInstance(originalRequest);
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Interceptor de respuesta de Axios (mejorado)
-axiosInstance.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  async (error) => {
-    if (error.response) {
-      const { status, data } = error.response;
-
-      // Si el status es 401 y el mensaje indica token expirado, forzamos logout
-      // Es importante que el mensaje de tu backend sea consistente con 'No autorizado, token expirado.'
-      if (status === 401 && data.message === 'No autorizado, token expirado.') {
-        console.warn('Token expirado detectado. Forzando cierre de sesión...');
-        if (logoutFunction) {
-          logoutFunction(); // Llama a la función logout del AuthContext
-          // IMPORTANTE: Ya NO se redirige aquí con window.location.href.
-          // La redirección será manejada por AuthContext y React Router.
-        } else {
-          // Fallback por si la función de logout no está registrada (menos probable)
-          localStorage.removeItem('user'); // Consistente con 'user' object
-          // La redirección se hará a través del ProtectedRoute o lógica en App.jsx
+                } catch (refreshError) {
+                    // ¡ESTA ES LA PARTE CRÍTICA!
+                    // Si el refresco falla, el refresh token es inválido. Debemos desloguear al usuario.
+                    console.error('Token refresh failed. Logging out.', refreshError);
+                    store.dispatch(logoutUser()); // Despachamos la acción de logout
+                    return Promise.reject(refreshError);
+                }
+            }
+            return Promise.reject(error);
         }
-      }
-    } else {
-      // Manejo de errores cuando no hay respuesta del servidor
-      let message = 'ERROR_DEFAULT';
-      if (error.request) {
-        // No hay respuesta del servidor
-        message = 'ERROR_NETWORK';
-      }
-      // Adjunta el mensaje traducible al error para usarlo en los componentes
-      error.translatedMessage = message;
-    }
-    return Promise.reject(error);
-  }
-);
+    );
+};
 
 export default axiosInstance;

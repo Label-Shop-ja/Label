@@ -1,11 +1,11 @@
 // C:\Proyectos\Label\backend\controllers\clientController.js
-const Client = require('../models/Client');
-const asyncHandler = require('express-async-handler');
+import Client from '../models/Client.js';
+import asyncHandler from 'express-async-handler';
 
 // @desc    Obtener todos los clientes del usuario
 // @route   GET /api/clients
 // @access  Private
-const getClients = asyncHandler(async (req, res) => {
+export const getClients = asyncHandler(async (req, res) => {
   // Obtener solo clientes asociados al usuario autenticado
   const clients = await Client.find({ user: req.user.id }).sort({ createdAt: -1 });
   res.status(200).json(clients);
@@ -14,7 +14,7 @@ const getClients = asyncHandler(async (req, res) => {
 // @desc    Crear un nuevo cliente
 // @route   POST /api/clients
 // @access  Private
-const createClient = asyncHandler(async (req, res) => {
+export const createClient = asyncHandler(async (req, res) => {
   const { name, email, phone, address } = req.body;
 
   // Validar campo requerido: nombre
@@ -38,7 +38,7 @@ const createClient = asyncHandler(async (req, res) => {
 // @desc    Obtener un cliente por ID
 // @route   GET /api/clients/:id
 // @access  Private
-const getClientById = asyncHandler(async (req, res) => {
+export const getClientById = asyncHandler(async (req, res) => {
   const client = await Client.findById(req.params.id);
 
   if (!client) {
@@ -59,7 +59,7 @@ const getClientById = asyncHandler(async (req, res) => {
 // @desc    Actualizar un cliente
 // @route   PUT /api/clients/:id
 // @access  Private
-const updateClient = asyncHandler(async (req, res) => {
+export const updateClient = asyncHandler(async (req, res) => {
   const { name, email, phone, address } = req.body;
   const client = await Client.findById(req.params.id);
 
@@ -87,7 +87,7 @@ const updateClient = asyncHandler(async (req, res) => {
 // @desc    Eliminar un cliente
 // @route   DELETE /api/clients/:id
 // @access  Private
-const deleteClient = asyncHandler(async (req, res) => {
+export const deleteClient = asyncHandler(async (req, res) => {
   const client = await Client.findById(req.params.id);
 
   if (!client) {
@@ -104,12 +104,3 @@ const deleteClient = asyncHandler(async (req, res) => {
   await client.deleteOne();
   res.status(200).json({ message: 'Cliente eliminado exitosamente', id: req.params.id });
 });
-
-
-module.exports = {
-  getClients,
-  createClient,
-  getClientById,
-  updateClient,
-  deleteClient,
-};

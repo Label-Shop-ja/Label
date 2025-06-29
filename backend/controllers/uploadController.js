@@ -1,9 +1,9 @@
 // E:\Proyectos\Label\backend\controllers\uploadController.js
-const asyncHandler = require('express-async-handler');
-const cloudinary = require('../config/cloudinaryConfig');
-const axios = require('axios');
+import asyncHandler from 'express-async-handler';
+import cloudinary from '../config/cloudinaryConfig.js';
+import axios from 'axios';
 
-const uploadImage = asyncHandler(async (req, res) => {
+export const uploadImage = asyncHandler(async (req, res) => {
     let imageUrlToUpload;
 
     if (req.file) {
@@ -57,7 +57,3 @@ const uploadImage = asyncHandler(async (req, res) => {
         throw new Error('Error al subir la imagen al servicio de alojamiento: ' + uploadError.message);
     }
 });
-
-module.exports = {
-    uploadImage, // <--- ¡Importante! Exportamos 'uploadImage' como una propiedad de un objeto
-};

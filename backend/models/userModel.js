@@ -1,6 +1,6 @@
 // C:\Proyectos\Label\backend\models\User.js
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 const UserSchema = mongoose.Schema({
   fullName: {
@@ -20,6 +20,10 @@ const UserSchema = mongoose.Schema({
     required: [true, 'Por favor, ingresa una contraseña.'],
     minlength: [6, 'La contraseña debe tener al menos 6 caracteres.'],
   },
+  refreshToken: {
+    type: String,
+    default: null
+  },
 }, {
   timestamps: true,
 });
@@ -38,4 +42,6 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('User', UserSchema);
+const User = mongoose.model('User', UserSchema);
+
+export default User;

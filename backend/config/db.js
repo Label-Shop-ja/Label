@@ -1,6 +1,6 @@
 // C:\Proyectos\Label\backend\config\db.js
-const mongoose = require('mongoose');
-require('dotenv').config(); // Para cargar las variables de entorno
+import mongoose from 'mongoose';
+import 'dotenv/config'; // Para cargar las variables de entorno
 
 const connectDB = async () => {
   try {
@@ -12,4 +12,4 @@ const connectDB = async () => {
   }
 };
 
-module.exports = connectDB;
+export default connectDB;

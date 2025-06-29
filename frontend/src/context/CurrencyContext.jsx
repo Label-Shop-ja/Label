@@ -1,12 +1,11 @@
 // C:\Proyectos\Label\frontend\src\context\CurrencyContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axiosInstance from '../api/axiosInstance';
-import { useAuth } from './AuthContext';
-
+import useAuth from '../hooks/useAuth';
 // Importamos las funciones de nuestra calculadora criminal del frontend
 import { convertPrice as currencyCalculatorConvertPrice, getConversionRate } from '../utils/currencyCalculator';
 
-const CurrencyContext = createContext();
+const CurrencyContext = createContext({});
 
 export const useCurrency = () => {
   return useContext(CurrencyContext);
@@ -26,7 +25,10 @@ export const CurrencyProvider = ({ children }) => {
   const fetchExchangeRate = useCallback(async () => {
     if (!user) {
       setLoadingCurrency(false);
-      setCurrencyError('No hay usuario logueado. No se puede cargar la tasa de cambio.'); 
+      // ¡CLAVE! Si no hay usuario, no es un error. Simplemente no podemos cargar las tasas.
+      // Limpiamos el estado y salimos para que la app no se tranque.
+      setExchangeRate(null);
+      setCurrencyError(''); // Limpiamos cualquier error previo.
       return;
     }
     setLoadingCurrency(true);
@@ -89,20 +91,14 @@ export const CurrencyProvider = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
-    const savedRate = localStorage.getItem('exchangeRate');
-    if (savedRate) {
-      try {
-        setExchangeRate(JSON.parse(savedRate));
-        setLoadingCurrency(false);
-      } catch (e) {
-        console.error('Error al parsear exchangeRate de localStorage:', e);
-        localStorage.removeItem('exchangeRate');
-      }
-    }
+    // Lógica para cargar la tasa de cambio solo una vez
     fetchExchangeRate();
-    // ¡DE UNA! Llamamos a la nueva función aquí también.
+  }, [fetchExchangeRate]); // <-- ¡ARREGLADO! Ahora escucha los cambios en el usuario a través del hook
+
+  // ¡DE UNA! Llamamos a la nueva función aquí también.
+  useEffect(() => {
     fetchCustomRates();
-  }, [fetchExchangeRate, fetchCustomRates]);
+  }, [fetchCustomRates]);
 
   // --- ¡NUEVO EFECTO! Para extraer y almacenar las monedas disponibles ---
   useEffect(() => {

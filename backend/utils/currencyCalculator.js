@@ -148,7 +148,7 @@ const calculateProfitAndPriceForDisplay = (cost, costCurrency, profitPercentage,
 };
 
 
-module.exports = {
+export {
     getConversionRate,
     convertPrice,
     calculateSalePrice,

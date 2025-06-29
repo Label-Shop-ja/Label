@@ -1,5 +1,5 @@
 // C:\Proyectos\Label\backend\models\ExchangeRate.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // --- INICIO: LISTA DE MONEDAS DISPONIBLES EN EL MODELO ---
 // ¡CRÍTICO! Esta lista DEBE ser la misma que en el controlador exchangeRateController.js
@@ -80,5 +80,4 @@ const exchangeRateSchema = new mongoose.Schema({
 // lo cual es incorrecto. El `user: unique` ya asegura que cada usuario solo tiene un documento.
 // exchangeRateSchema.index({ user: 1, 'conversions.fromCurrency': 1, 'conversions.toCurrency': 1 }, { unique: true, partialFilterExpression: { 'conversions.fromCurrency': { $exists: true } } }); // ¡ELIMINAR O COMENTAR!
 
-
-module.exports = mongoose.model('ExchangeRate', exchangeRateSchema);
+export default mongoose.model('ExchangeRate', exchangeRateSchema);

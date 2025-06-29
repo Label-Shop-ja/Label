@@ -1,11 +1,10 @@
 // C:\Proyectos\Label\backend\routes\statsRoutes.js
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { getSalesAndProductStats } = require('../controllers/statsController');
-// Importamos el middleware de protección. ¡Ahora lo importamos directamente!
-const protect = require('../middleware/authMiddleware'); // <--- ¡CAMBIO AQUÍ!
+import { getSalesAndProductStats } from '../controllers/statsController.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 // Rutas protegidas
 router.get('/sales-products', protect, getSalesAndProductStats);
 
-module.exports = router;
+export default router;

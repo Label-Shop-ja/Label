@@ -1,11 +1,11 @@
 // C:\Proyectos\Label\backend\controllers\globalProductController.js
-const GlobalProduct = require('../models/GlobalProduct');
-const asyncHandler = require('express-async-handler');
+import GlobalProduct from '../models/GlobalProduct.js';
+import asyncHandler from 'express-async-handler';
 
 // @desc    Crea o actualiza un producto global.
 //          Esta función es llamada internamente por productController cuando un usuario crea un producto.
 // @access  Internal (no es una ruta API directa)
-const createGlobalProduct = async (productData) => {
+export const createGlobalProduct = async (productData) => {
     // Añadimos imageUrl al destructuring para poder recibirlo desde productController
     const { name, description, category, sku, unitOfMeasure, brand, supplier, imageUrl } = productData;
 
@@ -55,7 +55,7 @@ const createGlobalProduct = async (productData) => {
 // @desc    Obtener todas las categorías únicas del catálogo global
 // @route   GET /api/globalproducts/categories
 // @access  Private
-const getGlobalProductCategories = asyncHandler(async (req, res) => {
+export const getGlobalProductCategories = asyncHandler(async (req, res) => {
     try {
         const categories = await GlobalProduct.distinct('category');
         res.status(200).json(categories);
@@ -67,7 +67,7 @@ const getGlobalProductCategories = asyncHandler(async (req, res) => {
 // @desc    Obtener todas las marcas únicas del catálogo global
 // @route   GET /api/globalproducts/brands
 // @access  Private
-const getGlobalProductBrands = asyncHandler(async (req, res) => {
+export const getGlobalProductBrands = asyncHandler(async (req, res) => {
     try {
         const brands = await GlobalProduct.distinct('brand');
         res.status(200).json(brands);
@@ -79,7 +79,7 @@ const getGlobalProductBrands = asyncHandler(async (req, res) => {
 // @desc    Obtener todos los proveedores únicos del catálogo global
 // @route   GET /api/globalproducts/suppliers
 // @access  Private
-const getGlobalProductSuppliers = asyncHandler(async (req, res) => {
+export const getGlobalProductSuppliers = asyncHandler(async (req, res) => {
     try {
         const suppliers = await GlobalProduct.distinct('supplier');
         res.status(200).json(suppliers);
@@ -91,7 +91,7 @@ const getGlobalProductSuppliers = asyncHandler(async (req, res) => {
 // @desc    Obtener productos globales con búsqueda
 // @route   GET /api/globalproducts
 // @access  Private (para sugerencias)
-const getGlobalProducts = asyncHandler(async (req, res) => {
+export const getGlobalProducts = asyncHandler(async (req, res) => {
     const { searchTerm } = req.query;
     const query = {};
 
@@ -111,12 +111,3 @@ const getGlobalProducts = asyncHandler(async (req, res) => {
     const globalProducts = await GlobalProduct.find(query).limit(10); // Limitar sugerencias a 10
     res.status(200).json(globalProducts);
 });
-
-
-module.exports = {
-    createGlobalProduct,
-    getGlobalProductCategories,
-    getGlobalProductBrands,
-    getGlobalProductSuppliers,
-    getGlobalProducts,
-};

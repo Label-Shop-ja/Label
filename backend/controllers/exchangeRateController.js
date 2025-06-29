@@ -1,8 +1,8 @@
 // C:\Proyectos\Label\backend\controllers\exchangeRateController.js
-const asyncHandler = require('express-async-handler');
-const ExchangeRate = require('../models/ExchangeRate');
-const axios = require('axios');
-require('dotenv').config();
+import asyncHandler from 'express-async-handler';
+import ExchangeRate from '../models/ExchangeRate.js'; // Ensure the model uses 'export default'
+import axios from 'axios';
+// dotenv.config() is already called in server.js, no need to call it here.
 
 // --- INICIO: LISTA DE MONEDAS OBJETIVO PARA LA EXPANSIÓN ---
 // ¡CRÍTICO! Esta lista DEBE ser la misma que en el modelo ExchangeRate.js
@@ -230,8 +230,8 @@ const fetchOfficialRate = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = {
-    getExchangeRate,
-    setExchangeRate,
-    fetchOfficialRate,
+export {
+  getExchangeRate,
+  setExchangeRate,
+  fetchOfficialRate,
 };

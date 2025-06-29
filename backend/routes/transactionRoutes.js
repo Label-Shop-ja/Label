@@ -1,16 +1,15 @@
 // C:\Proyectos\Label\backend\routes\transactionRoutes.js
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const {
+import {
   getTransactions,
   createTransaction,
   getTransactionById,
   updateTransaction,
   deleteTransaction,
   getFinancialSummary,
-} = require('../controllers/transactionController');
-// Importamos el middleware de protección. ¡Ahora lo importamos directamente!
-const protect = require('../middleware/authMiddleware'); // <--- ¡CAMBIO AQUÍ!
+} from '../controllers/transactionController.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 // Rutas protegidas
 
@@ -20,4 +19,4 @@ router.get('/summary', protect, getFinancialSummary); // Esta ruta debe ir prime
 router.route('/').get(protect, getTransactions).post(protect, createTransaction);
 router.route('/:id').get(protect, getTransactionById).put(protect, updateTransaction).delete(protect, deleteTransaction);
 
-module.exports = router;
+export default router;

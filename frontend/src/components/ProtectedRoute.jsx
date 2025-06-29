@@ -1,37 +1,36 @@
-// C:\Proyectos\Label\frontend\src\components\ProtectedRoute.jsx
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
+import useAuth from '../hooks/useAuth'; // Asumiendo que este hook ya existe
 
 /**
- * Componente de Ruta Protegida.
- * Este componente se encarga de verificar si un usuario está autenticado.
- * Si el usuario no está autenticado, lo redirige a la página de inicio de sesión.
- * De lo contrario, permite el renderizado de los componentes hijos (rutas anidadas).
- *
- * @param {object} props - Propiedades del componente.
- * @param {React.ReactNode} props.children - Los componentes hijos que se renderizarán si el usuario está autenticado.
- * @param {boolean} props.redirectToLogin - Indica si debe redirigir a la página de login si no está autenticado.
- * Por defecto es true. Si es false, redirigirá a la raíz.
+ * Un componente de ruta protegida que verifica la autenticación y, opcionalmente, los roles de usuario.
+ * @param {Object} props
+ * @param {string[]} [props.allowedRoles] - Un array de roles permitidos. Si no se proporciona, solo se verifica la autenticación.
+ * @param {React.ReactNode} [props.children] - Componentes hijos para renderizar si la ruta no usa un <Outlet>.
  */
-const ProtectedRoute = ({ children, redirectTo = '/' }) => {
-  const { isAuthenticated, loading } = useAuth(); // Obtiene el estado de autenticación y carga del contexto
+const ProtectedRoute = ({ allowedRoles, children }) => {
+    const { isAuthenticated, user, isLoading } = useAuth();
+    const location = useLocation();
 
-  // Si la aplicación está cargando el estado de autenticación (ej. verificando token en localStorage),
-  // no hacemos nada, simplemente esperamos. Se mostrará el spinner de carga en App.jsx.
-  if (loading) {
-    return null; // O podrías retornar un spinner aquí si no lo manejas globalmente en App.jsx
-  }
+    // Mientras se verifica el estado de autenticación, es mejor no renderizar nada o mostrar un loader.
+    if (isLoading) {
+        return null; // O un componente de Spinner global
+    }
 
-  // Si el usuario no está autenticado, redirigimos a la ruta especificada (por defecto, la raíz o login)
-  if (!isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
-  }
+    // 1. Si el usuario NO está autenticado, redirigirlo a la página de inicio.
+    //    Guardamos la ubicación a la que intentaba ir para poder redirigirlo allí después del login.
+    if (!isAuthenticated) {
+        return <Navigate to="/" state={{ from: location }} replace />;
+    }
 
-  // Si el usuario está autenticado, renderizamos los componentes hijos.
-  // 'children' se usa si la ruta protegida envuelve directamente los elementos.
-  // 'Outlet' se usa si la ruta protegida es un layout y tiene rutas anidadas.
-  return children ? children : <Outlet />;
+    // 2. Si se requieren roles y el rol del usuario NO está en la lista de roles permitidos.
+    if (allowedRoles && !allowedRoles.includes(user?.role)) {
+        // El usuario está logueado pero no tiene permiso. Lo enviamos a la página de "No Autorizado".
+        return <Navigate to="/unauthorized" replace />;
+    }
+
+    // 3. Si el usuario está autenticado y tiene el rol correcto, renderizar el contenido.
+    return children ? children : <Outlet />;
 };
 
 export default ProtectedRoute;

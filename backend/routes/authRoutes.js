@@ -1,10 +1,16 @@
-// C:\Proyectos\Label\backend\routes\authRoutes.js
-const express = require('express');
+import express from 'express';
+import {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken
+} from '../controllers/authController.js';
+
 const router = express.Router();
-const { registerUser, loginUser } = require('../controllers/authController'); // <-- Importa desde el controlador
-const { protect } = require('../middleware/authMiddleware');
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/logout', logoutUser); // ¡NUEVA RUTA! Para cerrar la sesión
+router.post('/refresh', refreshAccessToken); // ¡NUEVA RUTA!
 
-module.exports = router;
+export default router;

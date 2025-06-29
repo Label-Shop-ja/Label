@@ -1,12 +1,17 @@
-// C:\Proyectos\Label\frontend\src\redux\store.js
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer from './authSlice'; // Importa el reducer de autenticación
+import authReducer from './authSlice';
+import { setupAxiosInterceptors } from '../api/axiosInstance';
 
 const store = configureStore({
   reducer: {
-    auth: authReducer, // Añade el reducer de autenticación al store
-    // Aquí puedes añadir otros reducers si los creas en el futuro
+    // This is where authReducer is initialized.
+    auth: authReducer,
+    // You can add other reducers here in the future.
   },
 });
+
+// Now that the store is created, we call the setup function and pass the store to it.
+// This "injects" the store into the Axios instance, breaking the circular dependency.
+setupAxiosInterceptors(store);
 
 export default store;

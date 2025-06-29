@@ -1,5 +1,5 @@
 // C:\Proyectos\Label\backend\utils\inventoryLogger.js
-const InventoryLog = require('../models/InventoryLog'); // Importamos el nuevo modelo
+import InventoryLog from '../models/InventoryLog.js'; // Importamos el nuevo modelo
 
 const logInventoryMovement = async ({
     user,
@@ -49,4 +49,4 @@ const logInventoryMovement = async ({
     }
 };
 
-module.exports = logInventoryMovement;
+export default logInventoryMovement;

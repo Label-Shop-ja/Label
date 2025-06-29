@@ -1,10 +1,14 @@
 // C:\Proyectos\Label\backend\controllers\authController.js
-const User = require('../models/User');
-const asyncHandler = require('express-async-handler');
-const generateToken = require('../utils/generateToken');
+import asyncHandler from 'express-async-handler';
+import jwt from 'jsonwebtoken';
+import User from '../models/userModel.js'; // Asegúrate que la ruta al modelo es correcta y termina en .js
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from '../utils/generateToken.js';
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { fullName, email, password } = req.body; // <-- SIN username
+  const { fullName, email, password } = req.body;
 
   if (!fullName || !email || !password) {
     res.status(400);
@@ -25,11 +29,26 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
+    // Al registrarse, generamos ambos tokens para que el usuario inicie sesión automáticamente.
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Enviamos el refreshToken en una cookie segura y httpOnly
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true, // El frontend no puede acceder a esta cookie con JS
+      secure: process.env.NODE_ENV !== 'development', // Solo se envía en HTTPS en producción
+      sameSite: 'strict', // Mitiga ataques CSRF
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+    });
+
     res.status(201).json({
-      _id: user._id,
-      fullName: user.fullName,
-      email: user.email,
-      token: generateToken(user._id),
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+      },
+      // Solo devolvemos el accessToken en el JSON
+      accessToken, 
     });
   } else {
     res.status(400);
@@ -37,25 +56,76 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body; // <-- SIN username, solo email
+const loginUser = asyncHandler(async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
 
-  const user = await User.findOne({ email }); // <-- Buscar solo por email
+    if (user && (await user.matchPassword(password))) {
+      // Usamos las funciones centralizadas de tu `generateToken.js`
+      const accessToken = generateAccessToken(user._id);
+      const refreshToken = generateRefreshToken(user._id);
 
-  if (user && (await user.matchPassword(password))) {
-    res.json({
-      _id: user._id,
-      fullName: user.fullName,
-      email: user.email,
-      token: generateToken(user._id),
-    });
-  } else {
-    res.status(401);
-    throw new Error('Correo electrónico o contraseña inválidos.');
+      // Enviamos el refreshToken en una cookie segura y httpOnly
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+      });
+
+      // Devolvemos solo el accessToken y los datos del usuario en el JSON
+      res.json({
+        user: {
+          _id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+        },
+        accessToken,
+      });
+    } else {
+      res.status(401);
+      throw new Error('Correo electrónico o contraseña inválidos.');
+    }
+  } catch (error) {
+    // ¡AQUÍ ATRAPAMOS AL NINJA!
+    console.error('¡ERROR ATRAPADO EN LOGIN!:', error); // Log para verlo en la terminal
+    next(error); // Pasamos el error al errorHandler para que el frontend reciba una respuesta
   }
 });
 
-module.exports = {
-  registerUser,
-  loginUser,
-};
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  // Ahora leemos el refreshToken desde la cookie que nos envía el navegador
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    res.status(401);
+    throw new Error('No se proporcionó un refresh token');
+  }
+
+  try {
+    // Verificamos el refresh token con su secreto correspondiente
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    // Si es válido, generamos un NUEVO access token y lo devolvemos
+    const newAccessToken = generateAccessToken(decoded.id);
+    res.json({ accessToken: newAccessToken });
+  } catch (error) {
+    // Si la verificación falla (token inválido o expirado), se lanza un error
+    res.status(401);
+    throw new Error('Refresh token no es válido o ha expirado');
+  }
+});
+
+// Controlador para cerrar sesión
+const logoutUser = asyncHandler(async (req, res) => {
+  // Limpiamos la cookie del refreshToken
+  res.cookie('refreshToken', '', {
+    httpOnly: true,
+    expires: new Date(0), // La hacemos expirar inmediatamente
+  });
+  res.status(200).json({ message: 'Cierre de sesión exitoso' });
+});
+
+
+export { registerUser, loginUser, refreshAccessToken, logoutUser };

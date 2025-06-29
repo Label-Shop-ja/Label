@@ -1,17 +1,18 @@
 // C:\Proyectos\Label\backend\globalProductCleanupJob.js
 // Este script está diseñado para ser ejecutado como un Cron Job,
 // independientemente del servidor principal de la aplicación.
-require('dotenv').config(); // Cargar variables de entorno
+import 'dotenv/config'; // Cargar variables de entorno
+import 'colors'; // Para que los colores en la consola funcionen con 'import'
 
-const mongoose = require('mongoose');
-const GlobalProduct = require('./models/GlobalProduct');
-const Product = require('./models/Product'); // Necesitamos el modelo Product para verificar referencias
+import mongoose from 'mongoose';
+import GlobalProduct from './models/GlobalProduct.js';
+import Product from './models/productModel.js'; // Corregimos la ruta al modelo de producto
 
 // Función para conectar a la base de datos específicamente para este script
 const connectDBForCleanup = async () => {
     try {
         const conn = await mongoose.connect(process.env.MONGO_URI);
-        console.log(`MongoDB conectada para limpieza: ${conn.connection.host}`.cyan.underline);
+        console.log(`MongoDB conectada para limpieza: ${conn.connection.host}`.cyan.underline); // colors se añade al prototipo de String
     } catch (error) {
         console.error(`Error de conexión a MongoDB para limpieza: ${error.message}`.red.bold);
         process.exit(1); // Salir con error si la conexión falla
@@ -93,4 +94,3 @@ const cleanInactiveGlobalProducts = async () => {
     await connectDBForCleanup(); // Conectar a la DB
     await cleanInactiveGlobalProducts(); // Ejecutar la limpieza
 })();
-

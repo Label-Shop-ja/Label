@@ -62,9 +62,15 @@ function PosPage() {
 
   // --- Cargar todos los productos y la tasa de cambio al inicio del componente ---
   useEffect(() => {
+    // Este efecto se encarga de cargar los productos.
     fetchAllProductsForPOS();
+  }, [fetchAllProductsForPOS]);
+
+  useEffect(() => {
+    // Este efecto se asegura de que la tasa de cambio esté actualizada.
+    // El CurrencyContext ya lo hace al montar, pero esto es una doble seguridad.
     fetchExchangeRate(); // Cargar la tasa de cambio
-  }, [fetchAllProductsForPOS, fetchExchangeRate]);
+  }, [fetchExchangeRate]);
 
   // --- Calcular el total de la venta cada vez que cambian los items en el carrito ---
   useEffect(() => {
@@ -293,7 +299,7 @@ function PosPage() {
         ) : (
           <>
             {/* Columna de Búsqueda de Productos y Resultados */}
-            <div className="lg:w-2/3 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col">
+            <div className="flex-1 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col min-h-0">
               <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Punto de Venta (POS)</h2>
               <Suspense fallback={<div className="h-48 bg-neutral-gray-700 rounded-lg animate-pulse"></div>}>
                 <ProductSearchPanel
@@ -328,7 +334,6 @@ function PosPage() {
                   exchangeRate={exchangeRate}
                 />
               </Suspense>
-
               <h3 className="text-3xl font-semibold text-neutral-light my-6 border-b border-neutral-gray-200 pb-3">Carrito</h3>
               <Suspense fallback={<div className="flex-1 overflow-y-auto pr-2 h-64 bg-neutral-gray-700 rounded-lg animate-pulse"></div>}>
                 <SaleCartPanel
@@ -340,9 +345,26 @@ function PosPage() {
                   exchangeRate={exchangeRate}
                 />
               </Suspense>
+              {/* Panel de peso digital si aplica */}
+              {showWeightModal && selectedProductForWeight && (
+                <div className="mt-6">
+                  <Suspense fallback={<div>Cargando peso digital...</div>}>
+                    <WeightInputModal
+                      isOpen={true}
+                      onClose={() => setShowWeightModal(false)}
+                      product={selectedProductForWeight}
+                      onMeasureAndAdd={(measuredQuantity) => addProductToSale(selectedProductForWeight, null, measuredQuantity)}
+                      formatPrice={formatPrice}
+                      convertPrice={convertPrice}
+                      exchangeRate={exchangeRate}
+                      loading={loading}
+                    />
+                  </Suspense>
+                </div>
+              )}
             </div>
 
-            {/* Modales para selección de variante y peso digital */}
+            {/* Modales para selección de variante y peso */}
             <Suspense fallback={<div>Cargando modales...</div>}>
               {showVariantModal && selectedProductForVariant && (
                 <VariantSelectModal
@@ -353,18 +375,6 @@ function PosPage() {
                   formatPrice={formatPrice}
                   convertPrice={convertPrice}
                   exchangeRate={exchangeRate}
-                />
-              )}
-              {showWeightModal && selectedProductForWeight && (
-                <WeightInputModal
-                  isOpen={showWeightModal}
-                  onClose={() => setShowWeightModal(false)}
-                  product={selectedProductForWeight}
-                  onMeasureAndAdd={(measuredQuantity) => addProductToSale(selectedProductForWeight, null, measuredQuantity)}
-                  formatPrice={formatPrice}
-                  convertPrice={convertPrice}
-                  exchangeRate={exchangeRate}
-                  loading={loading}
                 />
               )}
             </Suspense>

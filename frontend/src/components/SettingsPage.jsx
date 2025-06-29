@@ -3,7 +3,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { SlidersHorizontal } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
-import { AuthContext } from '../context/AuthContext';
 import ErrorBoundary from "./Common/ErrorBoundary";
 
 const SettingsPage = () => {

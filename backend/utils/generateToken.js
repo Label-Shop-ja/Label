@@ -1,10 +1,15 @@
-// C:\Proyectos\Label\backend\utils\generateToken.js
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN, // Por ejemplo, '1h' (1 hora)
+// Genera un Access Token (corta duración)
+export const generateAccessToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_ACCESS_SECRET, {
+    expiresIn: '15m', // Por ejemplo, 15 minutos
   });
 };
 
-module.exports = generateToken;
+// Genera un Refresh Token (larga duración)
+export const generateRefreshToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: '7d', // Por ejemplo, 7 días
+  });
+};

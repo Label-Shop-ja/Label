@@ -1,5 +1,5 @@
 // C:\Proyectos\Label\backend\models\InventoryLog.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const inventoryLogSchema = mongoose.Schema(
     {
@@ -64,4 +64,4 @@ const inventoryLogSchema = mongoose.Schema(
     }
 );
 
-module.exports = mongoose.model('InventoryLog', inventoryLogSchema);
+export default mongoose.model('InventoryLog', inventoryLogSchema);

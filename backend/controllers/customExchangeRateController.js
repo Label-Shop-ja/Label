@@ -1,6 +1,6 @@
-const asyncHandler = require('express-async-handler');
-const CustomExchangeRate = require('../models/customExchangeRateModel');
-const ExchangeRate = require('../models/ExchangeRate'); // ¡ARREGLADO! El archivo se llama ExchangeRate.js
+import asyncHandler from 'express-async-handler';
+import CustomExchangeRate from '../models/customExchangeRateModel.js';
+import ExchangeRate from '../models/ExchangeRate.js';
 
 /**
  * @description Función de utilería (el bachaquero del bien) que busca la tasa oficial para un usuario.
@@ -34,7 +34,7 @@ const getOfficialRate = async (from, to, userId) => {
  * @desc    Crear una nueva tasa de cambio personalizada
  * @access  Private
  */
-const createCustomRate = asyncHandler(async (req, res) => {
+export const createCustomRate = asyncHandler(async (req, res) => {
   const { fromCurrency, toCurrency, customRateValue } = req.body;
 
   if (!fromCurrency || !toCurrency || customRateValue === undefined || customRateValue === null) {
@@ -63,7 +63,7 @@ const createCustomRate = asyncHandler(async (req, res) => {
  * @desc    Obtener todas las tasas personalizadas de un usuario/compañía
  * @access  Private
  */
-const getCustomRates = asyncHandler(async (req, res) => {
+export const getCustomRates = asyncHandler(async (req, res) => {
   const rates = await CustomExchangeRate.find({ company: req.user.companyId }); // Tasas de la compañía del usuario
   res.status(200).json(rates);
 });
@@ -73,7 +73,7 @@ const getCustomRates = asyncHandler(async (req, res) => {
  * @desc    Actualizar una tasa personalizada
  * @access  Private
  */
-const updateCustomRate = asyncHandler(async (req, res) => {
+export const updateCustomRate = asyncHandler(async (req, res) => {
   const { customRateValue } = req.body;
   const rateToUpdate = await CustomExchangeRate.findById(req.params.id);
 
@@ -101,24 +101,17 @@ const updateCustomRate = asyncHandler(async (req, res) => {
  * @desc    Eliminar una tasa personalizada
  * @access  Private
  */
-const deleteCustomRate = asyncHandler(async (req, res) => {
+export const deleteCustomRate = asyncHandler(async (req, res) => {
   // La lógica pa' borrar es similar a la de actualizar.
   // Busca el beta, verifica que sea del pana, y le mete serrucho.
   // ¡Te lo dejo de tarea, mi loco! ¡Pa' que te actives! Jajajaja.
   // Na' mentira, pero es sencillo, si te enredas me avisas.
   const rate = await CustomExchangeRate.findById(req.params.id);
   if (rate && rate.company.toString() === req.user.companyId) {
-    await rate.remove();
+    await rate.deleteOne();
     res.status(200).json({ message: '¡Listo el pollo! Tasa eliminada.' });
   } else {
     res.status(404);
     throw new Error('No se encontró la tasa o no tienes permiso.');
   }
 });
-
-module.exports = {
-  createCustomRate,
-  getCustomRates,
-  updateCustomRate,
-  deleteCustomRate,
-};

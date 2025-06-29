@@ -1,15 +1,15 @@
 // C:\Proyectos\Label\backend\controllers\saleController.js
-const Sale = require('../models/Sale');
-const Product = require('../models/productModel'); // Asegúrate que esta línea sea correcta
-const Transaction = require('../models/Transaction');
-const asyncHandler = require('express-async-handler');
-const mongoose = require('mongoose'); // ¡NUEVA IMPORTACIÓN DE MONGOOSE!
-const logInventoryMovement = require('../utils/inventoryLogger'); // Asegúrate que esta ruta sea correcta
+import Sale from '../models/Sale.js';
+import Product from '../models/productModel.js';
+import Transaction from '../models/Transaction.js';
+import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
+import logInventoryMovement from '../utils/inventoryLogger.js';
 
 // @desc    Registrar una nueva venta
 // @route   POST /api/sales
 // @access  Private
-const createSale = asyncHandler(async (req, res) => {
+export const createSale = asyncHandler(async (req, res) => {
     const { productsSold, paymentMethod, customerName } = req.body;
 
     if (!productsSold || productsSold.length === 0) {
@@ -174,7 +174,7 @@ const createSale = asyncHandler(async (req, res) => {
 // @desc    Obtener todas las ventas del usuario
 // @route   GET /api/sales
 // @access  Private
-const getSales = asyncHandler(async (req, res) => {
+export const getSales = asyncHandler(async (req, res) => {
   const sales = await Sale.find({ user: req.user.id })
     .populate('productsSold.product', 'name price')
     .sort({ createdAt: -1 });
@@ -184,7 +184,7 @@ const getSales = asyncHandler(async (req, res) => {
 // @desc    Obtener una venta por ID (opcional)
 // @route   GET /api/sales/:id
 // @access  Private
-const getSaleById = asyncHandler(async (req, res) => {
+export const getSaleById = asyncHandler(async (req, res) => {
   const sale = await Sale.findById(req.params.id).populate('productsSold.product', 'name price');
 
   if (!sale) {
@@ -199,9 +199,3 @@ const getSaleById = asyncHandler(async (req, res) => {
 
   res.status(200).json(sale);
 });
-
-module.exports = {
-  createSale,
-  getSales,
-  getSaleById,
-};

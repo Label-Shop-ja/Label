@@ -1,22 +1,23 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const {
+import {
   createCustomRate,
   getCustomRates,
   updateCustomRate,
   deleteCustomRate,
-} = require('../controllers/customExchangeRateController');
-const protect = require('../middleware/authMiddleware'); // Corrige: sin destructuring
+} from '../controllers/customExchangeRateController.js';
+import { protect } from '../middleware/authMiddleware.js'; // Asumimos que tienes este middleware
 
-// Todas estas rutas necesitan que el pana esté logueado
-router.use(protect);
+// Rutas relativas a /api/custom-rates
 
+// GET /api/custom-rates/ y POST /api/custom-rates/
 router.route('/')
-  .post(createCustomRate) // Crear una nueva tasa personalizada
-  .get(getCustomRates);   // Obtener todas las tasas del pana
+  .get(protect, getCustomRates)
+  .post(protect, createCustomRate);
 
+// PUT /api/custom-rates/:id y DELETE /api/custom-rates/:id
 router.route('/:id')
-  .put(updateCustomRate)    // Actualizar una tasa
-  .delete(deleteCustomRate); // Borrar el guiso
+  .put(protect, updateCustomRate)
+  .delete(protect, deleteCustomRate);
 
-module.exports = router;
+export default router;

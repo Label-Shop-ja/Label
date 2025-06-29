@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 /**
  * @description Este es el modelo para las tasas de cambio personalizadas de cada compañía/usuario.
@@ -46,4 +46,4 @@ const customExchangeRateSchema = new mongoose.Schema(
 // Un índice pa' que no haya dos guisos iguales pa' la misma compañía y el mismo par de monedas.
 customExchangeRateSchema.index({ company: 1, fromCurrency: 1, toCurrency: 1 }, { unique: true });
 
-module.exports = mongoose.model('CustomExchangeRate', customExchangeRateSchema);
+export default mongoose.model('CustomExchangeRate', customExchangeRateSchema);

@@ -9,9 +9,8 @@ const ProductSearchPanel = ({
     addProductToSale, searchInputRef, formatPrice, convertPrice, exchangeRate
 }) => {
     return (
-        <div className="lg:w-2/3 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col">
+        <div className="flex-1 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col min-h-0">
             <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Punto de Venta (POS)</h2>
-
             <div className="relative mb-6">
                 <input
                     ref={searchInputRef}
@@ -23,7 +22,6 @@ const ProductSearchPanel = ({
                 />
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-gray-300" size={20} />
             </div>
-
             {loading ? (
                 <p className="text-xl text-action-blue text-center">Cargando productos...</p>
             ) : (
@@ -32,7 +30,7 @@ const ProductSearchPanel = ({
                         searchResults.length === 0 ? (
                             <p className="text-neutral-gray-300 text-lg text-center mt-4">No se encontraron productos para "{searchTerm}".</p>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
                                 {searchResults.map((product) => (
                                     <Suspense key={product._id} fallback={
                                         <div className="bg-dark-charcoal p-4 rounded-lg shadow h-32 animate-pulse"></div>
@@ -52,7 +50,7 @@ const ProductSearchPanel = ({
                         products.length === 0 ? (
                             <p className="text-neutral-gray-300 text-lg text-center mt-4">No hay productos en el inventario. Añade algunos desde la sección de Inventario.</p>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
                                 {products.map((product) => (
                                     <Suspense key={product._id} fallback={
                                         <div className="bg-dark-charcoal p-4 rounded-lg shadow h-32 animate-pulse"></div>

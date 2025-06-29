@@ -1,5 +1,5 @@
 // C:\Proyectos\Label\backend\models\productModel.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // Define el esquema para las variantes de producto
 const variantSchema = mongoose.Schema(
@@ -291,4 +291,4 @@ productSchema.pre('save', function(next) {
 });
 
 // Exporta el modelo Product
-module.exports = mongoose.model('Product', productSchema);
+export default mongoose.model('Product', productSchema);

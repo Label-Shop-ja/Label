@@ -1,5 +1,5 @@
 // C:\Proyectos\Label\backend\models\Sale.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const saleProductSchema = mongoose.Schema({
   product: {
@@ -60,4 +60,4 @@ const saleSchema = mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('Sale', saleSchema);
+export default mongoose.model('Sale', saleSchema);

@@ -1,5 +1,5 @@
 // C:\Proyectos\Label\backend\models\GlobalProduct.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const globalProductSchema = mongoose.Schema(
     {
@@ -86,4 +86,4 @@ globalProductSchema.post('save', function(error, doc, next) {
     }
 });
 
-module.exports = mongoose.model('GlobalProduct', globalProductSchema);
+export default mongoose.model('GlobalProduct', globalProductSchema);

@@ -1,13 +1,13 @@
 // C:\Proyectos\Label\backend\controllers\statsController.js
-const Sale = require('../models/Sale');
-const Product = require('../models/productModel'); // <-- ¡Cambiar a 'productModel' con 'p' minúscula!
-const Client = require('../models/Client');
-const asyncHandler = require('express-async-handler');
+import Sale from '../models/Sale.js';
+import Product from '../models/productModel.js';
+import Client from '../models/Client.js';
+import asyncHandler from 'express-async-handler';
 
 // @desc    Obtener un resumen de ventas y productos
 // @route   GET /api/stats/sales-products
 // @access  Private
-const getSalesAndProductStats = asyncHandler(async (req, res) => {
+export const getSalesAndProductStats = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
   // --- Estadísticas de Ventas ---
@@ -65,7 +65,3 @@ const getSalesAndProductStats = asyncHandler(async (req, res) => {
     },
   });
 });
-
-module.exports = {
-  getSalesAndProductStats,
-};
