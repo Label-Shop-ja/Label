@@ -1,25 +1,19 @@
 // C:\Proyectos\Label\backend\models\ExchangeRate.js
 import mongoose from 'mongoose';
+import { SUPPORTED_CURRENCIES } from '../constants.js';
 
-// --- INICIO: LISTA DE MONEDAS DISPONIBLES EN EL MODELO ---
-// ¡CRÍTICO! Esta lista DEBE ser la misma que en el controlador exchangeRateController.js
-const ALL_CURRENCIES = [
-    'USD', 'VES', 'EUR', 'COP', 'BRL', 'MXN', 'CLP', 'PEN', 'ARS', 'UYU',
-    'DOP', 'GTQ', 'CRC', 'HNL', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY'
-];
-// --- FIN: LISTA DE MONEDAS DISPONIBLES EN EL MODELO ---
 
 // Esquema para cada conversión individual (ej. USD-VES, EUR-USD)
 const conversionSchema = new mongoose.Schema({
     fromCurrency: {
         type: String,
         required: true,
-        enum: ALL_CURRENCIES, // Valida que la moneda sea una de las permitidas
+        enum: SUPPORTED_CURRENCIES, // Valida que la moneda sea una de las permitidas
     },
     toCurrency: {
         type: String,
         required: true,
-        enum: ALL_CURRENCIES, // Valida que la moneda sea una de las permitidas
+        enum: SUPPORTED_CURRENCIES, // Valida que la moneda sea una de las permitidas
     },
     rate: {
         type: Number,

@@ -33,4 +33,7 @@ const transactionSchema = mongoose.Schema(
   }
 );
 
+// Índice para buscar transacciones por usuario de forma eficiente
+transactionSchema.index({ user: 1 });
+
 export default mongoose.model('Transaction', transactionSchema);

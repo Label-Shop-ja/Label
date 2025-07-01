@@ -2,6 +2,7 @@
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
 import User from '../models/userModel.js'; // Asegúrate que la ruta al modelo es correcta y termina en .js
+import ExchangeRate from '../models/ExchangeRate.js'; // Importamos el modelo de Tasa de Cambio
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -29,6 +30,16 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
+    // ¡LA JUGADA MAESTRA!
+    // Al registrar un nuevo usuario, le creamos su documento de configuración de tasas de cambio.
+    // Esto asegura que la app no se rompa al buscar las tasas por primera vez.
+    await ExchangeRate.create({
+      user: user._id,
+      conversions: [], // Lo dejamos vacío. El usuario lo poblará desde el dashboard.
+      defaultProfitPercentage: 20, // Un valor por defecto sensato.
+      personalRateThresholdPercentage: 5, // Otro valor por defecto.
+    });
+
     // Al registrarse, generamos ambos tokens para que el usuario inicie sesión automáticamente.
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
@@ -89,7 +100,6 @@ const loginUser = asyncHandler(async (req, res, next) => {
     }
   } catch (error) {
     // ¡AQUÍ ATRAPAMOS AL NINJA!
-    console.error('¡ERROR ATRAPADO EN LOGIN!:', error); // Log para verlo en la terminal
     next(error); // Pasamos el error al errorHandler para que el frontend reciba una respuesta
   }
 });

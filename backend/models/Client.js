@@ -38,4 +38,7 @@ const clientSchema = mongoose.Schema(
   }
 );
 
+// Índice para buscar clientes por usuario de forma eficiente
+clientSchema.index({ user: 1 });
+
 export default mongoose.model('Client', clientSchema);

@@ -20,6 +20,12 @@ const UserSchema = mongoose.Schema({
     required: [true, 'Por favor, ingresa una contraseña.'],
     minlength: [6, 'La contraseña debe tener al menos 6 caracteres.'],
   },
+  role: {
+    type: String,
+    enum: ['user', 'admin'], // Roles permitidos
+    default: 'user', // Por defecto, todos son usuarios normales
+    required: true,
+  },
   refreshToken: {
     type: String,
     default: null

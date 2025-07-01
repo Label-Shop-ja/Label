@@ -2,15 +2,10 @@
 import asyncHandler from 'express-async-handler';
 import ExchangeRate from '../models/ExchangeRate.js'; // Ensure the model uses 'export default'
 import axios from 'axios';
+import { SUPPORTED_CURRENCIES } from '../constants.js';
 // dotenv.config() is already called in server.js, no need to call it here.
 
-// --- INICIO: LISTA DE MONEDAS OBJETIVO PARA LA EXPANSIÓN ---
-// ¡CRÍTICO! Esta lista DEBE ser la misma que en el modelo ExchangeRate.js
-const TARGET_CURRENCIES = [
-    'USD', 'VES', 'EUR', 'COP', 'BRL', 'MXN', 'CLP', 'PEN', 'ARS', 'UYU',
-    'DOP', 'GTQ', 'CRC', 'HNL', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY'
-];
-// --- FIN: LISTA DE MONEDAS OBJETIVO ---
+const TARGET_CURRENCIES = SUPPORTED_CURRENCIES;
 
 // @desc    Obtener la configuración de tasas de cambio para el usuario
 // @route   GET /api/exchangeRate

@@ -123,8 +123,6 @@ export const getProduct = asyncHandler(async (req, res) => {
 // @route   POST /api/products
 // @access  Private
 export const createProduct = asyncHandler(async (req, res) => {
-    console.log('Product data received in createProduct:', JSON.stringify(req.body, null, 2));
-
     const {
         name,
         description,
@@ -152,14 +150,20 @@ export const createProduct = asyncHandler(async (req, res) => {
         profitPercentage // <-- Este campo lo esperamos del frontend para el producto principal/default
     } = req.body;
 
+    try {
+
     // --- OBTENER LA CONFIGURACIÓN DE TASAS DE CAMBIO DEL USUARIO ---
     // Esta configuración es vital para los cálculos de precios
-    const exchangeRateConfig = await ExchangeRate.findOne({ user: req.user.id });
+    const exchangeRateDoc = await ExchangeRate.findOne({ user: req.user.id });
 
-    if (!exchangeRateConfig) {
+    if (!exchangeRateDoc) {
         res.status(400);
         throw new Error('¡Coño! No se encontró la configuración de tasas de cambio para este usuario. Por favor, configura las tasas.');
     }
+
+    // ¡LA SOLUCIÓN! Convertimos el documento de Mongoose a un objeto de JavaScript plano.
+    const exchangeRateConfig = exchangeRateDoc.toObject();
+
 
     // Usar el profitPercentage del body si viene, o el default del usuario
     const actualProfitPercentage = profitPercentage !== undefined ? Number(profitPercentage) : exchangeRateConfig.defaultProfitPercentage;
@@ -283,7 +287,6 @@ export const createProduct = asyncHandler(async (req, res) => {
         profitPercentage: actualProfitPercentage, // Guardamos el porcentaje de ganancia usado
     };
 
-    try {
         const product = await Product.create(productFields);
 
         // --- REGISTRAR MOVIMIENTO DE INVENTARIO POR CREACIÓN DE PRODUCTO ---
@@ -339,8 +342,6 @@ export const createProduct = asyncHandler(async (req, res) => {
 // @route   PUT /api/products/:id
 // @access  Private
 export const updateProduct = asyncHandler(async (req, res) => {
-    console.log('Product data received in updateProduct:', JSON.stringify(req.body, null, 2));
-
     const { id } = req.params;
     const {
         name,
@@ -369,6 +370,8 @@ export const updateProduct = asyncHandler(async (req, res) => {
         profitPercentage // <-- Este campo lo esperamos del frontend para el producto principal/default
     } = req.body;
 
+    try {
+
     const product = await Product.findById(id);
 
     if (!product) {
@@ -382,12 +385,15 @@ export const updateProduct = asyncHandler(async (req, res) => {
     }
 
     // --- OBTENER LA CONFIGURACIÓN DE TASAS DE CAMBIO DEL USUARIO ---
-    const exchangeRateConfig = await ExchangeRate.findOne({ user: req.user.id });
+    const exchangeRateDoc = await ExchangeRate.findOne({ user: req.user.id });
 
-    if (!exchangeRateConfig) {
+    if (!exchangeRateDoc) {
         res.status(400);
         throw new Error('¡Coño! No se encontró la configuración de tasas de cambio para este usuario. Por favor, configura las tasas.');
     }
+
+    // ¡LA SOLUCIÓN! Convertimos el documento de Mongoose a un objeto de JavaScript plano.
+    const exchangeRateConfig = exchangeRateDoc.toObject();
 
     // Usar el profitPercentage del body si viene, o el default del usuario
     const actualProfitPercentage = profitPercentage !== undefined ? Number(profitPercentage) : exchangeRateConfig.defaultProfitPercentage;
@@ -509,10 +515,8 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
     product.variants = processedVariants;
 
-// --- LÓGICA DE REGISTRO DE MOVIMIENTOS DE INVENTARIO POR ACTUALIZACIÓN ---
-const oldProduct = await Product.findById(id); // Traemos el producto viejo para comparar stock
-
-try {
+    // --- LÓGICA DE REGISTRO DE MOVIMIENTOS DE INVENTARIO POR ACTUALIZACIÓN ---
+    const oldProduct = await Product.findById(id).lean(); // Traemos el producto viejo para comparar stock
     const updatedProduct = await product.save();
 
     if (oldProduct) {

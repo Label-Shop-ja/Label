@@ -3,7 +3,8 @@ import axios from 'axios';
 import { logoutUser, setAccessToken } from '../redux/authSlice';
 
 const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+    baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api',
+    withCredentials: true, // ¡CLAVE #1! Permite que Axios envíe cookies (como el refreshToken) en las peticiones.
 });
 
 // Esta función es clave para romper dependencias circulares
@@ -23,20 +24,15 @@ export const setupAxiosInterceptors = (store) => {
         (response) => response,
         async (error) => {
             const originalRequest = error.config;
-            // Si el error es 401 y no hemos reintentado esta petición antes
-            if (error.response?.status === 401 && !originalRequest._retry) {
+            // Si el error es 401, no hemos reintentado esta petición antes,
+            // Y LA PETICIÓN FALLIDA NO ES LA DE REFRESCAR EL TOKEN (para evitar bucles infinitos)
+            if (error.response?.status === 401 && originalRequest.url !== '/auth/refresh' && !originalRequest._retry) {
                 originalRequest._retry = true;
                 console.log('Access token expired. Attempting to refresh...');
-                try {
-                    const refreshToken = store.getState().auth.refreshToken;
-                    if (!refreshToken) {
-                        // Si no hay refresh token, desloguear inmediatamente.
-                        store.dispatch(logoutUser());
-                        return Promise.reject(error);
-                    }
-
-                    // Petición al endpoint de refresco
-                    const { data } = await axios.post(`${axiosInstance.defaults.baseURL}/auth/refresh`, { refreshToken });
+                try {                    
+                    // ¡CLAVE #2! Hacemos la petición de refresco SIN cuerpo. 
+                    // El navegador se encargará de adjuntar la cookie httpOnly automáticamente.
+                    const { data } = await axiosInstance.post('/auth/refresh');
                     
                     // Actualizamos el nuevo token en el store de Redux
                     store.dispatch(setAccessToken(data.accessToken));

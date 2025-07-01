@@ -60,4 +60,7 @@ const saleSchema = mongoose.Schema(
   }
 );
 
+// Índice para buscar ventas por usuario de forma eficiente
+saleSchema.index({ user: 1 });
+
 export default mongoose.model('Sale', saleSchema);

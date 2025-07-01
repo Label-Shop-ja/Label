@@ -1,5 +1,6 @@
 // C:\Proyectos\Label\backend\models\productModel.js
 import mongoose from 'mongoose';
+import { SUPPORTED_CURRENCIES } from '../constants.js';
 
 // Define el esquema para las variantes de producto
 const variantSchema = mongoose.Schema(
@@ -30,13 +31,13 @@ const variantSchema = mongoose.Schema(
         costCurrency: { // Moneda en la que se registra el costo de esta variante
             type: String,
             required: true,
-            enum: ['USD', 'VES', 'EUR'],
+            enum: SUPPORTED_CURRENCIES,
             default: 'USD',
         },
         saleCurrency: { // Moneda en la que se registra el precio de venta de esta variante
             type: String,
             required: true,
-            enum: ['USD', 'VES', 'EUR'],
+            enum: SUPPORTED_CURRENCIES,
             default: 'USD',
         },
         // Stock y unidad de medida para la variante
@@ -143,19 +144,19 @@ const productSchema = mongoose.Schema(
         costCurrency: { // Moneda en la que se registra el costo del producto principal
             type: String,
             required: true,
-            enum: ['USD', 'VES', 'EUR'],
+            enum: SUPPORTED_CURRENCIES,
             default: 'USD',
         },
         saleCurrency: { // Moneda en la que se registra el precio de venta del producto principal
             type: String,
             required: true,
-            enum: ['USD', 'VES', 'EUR'],
+            enum: SUPPORTED_CURRENCIES,
             default: 'USD',
         },
         displayCurrency: { // Moneda preferida para mostrar en la UI de listas (ej. InventoryPage)
             type: String,
             required: true,
-            enum: ['USD', 'VES', 'EUR'],
+            enum: SUPPORTED_CURRENCIES,
             default: 'USD',
         },
         // SKU del producto principal (Stock Keeping Unit)
@@ -178,7 +179,7 @@ const productSchema = mongoose.Schema(
         baseCurrency: {
             type: String,
             required: true,
-            enum: ['USD', 'VES', 'EUR'], // Puedes añadir más si quieres
+            enum: SUPPORTED_CURRENCIES, // Puedes añadir más si quieres
             default: 'USD', // Por defecto, se asume que los precios se manejan en USD
         },
         brand: {
@@ -240,6 +241,10 @@ const productSchema = mongoose.Schema(
     }
 );
 
+// Índices para optimizar las búsquedas
+productSchema.index({ user: 1 }); // Para filtrar productos por usuario rápidamente
+productSchema.index({ name: 'text', description: 'text', sku: 'text', brand: 'text', supplier: 'text' }); // Para búsquedas de texto
+
 // Virtual para calcular el stock total del producto a partir de sus variantes
 productSchema.virtual('totalStock').get(function() {
     if (this.variants && this.variants.length > 0) {
@@ -276,11 +281,9 @@ productSchema.pre('save', function(next) {
         this.unitOfMeasure = this.variants.length > 0 ? this.variants[0].unitOfMeasure : 'unidad';
         // Nuevas líneas para manejar las monedas de costo, venta y visualización
         // Si las variantes tienen monedas diferentes, se usa la moneda de la primera variante
-        // <-- ¡NUEVAS LÍNEAS!
         this.costCurrency = this.variants.length > 0 ? this.variants[0].costCurrency : 'USD';
         this.saleCurrency = this.variants.length > 0 ? this.variants[0].saleCurrency : 'USD';
         this.displayCurrency = this.variants.length > 0 ? this.variants[0].saleCurrency : 'USD'; // Por defecto la misma que saleCurrency
-        // FIN NUEVAS LÍNEAS -->
 
         // Para el SKU del padre: si el frontend no lo envía y hay variantes, lo dejamos vacío
         // si el esquema permite que sea opcional. Actualmente es `required: true`.
