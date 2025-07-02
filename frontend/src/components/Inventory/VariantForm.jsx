@@ -1,344 +1,316 @@
 // src/components/Inventory/VariantForm.jsx
-import React, { useCallback } from 'react';
-import { X, Upload, Loader2, Info } from 'lucide-react'; // Íconos
+import React from 'react';
+import { X, Upload, Loader2, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
 const VariantForm = ({
     variant,
     index,
     handleVariantInputChange,
     removeVariant,
-    unitOfMeasureOptions,
     handleVariantImageFileChange,
     variantImageUploading,
     formErrors,
-    uploadImageToCloud,
     isNewProduct,
-    formatPrice,
-    convertPrice,
-    exchangeRate,
     calculatedVariantProfitPercentage,
     calculatedVariantPricePlaceholder,
-    // ¡NUEVA PROP! Recibimos la lista de monedas
-    availableCurrencies, 
+    formatPrice,
+    availableCurrencies, // La prop que puede venir vacía
+    unitOfMeasureOptions,
+    uploadImageToCloud,
 }) => {
-    // Función auxiliar para subir imagen de variante al perder el foco en la URL
-    const handleImageUrlBlur = useCallback(async (e) => {
-        const value = e.target.value;
-        if (value && value.trim() !== variant.imageUrl && !value.includes('res.cloudinary.com')) {
-            await uploadImageToCloud(value, true, index);
-        }
-    }, [variant.imageUrl, index, uploadImageToCloud]);
+
+    // ¡EL PLAN B PARA LAS MONEDAS DE LA VARIANTE!
+    // Si la lista de monedas de la API no llega, usamos este respaldo.
+    const currencies = availableCurrencies && availableCurrencies.length > 0
+        ? availableCurrencies
+        : ['USD', 'VES', 'EUR'];
+
+    const [showAdvanced, setShowAdvanced] = React.useState(false);
 
     return (
-        <div className="bg-neutral-gray-800 p-4 rounded-lg mb-4 border border-neutral-gray-700 relative">
-            <h5 className="text-lg font-bold text-action-blue mb-3">Variante #{index + 1}</h5>
-            <button
-                type="button"
-                onClick={() => removeVariant(index)}
-                className="absolute top-2 right-2 text-red-400 hover:text-red-600 transition-colors duration-200"
-                title="Eliminar esta variante"
-            >
-                <X size={20} />
-            </button>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-neutral-gray-800 p-4 rounded-lg mb-4 border border-neutral-gray-700 relative transition-all duration-300">
+            <div className="flex justify-between items-center mb-4">
+                <h5 className="text-lg font-bold text-neutral-light">Variante #{index + 1}: <span className="text-action-blue">{variant.name || 'Nueva Variante'}</span></h5>
+                <button
+                    type="button"
+                    onClick={() => removeVariant(index)}
+                    className="text-red-400 hover:text-red-300 transition-colors"
+                    aria-label={`Eliminar variante ${index + 1}`}
+                >
+                    <X size={24} />
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Nombre de la Variante */}
                 <div>
-                    <label htmlFor={`variantName-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Nombre de Variante:</label>
+                    <label htmlFor={`variant-name-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Nombre Variante:</label>
                     <input
                         type="text"
-                        id={`variantName-${index}`}
+                        id={`variant-name-${index}`}
                         name="name"
                         value={variant.name}
+                        placeholder="Ej. Rojo, Talla M"
                         onChange={(e) => handleVariantInputChange(index, e)}
-                        className={`shadow appearance-none border ${formErrors[`variant-${index}-name`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                        placeholder="Ej. Talla M, Color Azul"
+                        className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-name`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
                         required
                     />
                     {formErrors[`variant-${index}-name`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-name`]}</p>}
                 </div>
+
+                {/* SKU de la Variante */}
                 <div>
-                    <label htmlFor={`variantSku-${index}`} className="block text-neutral-light text-sm font-bold mb-2">SKU de Variante:</label>
+                    <label htmlFor={`variant-sku-${index}`} className="block text-neutral-light text-sm font-bold mb-2">SKU Variante:</label>
                     <input
                         type="text"
-                        id={`variantSku-${index}`}
+                        id={`variant-sku-${index}`}
                         name="sku"
                         value={variant.sku}
+                        placeholder={variant.autoGeneratedVariantSku || "Auto-generado"}
                         onChange={(e) => handleVariantInputChange(index, e)}
-                        placeholder={variant.autoGeneratedVariantSku || 'Ej. CAMI-AZUL-M'}
-                        className={`shadow appearance-none border ${formErrors[`variant-${index}-sku`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
+                        className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-sku`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
                     />
                     {formErrors[`variant-${index}-sku`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-sku`]}</p>}
                 </div>
-                {/* Campo de Precio de Venta de Variante con selector de moneda y porcentaje de ganancia */}
+
+                {/* Costo Unitario */}
                 <div className="flex items-end gap-2">
                     <div className="flex-grow">
-                        <label htmlFor={`variantPrice-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Precio de Venta ($):</label>
+                        <label htmlFor={`variant-costPrice-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Costo Unitario:</label>
                         <input
                             type="number"
-                            id={`variantPrice-${index}`}
-                            name="price"
-                            value={calculatedVariantPricePlaceholder !== null ? parseFloat(calculatedVariantPricePlaceholder).toFixed(2) : ''}
-                            onChange={() => {}}
-                            step="0.01"
-                            className={`shadow appearance-none border ${formErrors[`variant-${index}-price`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                            placeholder={`Ej. 25.99 (${formatPrice(calculatedVariantPricePlaceholder, variant.saleCurrency || 'USD')})`}
-                            required
-                            readOnly={true}
-                        />
-                        {formErrors[`variant-${index}-price`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-price`]}</p>}
-                    </div>
-                    <div className="w-24 flex-shrink-0">
-                        <label htmlFor={`variantSaleCurrency-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Moneda:</label>
-                        <select
-                            id={`variantSaleCurrency-${index}`}
-                            name="saleCurrency"
-                            value={variant.saleCurrency}
-                            onChange={(e) => handleVariantInputChange(index, e)}
-                            className={`shadow appearance-none border ${formErrors[`variant-${index}-saleCurrency`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
-                            required
-                        >
-                            {/* Generar opciones dinámicamente */}
-                            {availableCurrencies.map(currency => (
-                                <option key={currency} value={currency}>{currency}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="w-24 flex-shrink-0">
-                        <label htmlFor={`variantProfitPercentage-${index}`} className="block text-neutral-light text-sm font-bold mb-2">% Ganancia:</label>
-                        <input
-                            type="number"
-                            id={`variantProfitPercentage-${index}`}
-                            name="profitPercentage"
-                            value={calculatedVariantProfitPercentage !== null ? parseFloat(calculatedVariantProfitPercentage).toFixed(2) : ''}
-                            onChange={(e) => handleVariantInputChange(index, e)}
-                            step="0.1"
-                            min="0"
-                            className={`shadow appearance-none border ${formErrors[`variant-${index}-profitPercentage`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                            placeholder="%"
-                        />
-                    </div>
-                </div>
-                {/* Campo de Costo Unitario de Variante con selector de moneda */}
-                <div className="flex items-end gap-2">
-                    <div className="flex-grow">
-                        <label htmlFor={`variantCostPrice-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Costo Unitario ($):</label>
-                        <input
-                            type="number"
-                            id={`variantCostPrice-${index}`}
+                            id={`variant-costPrice-${index}`}
                             name="costPrice"
                             value={variant.costPrice}
+                            placeholder="Costo"
                             onChange={(e) => handleVariantInputChange(index, e)}
-                            step="0.01"
-                            className={`shadow appearance-none border ${formErrors[`variant-${index}-costPrice`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                            placeholder="Ej. 12.50"
+                            className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-costPrice`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
                             required
                         />
                         {formErrors[`variant-${index}-costPrice`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-costPrice`]}</p>}
                     </div>
                     <div className="w-24 flex-shrink-0">
-                        <label htmlFor={`variantCostCurrency-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Moneda:</label>
+                        <label htmlFor={`variant-costCurrency-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Moneda:</label>
                         <select
-                            id={`variantCostCurrency-${index}`}
+                            id={`variant-costCurrency-${index}`}
                             name="costCurrency"
                             value={variant.costCurrency}
                             onChange={(e) => handleVariantInputChange(index, e)}
-                            className={`shadow appearance-none border ${formErrors[`variant-${index}-costCurrency`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
+                            className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-costCurrency`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900 cursor-pointer`}
                             required
                         >
-                            {/* Generar opciones dinámicamente */}
-                            {availableCurrencies.map(currency => (
+                            {currencies.map(currency => (
                                 <option key={currency} value={currency}>{currency}</option>
                             ))}
                         </select>
                     </div>
                 </div>
+
+                {/* Stock */}
                 <div>
-                    <label htmlFor={`variantStock-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Stock:</label>
+                    <label htmlFor={`variant-stock-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Stock:</label>
                     <input
                         type="number"
-                        id={`variantStock-${index}`}
+                        id={`variant-stock-${index}`}
                         name="stock"
                         value={variant.stock}
+                        placeholder="Stock"
                         onChange={(e) => handleVariantInputChange(index, e)}
-                        className={`shadow appearance-none border ${formErrors[`variant-${index}-stock`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                        placeholder="Ej. 50"
+                        className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-stock`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
                         required
                     />
                     {formErrors[`variant-${index}-stock`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-stock`]}</p>}
                 </div>
-                <div>
-                    <label htmlFor={`variantUnitOfMeasure-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Unidad de Medida:</label>
-                    <select
-                        id={`variantUnitOfMeasure-${index}`}
-                        name="unitOfMeasure"
-                        value={variant.unitOfMeasure}
-                        onChange={(e) => handleVariantInputChange(index, e)}
-                        className={`shadow appearance-none border ${formErrors[`variant-${index}-unitOfMeasure`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer text-neutral-light`}
-                        required
-                    >
-                        {unitOfMeasureOptions.map(unit => (
-                            <option key={unit} value={unit}>{unit}</option>
-                        ))}
-                    </select>
-                    {formErrors[`variant-${index}-unitOfMeasure`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-unitOfMeasure`]}</p>}
-                </div>
-                {/* Atributos adicionales de la variante */}
-                <div>
-                    <label htmlFor={`variantColor-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Color (Opcional):</label>
-                    <input
-                        type="text"
-                        id={`variantColor-${index}`}
-                        name="color"
-                        value={variant.color}
-                        onChange={(e) => handleVariantInputChange(index, e)}
-                        className={`shadow appearance-none border ${formErrors[`variant-${index}-color`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                        placeholder="Ej. Rojo"
-                    />
-                    {formErrors[`variant-${index}-color`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-color`]}</p>}
-                </div>
-                <div>
-                    <label htmlFor={`variantSize-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Talla/Tamaño (Opcional):</label>
-                    <input
-                        type="text"
-                        id={`variantSize-${index}`}
-                        name="size"
-                        value={variant.size}
-                        onChange={(e) => handleVariantInputChange(index, e)}
-                        className={`shadow appearance-none border ${formErrors[`variant-${index}-size`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                        placeholder="Ej. S, L, XL, 32GB"
-                    />
-                    {formErrors[`variant-${index}-size`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-size`]}</p>}
-                </div>
-                <div className="md:col-span-2">
-                    <label htmlFor={`variantMaterial-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Material (Opcional):</label>
-                    <input
-                        type="text"
-                        id={`variantMaterial-${index}`}
-                        name="material"
-                        value={variant.material}
-                        onChange={(e) => handleVariantInputChange(index, e)}
-                        className={`shadow appearance-none border ${formErrors[`variant-${index}-material`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                        placeholder="Ej. Algodón, Plástico"
-                    />
-                    {formErrors[`variant-${index}-material`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-material`]}</p>}
-                </div>
 
-                {/* --- NUEVOS CAMPOS DE STOCK/PERECEDEROS PARA VARIANTE --- */}
-                <div className="md:col-span-2 mt-4 border-t border-neutral-gray-700 pt-4">
-                    <h5 className="text-base font-semibold text-neutral-light mb-2">Gestión de Stock de Variante:</h5>
-                    <div className="flex items-center mb-3">
-                        <input
-                            type="checkbox"
-                            id={`variantIsPerishable-${index}`}
-                            name="isPerishable"
-                            checked={variant.isPerishable}
-                            onChange={(e) => handleVariantInputChange(index, e)}
-                            className="mr-2 h-4 w-4 text-action-blue rounded focus:ring-action-blue border-neutral-gray-600 bg-neutral-gray-700"
-                        />
-                        <label htmlFor={`variantIsPerishable-${index}`} className="text-neutral-light text-sm font-bold">¿Es Perecedero?</label>
-                    </div>
-
-                    <div>
-                        <label htmlFor={`variantReorderThreshold-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Umbral de Reaprovisionamiento:
-                            <span className="relative inline-block ml-2 group">
-                                <Info size={16} className="text-action-blue cursor-pointer" />
-                                <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 w-64 p-2 bg-neutral-gray-800 text-xs text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-normal text-center shadow-lg">
-                                    El stock mínimo de este producto/variante para generar una alerta de "Stock Bajo".
-                                </span>
-                            </span>
-                        </label>
+                {/* Precio de Venta y % Ganancia */}
+                <div className="flex items-end gap-2 md:col-span-2 lg:col-span-1">
+                    <div className="flex-grow">
+                        <label htmlFor={`variant-price-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Precio Venta:</label>
                         <input
                             type="number"
-                            id={`variantReorderThreshold-${index}`}
-                            name="reorderThreshold"
-                            value={variant.reorderThreshold}
-                            onChange={(e) => handleVariantInputChange(index, e)}
-                            className={`shadow appearance-none border ${formErrors[`variant-${index}-reorderThreshold`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                            placeholder="Ej. 5"
+                            id={`variant-price-${index}`}
+                            name="price"
+                            value={calculatedVariantPricePlaceholder !== null ? parseFloat(calculatedVariantPricePlaceholder).toFixed(2) : ''}
+                            onChange={() => {}} // Es de solo lectura
+                            placeholder={formatPrice(calculatedVariantPricePlaceholder, variant.saleCurrency || 'USD')}
+                            className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-price`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
+                            readOnly
                         />
-                        {formErrors[`variant-${index}-reorderThreshold`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-reorderThreshold`]}</p>}
+                        {formErrors[`variant-${index}-price`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-price`]}</p>}
                     </div>
+                    <div className="w-24 flex-shrink-0">
+                        <label htmlFor={`variant-saleCurrency-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Moneda:</label>
+                        <select
+                            id={`variant-saleCurrency-${index}`}
+                            name="saleCurrency"
+                            value={variant.saleCurrency}
+                            onChange={(e) => handleVariantInputChange(index, e)}
+                            className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-saleCurrency`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900 cursor-pointer`}
+                            required
+                        >
+                            {currencies.map(currency => (
+                                <option key={currency} value={currency}>{currency}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="w-24 flex-shrink-0">
+                        <label htmlFor={`variant-profitPercentage-${index}`} className="block text-neutral-light text-sm font-bold mb-2">% Ganancia:</label>
+                        <input
+                            type="number"
+                            id={`variant-profitPercentage-${index}`}
+                            name="profitPercentage"
+                            value={variant.profitPercentage}
+                            placeholder="%"
+                            onChange={(e) => handleVariantInputChange(index, e)}
+                            className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-profitPercentage`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
+                        />
+                    </div>
+                </div>
+            </div>
 
-                    {variant.isPerishable && (
-                        <>
-                            <div className="mt-3">
-                                <label htmlFor={`variantOptimalMaxStock-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Stock Óptimo Máximo (Perecedero):</label>
+            {/* Opciones Avanzadas para la Variante */}
+            <div className="mt-4">
+                <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="w-full bg-neutral-gray-700 hover:bg-neutral-gray-600 text-neutral-light font-bold py-2 px-4 rounded-lg flex items-center justify-between transition duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-gray-500 text-sm"
+                >
+                    <span>Opciones Avanzadas de la Variante</span>
+                    {showAdvanced ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
+                {showAdvanced && (
+                    <div className="mt-4 border border-neutral-gray-700 rounded-lg p-4 bg-dark-charcoal animate-fade-in-down">
+                        {/* Atributos de la variante */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                             <div>
+                                <label htmlFor={`variant-color-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Color:</label>
+                                <input
+                                    type="text"
+                                    id={`variant-color-${index}`}
+                                    name="color"
+                                    value={variant.color || ''}
+                                    onChange={(e) => handleVariantInputChange(index, e)}
+                                    className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-color`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
+                                    placeholder="Ej. Rojo"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor={`variant-size-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Talla/Tamaño:</label>
+                                <input
+                                    type="text"
+                                    id={`variant-size-${index}`}
+                                    name="size"
+                                    value={variant.size || ''}
+                                    onChange={(e) => handleVariantInputChange(index, e)}
+                                    className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-size`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
+                                    placeholder="Ej. M, 42"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor={`variant-material-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Material:</label>
+                                <input
+                                    type="text"
+                                    id={`variant-material-${index}`}
+                                    name="material"
+                                    value={variant.material || ''}
+                                    onChange={(e) => handleVariantInputChange(index, e)}
+                                    className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-material`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
+                                    placeholder="Ej. Algodón"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Gestión de stock avanzada de la variante */}
+                        <div className="mb-6 border-t border-neutral-gray-700 pt-6 mt-6">
+                            <h4 className="text-lg font-semibold text-neutral-light mb-3">Gestión de Stock (Variante):</h4>
+                            <div className="flex items-center mb-4">
+                                <input
+                                    type="checkbox"
+                                    id={`variant-isPerishable-${index}`}
+                                    name="isPerishable"
+                                    checked={variant.isPerishable}
+                                    onChange={(e) => handleVariantInputChange(index, e)}
+                                    className="mr-2 h-5 w-5 text-action-blue rounded focus:ring-action-blue border-neutral-gray-600 bg-neutral-gray-700"
+                                />
+                                <label htmlFor={`variant-isPerishable-${index}`} className="text-neutral-light font-bold">¿Es Perecedero?</label>
+                            </div>
+                            <div>
+                                <label htmlFor={`variant-reorderThreshold-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Umbral de Reaprovisionamiento:</label>
                                 <input
                                     type="number"
-                                    id={`variantOptimalMaxStock-${index}`}
-                                    name="optimalMaxStock"
-                                    value={variant.optimalMaxStock}
+                                    id={`variant-reorderThreshold-${index}`}
+                                    name="reorderThreshold"
+                                    value={variant.reorderThreshold}
                                     onChange={(e) => handleVariantInputChange(index, e)}
-                                    className={`shadow appearance-none border ${formErrors[`variant-${index}-optimalMaxStock`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                                    placeholder="Ej. 20"
-                                    required={variant.isPerishable}
+                                    className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-reorderThreshold`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
+                                    placeholder="Ej. 5"
                                 />
-                                {formErrors[`variant-${index}-optimalMaxStock`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-optimalMaxStock`]}</p>}
                             </div>
-                            <div className="mt-3">
-                                <label htmlFor={`variantShelfLifeDays-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Vida Útil (en días - Perecedero):</label>
-                                <input
-                                    type="number"
-                                    id={`variantShelfLifeDays-${index}`}
-                                    name="shelfLifeDays"
-                                    value={variant.shelfLifeDays}
-                                    onChange={(e) => handleVariantInputChange(index, e)}
-                                    className={`shadow appearance-none border ${formErrors[`variant-${index}-shelfLifeDays`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-neutral-light`}
-                                    placeholder="Ej. 14"
-                                    required={variant.isPerishable}
-                                />
-                                {formErrors[`variant-${index}-shelfLifeDays`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-shelfLifeDays`]}</p>}
-                            </div>
-                        </>
-                    )}
-                </div>
+                            {variant.isPerishable && (
+                                <>
+                                    <div className="mt-4">
+                                        <label htmlFor={`variant-optimalMaxStock-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Stock Óptimo Máximo:</label>
+                                        <input
+                                            type="number"
+                                            id={`variant-optimalMaxStock-${index}`}
+                                            name="optimalMaxStock"
+                                            value={variant.optimalMaxStock}
+                                            onChange={(e) => handleVariantInputChange(index, e)}
+                                            className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-optimalMaxStock`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
+                                            placeholder="Ej. 20"
+                                            required={variant.isPerishable}
+                                        />
+                                    </div>
+                                    <div className="mt-4">
+                                        <label htmlFor={`variant-shelfLifeDays-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Vida Útil (días):</label>
+                                        <input
+                                            type="number"
+                                            id={`variant-shelfLifeDays-${index}`}
+                                            name="shelfLifeDays"
+                                            value={variant.shelfLifeDays}
+                                            onChange={(e) => handleVariantInputChange(index, e)}
+                                            className={`w-full p-2 rounded-md bg-dark-charcoal border ${formErrors[`variant-${index}-shelfLifeDays`] ? 'border-red-500' : 'border-neutral-gray-700'} focus:ring-action-blue focus:border-action-blue text-gray-900`}
+                                            placeholder="Ej. 15"
+                                            required={variant.isPerishable}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
 
-                {/* Sección de imagen para la variante */}
-                <div className="md:col-span-2 border border-neutral-gray-700 rounded-lg p-3 flex flex-col gap-3 bg-neutral-gray-700">
-                    <p className="block text-neutral-light text-sm font-bold">Imagen de la Variante (Opcional):</p>
-                    <div className="flex flex-col">
-                        <label htmlFor={`variantImageFile-${index}`} className="block text-neutral-light text-sm font-bold mb-2 cursor-pointer bg-neutral-gray-600 hover:bg-neutral-gray-500 py-2 px-4 rounded-lg text-center flex items-center justify-center transition duration-200">
-                            {variantImageUploading[index] ? <Loader2 size={18} className="mr-2 animate-spin" /> : <Upload size={18} className="mr-2"/>} Cargar Imagen de Variante
-                        </label>
-                        <input
-                            type="file"
-                            id={`variantImageFile-${index}`}
-                            name="imageFile"
-                            accept="image/*"
-                            onChange={(e) => handleVariantImageFileChange(index, e)}
-                            className="hidden"
-                        />
-                    </div>
-                    <div className="text-neutral-gray-400 text-center text-xs my-1">O</div>
-                    <div>
-                        <label htmlFor={`variantImageUrl-${index}`} className="block text-neutral-light text-sm font-bold mb-2">Pega la URL:</label>
-                        <input
-                            type="url"
-                            id={`variantImageUrl-${index}`}
-                            name="imageUrl"
-                            value={variant.imageUrl}
-                            onChange={(e) => handleVariantInputChange(index, e)}
-                            onBlur={handleImageUrlBlur}
-                            className={`shadow appearance-none border ${formErrors[`variant-${index}-imageUrl`] ? 'border-red-500' : 'border-neutral-gray-700'} rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal placeholder-neutral-gray-500 text-xs text-neutral-light`}
-                            placeholder="Ej. https://tuservicio.com/variante_azul.jpg"
-                        />
-                        {formErrors[`variant-${index}-imageUrl`] && <p className="text-red-400 text-xs mt-1">{formErrors[`variant-${index}-imageUrl`]}</p>}
-                    </div>
-                    {(variant.imageUrl) ? (
-                        <div className="mt-2 border border-neutral-gray-600 rounded-lg p-2 text-center bg-neutral-gray-800">
-                            <p className="text-neutral-gray-400 text-xs mb-1">Previsualización:</p>
-                            <img
-                                src={variant.imageUrl}
-                                alt={`Image of variant ${index + 1}`}
-                                className="max-w-full h-auto max-h-32 object-contain mx-auto rounded-md"
-                                onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/150x100/2D3748/F8F8F2?text=Error'; }}
-                            />
+                        {/* Carga de imagen de la variante */}
+                        <div className="mb-6">
+                            <h4 className="text-lg font-semibold text-neutral-light mb-3">Imagen de la Variante:</h4>
+                            <div className="flex flex-col gap-4">
+                                <label htmlFor={`variant-imageFile-${index}`} className="block text-neutral-light text-sm font-bold mb-2 cursor-pointer bg-neutral-gray-600 hover:bg-neutral-gray-700 py-2 px-4 rounded-lg text-center flex items-center justify-center transition duration-200">
+                                    {variantImageUploading[index] ? <Loader2 size={20} className="mr-2 animate-spin" /> : <Upload size={20} className="mr-2"/>} Cargar Imagen
+                                </label>
+                                <input
+                                    type="file"
+                                    id={`variant-imageFile-${index}`}
+                                    name="imageFile"
+                                    accept="image/*"
+                                    onChange={(e) => handleVariantImageFileChange(index, e)}
+                                    className="hidden"
+                                />
+                                {variant.imageUrl && (
+                                    <div className="mt-2 border border-neutral-gray-600 rounded-lg p-2 text-center bg-neutral-gray-800">
+                                        <p className="text-neutral-gray-400 text-sm mb-2">Previsualización:</p>
+                                        <img
+                                            src={variant.imageUrl}
+                                            alt={`Previsualización de ${variant.name}`}
+                                            className="max-w-full h-auto max-h-32 object-contain mx-auto rounded-md"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = 'https://placehold.co/400x300/2D3748/F8F8F2?text=Error+Img';
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    ) : (
-                        <div className="mt-2 border border-neutral-gray-600 rounded-lg p-2 text-center bg-neutral-gray-800 text-neutral-gray-400 text-xs py-4">
-                            Sin imagen de variante.
-                        </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );

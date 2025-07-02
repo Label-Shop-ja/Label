@@ -5,7 +5,7 @@ import { FaSearch } from 'react-icons/fa';
 const ProductSelectItem = lazy(() => import('./ProductSelectItem'));
 
 const ProductSearchPanel = ({
-    searchTerm, setSearchTerm, searchResults, products, loading,
+    searchTerm, setSearchTerm, searchResults, loading,
     addProductToSale, searchInputRef, formatPrice, convertPrice, exchangeRate
 }) => {
     return (
@@ -23,49 +23,29 @@ const ProductSearchPanel = ({
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-gray-300" size={20} />
             </div>
             {loading ? (
-                <p className="text-xl text-action-blue text-center">Cargando productos...</p>
+                <p className="text-xl text-action-blue text-center animate-pulse">Buscando productos...</p>
             ) : (
                 <div className="flex-1 overflow-y-auto pr-2">
-                    {searchTerm.length > 0 ? (
-                        searchResults.length === 0 ? (
-                            <p className="text-neutral-gray-300 text-lg text-center mt-4">No se encontraron productos para "{searchTerm}".</p>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                                {searchResults.map((product) => (
-                                    <Suspense key={product._id} fallback={
-                                        <div className="bg-dark-charcoal p-4 rounded-lg shadow h-32 animate-pulse"></div>
-                                    }>
-                                        <ProductSelectItem
-                                            product={product}
-                                            onClick={() => addProductToSale(product)}
-                                            formatPrice={formatPrice}
-                                            convertPrice={convertPrice}
-                                            exchangeRate={exchangeRate}
-                                        />
-                                    </Suspense>
-                                ))}
-                            </div>
-                        )
+                    {searchTerm.length < 2 ? (
+                        <p className="text-neutral-gray-300 text-lg text-center mt-4">Escribe 2 o más caracteres para buscar un producto.</p>
+                    ) : searchResults.length === 0 ? (
+                        <p className="text-neutral-gray-300 text-lg text-center mt-4">No se encontraron productos para "{searchTerm}".</p>
                     ) : (
-                        products.length === 0 ? (
-                            <p className="text-neutral-gray-300 text-lg text-center mt-4">No hay productos en el inventario. Añade algunos desde la sección de Inventario.</p>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                                {products.map((product) => (
-                                    <Suspense key={product._id} fallback={
-                                        <div className="bg-dark-charcoal p-4 rounded-lg shadow h-32 animate-pulse"></div>
-                                    }>
-                                        <ProductSelectItem
-                                            product={product}
-                                            onClick={() => addProductToSale(product)}
-                                            formatPrice={formatPrice}
-                                            convertPrice={convertPrice}
-                                            exchangeRate={exchangeRate}
-                                        />
-                                    </Suspense>
-                                ))}
-                            </div>
-                        )
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+                            {searchResults.map((product) => (
+                                <Suspense key={product._id} fallback={
+                                    <div className="bg-dark-charcoal p-4 rounded-lg shadow h-32 animate-pulse"></div>
+                                }>
+                                    <ProductSelectItem
+                                        product={product}
+                                        onClick={() => addProductToSale(product)}
+                                        formatPrice={formatPrice}
+                                        convertPrice={convertPrice}
+                                        exchangeRate={exchangeRate}
+                                    />
+                                </Suspense>
+                            ))}
+                        </div>
                     )}
                 </div>
             )}
@@ -73,4 +53,4 @@ const ProductSearchPanel = ({
     );
 };
 
-export default ProductSearchPanel;
+export default React.memo(ProductSearchPanel);

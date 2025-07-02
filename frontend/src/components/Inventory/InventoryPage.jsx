@@ -442,8 +442,8 @@ function InventoryPage() {
                 `"${item.variantSku}"`,
                 item.variantStock,
                 parseFloat(item.variantPrice).toFixed(2),
-                parseFloat(item.variantTotalValue).toFixed(2),
-                parseFloat(item.variantCostValue).toFixed(2), // Corregido: item.variantTotalCostValue -> item.variantTotalCostValue
+                parseFloat(item.variantTotalValue).toFixed(2), // Valor total de venta
+                parseFloat(item.variantTotalCostValue).toFixed(2), // Valor total de costo
                 item.variantIsPerishable ? 'Sí' : 'No',
                 item.variantReorderThreshold,
                 item.variantShelfLifeDays > 0 ? `${item.variantShelfLifeDays} días` : 'N/A'
@@ -702,6 +702,7 @@ function InventoryPage() {
                                 displayMessage={displayMessage}
                                 unitOfMeasureOptions={unitOfMeasureOptions}
                                 debounceTimeoutRef={debounceTimeoutRef}
+                                currencyContext={useCurrency()} // Pasamos el contexto completo
                             />
                         </ProductModal>
                     )}
@@ -724,6 +725,7 @@ function InventoryPage() {
                                 displayMessage={displayMessage}
                                 unitOfMeasureOptions={unitOfMeasureOptions}
                                 debounceTimeoutRef={debounceTimeoutRef}
+                                currencyContext={useCurrency()} // Pasamos el contexto completo
                             />
                         </ProductModal>
                     )}

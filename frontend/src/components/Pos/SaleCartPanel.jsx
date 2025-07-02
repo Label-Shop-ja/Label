@@ -21,7 +21,9 @@ const SaleCartPanel = ({ saleItems, adjustQuantity, removeItemFromSale, formatPr
                                 />
                             </div>
                             <div className="flex-grow">
-                                <p className="text-neutral-light font-medium">{item.product.name} {item.variantId ? `- ${item.product.name}` : ''}</p>
+                                <p className="text-neutral-light font-medium">
+                                    {item.product.productName} {item.product.variantName ? `(${item.product.variantName})` : ''}
+                                </p>
                                 <p className="text-sm text-neutral-gray-300">
                                     {formatPrice(item.priceAtSale, exchangeRate?.fromCurrency || 'USD')}
                                     {exchangeRate && exchangeRate.rate && (
@@ -55,4 +57,4 @@ const SaleCartPanel = ({ saleItems, adjustQuantity, removeItemFromSale, formatPr
     );
 };
 
-export default SaleCartPanel;
+export default React.memo(SaleCartPanel);

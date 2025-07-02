@@ -78,4 +78,4 @@ const PaymentSection = ({
     );
 };
 
-export default PaymentSection;
+export default React.memo(PaymentSection); // React.memo

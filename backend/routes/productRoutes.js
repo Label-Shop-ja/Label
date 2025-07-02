@@ -1,27 +1,38 @@
-// E:\Proyectos\Label\backend\routes\productRoutes.js
 import express from 'express';
 const router = express.Router();
 import {
     getProducts,
-    getProduct,
+    getProductById,
     createProduct,
     updateProduct,
     deleteProduct,
     getLowStockProducts,
-    getHighStockProducts, // <-- ASEGÚRATE DE QUE ESTA FUNCIÓN ESTÉ AQUÍ
-    getVariantInventoryReport, // <-- NUEVA FUNCIÓN IMPORTADA
+    getHighStockProducts,
+    getVariantInventoryReport,
 } from '../controllers/productController.js';
-import { protect } from '../middleware/authMiddleware.js'; // Middleware para proteger rutas
+import { protect } from '../middleware/authMiddleware.js'; // Asumo que tu middleware de protección se llama así
 
-// --- CRUD de Productos ---
-router.route('/').get(protect, getProducts).post(protect, createProduct);
-router.route('/:id').get(protect, getProduct).put(protect, updateProduct).delete(protect, deleteProduct);
+// Todas las rutas en este archivo estarán protegidas y requerirán un token válido.
 
-// --- Alertas de Inventario ---
-router.get('/alerts/low-stock', protect, getLowStockProducts);
-router.get('/alerts/high-stock', protect, getHighStockProducts);
+// Rutas para reportes y alertas. Deben ir antes de la ruta con /:id para evitar conflictos.
+router.route('/reports/variants')
+    .get(protect, getVariantInventoryReport);
 
-// --- Reportes de Inventario ---
-router.get('/reports/variants', protect, getVariantInventoryReport);
+router.route('/alerts/low-stock')
+    .get(protect, getLowStockProducts);
+
+router.route('/alerts/high-stock')
+    .get(protect, getHighStockProducts);
+
+// Ruta base para obtener todos los productos y crear uno nuevo.
+router.route('/')
+    .get(protect, getProducts)
+    .post(protect, createProduct);
+
+// Ruta para un producto específico por su ID.
+router.route('/:id')
+    .get(protect, getProductById)
+    .put(protect, updateProduct)
+    .delete(protect, deleteProduct);
 
 export default router;

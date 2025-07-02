@@ -12,29 +12,17 @@ export default {
   theme: {
     extend: {
       // Define tus colores personalizados para usar en Tailwind
+      // Ahora apuntan a las variables CSS que definimos en index.css
       colors: {
-        // Colores para el tema "Clásico" (el original)
-        'deep-night-blue': '#1a202c', // Fondo principal del dashboard y modal
-        'copper-rose-accent': '#FF6B6B', // Color de acento para títulos y elementos interactivos
-        'action-blue': '#4A90E2', // Azul para botones de acción y enlaces
-        'neutral-light': '#F8F8F2', // Texto claro
-        'neutral-gray': '#A0AEC0', // Gris neutro para texto secundario
-        'dark-charcoal': '#2D3748', // Un gris oscuro para inputs y elementos de fondo
-        'success-green': '#4CAF50', // Verde para mensajes de éxito
-        'error-red': '#EF4444',     // Rojo para mensajes de error
-        'neutral-gray-200': '#CBD5E0', // Gris claro para botones o fondos sutiles
-        'neutral-gray-500': '#6B7280', // Gris medio para bordes o fondos
-        'neutral-gray-700': '#4A5568', // Gris oscuro para bordes de inputs
-        'action-blue-light': '#74B9FF', // Una variante más clara del azul de acción para bordes/sombras
-        'dark-slate-gray': '#2a313c', // Un gris azulado oscuro para el fondo de las páginas
-
-        // Colores para el nuevo tema "Claro"
-        'light-bg': '#F9FAFB', // Fondo principal claro
-        'light-surface': '#FFFFFF', // Superficie de tarjetas y modales
-        'light-text': '#1F2937', // Texto principal
-        'light-text-secondary': '#6B7280', // Texto secundario
-        'light-accent': '#EF4444', // Acento (rojo)
-        'light-action': '#3B82F6', // Acción (azul)
+        background: 'hsl(var(--color-background) / <alpha-value>)',
+        surface: 'hsl(var(--color-surface) / <alpha-value>)',
+        'surface-secondary': 'hsl(var(--color-surface-secondary) / <alpha-value>)',
+        primary: 'hsl(var(--color-primary) / <alpha-value>)',
+        secondary: 'hsl(var(--color-secondary) / <alpha-value>)',
+        success: 'hsl(var(--color-success) / <alpha-value>)',
+        error: 'hsl(var(--color-error) / <alpha-value>)',
+        'text-base': 'hsl(var(--color-text-base) / <alpha-value>)',
+        'text-muted': 'hsl(var(--color-text-muted) / <alpha-value>)',
       },
       // Define tus keyframes para animaciones CSS
       keyframes: {
@@ -60,10 +48,8 @@ export default {
     },
   },
   plugins: [
-    // Plugin para añadir la variante "classic"
-    // Esto nos permitirá usar clases como `classic:bg-deep-night-blue`
-    plugin(function({ addVariant }) {
-      addVariant('classic', '.classic &')
-    })
+    // El plugin para la variante "classic" ya no es necesario.
+    // Si usas el plugin de formularios de Tailwind, déjalo aquí.
+    // require('@tailwindcss/forms'),
   ],
 }
