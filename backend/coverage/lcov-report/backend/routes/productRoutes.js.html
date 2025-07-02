@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>6/6</span>
+                <span class='fraction'>38/38</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>6/6</span>
+                <span class='fraction'>38/38</span>
             </div>
         
             
@@ -90,68 +90,98 @@
 <a name='L25'></a><a href='#L25'>25</a>
 <a name='L26'></a><a href='#L26'>26</a>
 <a name='L27'></a><a href='#L27'>27</a>
-<a name='L28'></a><a href='#L28'>28</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// E:\Proyectos\Label\backend\routes\productRoutes.js
-import express from 'express';
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span></td><td class="text"><pre class="prettyprint lang-js">import express from 'express';
 const router = express.Router();
 import {
     getProducts,
-    getProduct,
+    getProductById,
     createProduct,
     updateProduct,
     deleteProduct,
     getLowStockProducts,
-    getHighStockProducts, // &lt;-- ASEGÚRATE DE QUE ESTA FUNCIÓN ESTÉ AQUÍ
-    getVariantInventoryReport, // &lt;-- NUEVA FUNCIÓN IMPORTADA
+    getHighStockProducts,
+    getVariantInventoryReport,
 } from '../controllers/productController.js';
-import { protect } from '../middleware/authMiddleware.js'; // Middleware para proteger rutas
+import { protect } from '../middleware/authMiddleware.js'; // Asumo que tu middleware de protección se llama así
 &nbsp;
-// --- CRUD de Productos ---
-router.route('/').get(protect, getProducts).post(protect, createProduct);
-router.route('/:id').get(protect, getProduct).put(protect, updateProduct).delete(protect, deleteProduct);
+// Todas las rutas en este archivo estarán protegidas y requerirán un token válido.
 &nbsp;
-// --- Alertas de Inventario ---
-router.get('/alerts/low-stock', protect, getLowStockProducts);
-router.get('/alerts/high-stock', protect, getHighStockProducts);
+// Rutas para reportes y alertas. Deben ir antes de la ruta con /:id para evitar conflictos.
+router.route('/reports/variants')
+    .get(protect, getVariantInventoryReport);
 &nbsp;
-// --- Reportes de Inventario ---
-router.get('/reports/variants', protect, getVariantInventoryReport);
+router.route('/alerts/low-stock')
+    .get(protect, getLowStockProducts);
 &nbsp;
-export default router;
-&nbsp;</pre></td></tr></table></pre>
+router.route('/alerts/high-stock')
+    .get(protect, getHighStockProducts);
+&nbsp;
+// Ruta base para obtener todos los productos y crear uno nuevo.
+router.route('/')
+    .get(protect, getProducts)
+    .post(protect, createProduct);
+&nbsp;
+// Ruta para un producto específico por su ID.
+router.route('/:id')
+    .get(protect, getProductById)
+    .put(protect, updateProduct)
+    .delete(protect, deleteProduct);
+&nbsp;
+export default router;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-01T21:42:27.263Z
+                at 2025-07-02T07:02:49.488Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

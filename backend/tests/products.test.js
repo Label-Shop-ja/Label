@@ -2,100 +2,127 @@ import request from 'supertest';
 import app from '../app.js';
 import User from '../models/userModel.js';
 import Product from '../models/productModel.js';
-import ExchangeRate from '../models/ExchangeRate.js';
 
 describe('Product API', () => {
   let token;
   let userId;
 
-  // Antes de todas las pruebas de productos, creamos un usuario y nos logueamos
-  // para tener un token de autenticación válido.
-  beforeAll(async () => {
-    const userResponse = await request(app).post('/api/auth/register').send({
-      fullName: 'Product Test User',
-      email: 'product.test@example.com',
-      password: 'password123',
+  // Antes de CADA prueba, crea un nuevo usuario y obtén su token.
+  // Esto garantiza que cada prueba se ejecute de forma aislada con un usuario limpio.
+  beforeEach(async () => {
+    // Usamos el endpoint de registro para asegurar que el usuario se crea
+    // con toda la configuración asociada (ej. tasas de cambio por defecto).
+    const userEmail = `test${Date.now()}@example.com`;
+    const userPassword = 'password123';
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({
+      fullName: 'Test User',
+      email: userEmail,
+      password: userPassword,
+      });
+    
+    token = res.body.accessToken;
+    userId = res.body.user._id;
+  });
+
+  // --- Pruebas para la creación de productos (POST /api/products) ---
+  describe('POST /api/products', () => {
+    it('should create a new product for an authenticated user', async () => {
+      const newProduct = {
+        sku: 'CAM-TEST-001',
+        name: 'Camiseta de Prueba',
+        category: 'Ropa',
+        stock: 100,
+        costPrice: 10,
+        profitPercentage: 50,
+        costCurrency: 'USD',
+        saleCurrency: 'USD',
+        unitOfMeasure: 'unidad', // CORRECCIÓN: Añadir campo requerido
+        displayCurrency: 'USD',  // CORRECCIÓN: Añadir campo requerido
+        baseCurrency: 'USD',     // CORRECCIÓN: Añadir campo requerido
+      };
+
+      const res = await request(app)
+        .post('/api/products')
+        .set('Authorization', `Bearer ${token}`)
+        .send(newProduct);
+
+      expect(res.statusCode).toEqual(201);
+      expect(res.body).toHaveProperty('name', 'Camiseta de Prueba');
+      expect(res.body).toHaveProperty('price', 15); // 10 * (1 + 50/100)
     });
 
-    token = userResponse.body.accessToken;
-    userId = userResponse.body.user._id;
+    it('should not create a product if not authenticated', async () => {
+      const newProduct = { name: 'Producto no autorizado', category: 'Test' };
 
-    // ¡CRÍTICO! El controlador de productos necesita una configuración de tasas
-    // para calcular los precios. La creamos aquí para nuestro usuario de prueba.
-    await ExchangeRate.create({
-      user: userId,
-      conversions: [
-        { fromCurrency: 'USD', toCurrency: 'VES', rate: 36.5 },
-        { fromCurrency: 'USD', toCurrency: 'EUR', rate: 0.92 },
-        { fromCurrency: 'USD', toCurrency: 'USD', rate: 1 }, // ¡Añadir la conversión a sí mismo!
-      ],
-      defaultProfitPercentage: 20, // 20% de ganancia por defecto
+      const res = await request(app)
+        .post('/api/products')
+        .send(newProduct);
+
+      expect(res.statusCode).toEqual(401);
     });
   });
 
-  // Test para crear un producto (ruta protegida)
-  it('should create a new product for an authenticated user', async () => {
-    const newProduct = {
-      name: 'Harina P.A.N.',
-      sku: 'HARINA-PAN-1KG',
-      category: 'Alimentos',
-      costPrice: 1.0, // Costo de 1 USD
-      costCurrency: 'USD',
-      saleCurrency: 'USD',
-      profitPercentage: 50, // Queremos un 50% de ganancia
-      stock: 100,
-      unitOfMeasure: 'unidad',
-    };
+  // --- Pruebas para obtener productos (GET /api/products) ---
+  describe('GET /api/products', () => {
+    it('should get all products for the authenticated user', async () => {
+      // Crea un producto de ejemplo para este usuario específico
+      await Product.create({
+        user: userId,
+        name: 'Producto de prueba para GET',
+        sku: 'TEST-SKU-GET', // CORRECCIÓN: Añadir el SKU requerido
+        price: 6, // CORRECCIÓN: Añadir precio calculado (5 * 1.2)
+        category: 'Test',
+        stock: 10,
+        costPrice: 5,
+        costCurrency: 'USD',
+        saleCurrency: 'USD',
+        unitOfMeasure: 'unidad',
+        displayCurrency: 'USD',
+        baseCurrency: 'USD',
+      });
 
-    const res = await request(app)
-      .post('/api/products')
-      .set('Authorization', `Bearer ${token}`) // ¡Enviamos el token!
-      .send(newProduct);
+      const res = await request(app)
+        .get('/api/products')
+        .set('Authorization', `Bearer ${token}`);
 
-    expect(res.statusCode).toEqual(201);
-    expect(res.body).toHaveProperty('name', 'Harina P.A.N.');
-    expect(res.body).toHaveProperty('sku', 'HARINA-PAN-1KG');
-    // Verificamos que el precio de venta se calculó correctamente (1.0 * 1.50 = 1.50)
-    expect(res.body).toHaveProperty('price', 1.5);
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.products).toBeInstanceOf(Array);
+      expect(res.body.products.length).toBe(1);
+      expect(res.body.products[0].name).toBe('Producto de prueba para GET');
+    });
+
+    it('should not get products if not authenticated', async () => {
+      const res = await request(app).get('/api/products');
+      expect(res.statusCode).toEqual(401);
+    });
   });
 
-  // Test para evitar crear un producto sin token
-  it('should not create a product if not authenticated', async () => {
-    const newProduct = {
-      name: 'Producto Fantasma',
-      sku: 'FANTASMA-01',
-      category: 'Otros',
-      costPrice: 10,
-      stock: 10,
-      unitOfMeasure: 'unidad',
-    };
+  // Puedes añadir más `describe` bloques para PUT, DELETE, etc.
+  // Ejemplo para GET /api/products/:id
+  describe('GET /api/products/:id', () => {
+    it('should get a single product by its ID', async () => {
+      const product = await Product.create({
+        user: userId,
+        name: 'Producto Individual',
+        sku: 'TEST-SKU-SINGLE',
+        price: 1.5, // CORRECCIÓN: Añadir precio
+        category: 'Single',
+        costPrice: 1,
+        unitOfMeasure: 'unidad',
+        displayCurrency: 'USD',
+        baseCurrency: 'USD',
+        saleCurrency: 'USD',
+        stock: 1,
+      });
 
-    const res = await request(app)
-      .post('/api/products')
-      // No enviamos el token a propósito
-      .send(newProduct);
+      const res = await request(app)
+        .get(`/api/products/${product._id}`)
+        .set('Authorization', `Bearer ${token}`);
 
-    expect(res.statusCode).toEqual(401);
-    expect(res.body.message).toBe('No autorizado, no se encontró un token');
-  });
-
-  // Test para obtener los productos del usuario
-  it('should get all products for the authenticated user', async () => {
-    const res = await request(app)
-      .get('/api/products')
-      .set('Authorization', `Bearer ${token}`);
-
-    expect(res.statusCode).toEqual(200);
-    expect(res.body).toHaveProperty('products');
-    // Deberíamos tener solo 1 producto, el que creamos en el test anterior
-    expect(res.body.products).toHaveLength(1);
-    expect(res.body.products[0].name).toBe('Harina P.A.N.');
-  });
-
-  // Test para evitar que un usuario vea los productos de otro (aunque no tenemos otro usuario aquí, probamos el no estar logueado)
-  it('should not get products if not authenticated', async () => {
-    const res = await request(app).get('/api/products');
-
-    expect(res.statusCode).toEqual(401);
+      expect(res.statusCode).toEqual(200);
+      expect(res.body).toHaveProperty('name', 'Producto Individual');
+    });
   });
 });

@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for backend/models/Sale.js</title>
+    <title>Code coverage report for backend/models/GlobalProduct.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,20 +19,20 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">backend/models</a> Sale.js</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">backend/models</a> GlobalProduct.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">94.38% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>66/66</span>
+                <span class='fraction'>84/89</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>1/2</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">94.38% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>66/66</span>
+                <span class='fraction'>84/89</span>
             </div>
         
             
@@ -128,7 +128,31 @@
 <a name='L63'></a><a href='#L63'>63</a>
 <a name='L64'></a><a href='#L64'>64</a>
 <a name='L65'></a><a href='#L65'>65</a>
-<a name='L66'></a><a href='#L66'>66</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -193,72 +217,120 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span></td><td class="text"><pre class="prettyprint lang-js">// C:\Proyectos\Label\backend\models\Sale.js
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// C:\Proyectos\Label\backend\models\GlobalProduct.js
 import mongoose from 'mongoose';
 &nbsp;
-const saleProductSchema = mongoose.Schema({
-  product: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    ref: 'Product', // Referencia al producto que se vendió
-  },
-  name: { // Guardamos el nombre para historial, por si el producto original cambia
-    type: String,
-    required: true,
-  },
-  quantity: {
-    type: Number,
-    required: true,
-    default: 1,
-  },
-  priceAtSale: { // Precio del producto en el momento de la venta
-    type: Number,
-    required: true,
-  },
-}, {
-  _id: false // No crear un _id para cada subdocumento de producto vendido
-});
-&nbsp;
-const saleSchema = mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: 'User', // El usuario que realizó la venta
+const globalProductSchema = mongoose.Schema(
+    {
+        name: {
+            type: String,
+            required: [true, 'Por favor, añade un nombre para el producto global'],
+            trim: true,
+            minlength: 2,
+            maxlength: 100,
+        },
+        description: {
+            type: String,
+            default: '',
+            maxlength: 500,
+        },
+        category: {
+            type: String,
+            required: [true, 'Por favor, añade una categoría para el producto global'],
+            trim: true,
+            minlength: 2,
+            maxlength: 50,
+        },
+        sku: { // Stock Keeping Unit - Identificador único global
+            type: String,
+            required: [true, 'Por favor, añade un SKU para el producto global'],
+            unique: true, // Cada SKU debe ser único a nivel global
+            trim: true,
+            uppercase: true, // Estandarizar SKUs en mayúsculas
+            minlength: 3,
+            maxlength: 30,
+        },
+        unitOfMeasure: { // Unidad de medida (ej. unidad, kg, litro)
+            type: String,
+            required: [true, 'Por favor, añade una unidad de medida para el producto global'],
+            trim: true,
+            enum: ['unidad', 'kg', 'litro', 'metro', 'paquete', 'caja', 'docena', 'otro'],
+            default: 'unidad',
+        },
+        brand: { // Marca o fabricante del producto
+            type: String,
+            default: '',
+            trim: true,
+            maxlength: 50,
+        },
+        supplier: { // Proveedor principal del producto (si aplica a nivel global, sino se puede omitir o hacer opcional)
+            type: String,
+            default: '',
+            trim: true,
+            maxlength: 50,
+        },
+        // Nuevo campo para la URL de la imagen del producto
+        imageUrl: {
+            type: String,
+            default: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Sin+Imagen', // Placeholder por defecto
+            trim: true,
+        },
+        // Campo para la purga de datos
+        lastUsedAt: {
+            type: Date,
+            default: Date.now,
+        },
     },
-    productsSold: [saleProductSchema], // Array de productos vendidos en esta transacción
-    totalAmount: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    paymentMethod: {
-      type: String,
-      required: [true, 'Por favor, especifica el método de pago'],
-      enum: ['cash', 'card', 'transfer', 'other'], // Métodos de pago comunes
-      default: 'cash',
-    },
-    customerName: { // Opcional: Nombre del cliente (por si no hay modelo de cliente aún)
-      type: String,
-      required: false,
-      trim: true,
-    },
-    // Opcional: Para futura referencia a una transacción financiera específica
-    financialTransaction: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Transaction',
-      required: false,
-    },
-  },
-  {
-    timestamps: true, // Añade campos `createdAt` y `updatedAt` automáticamente
-  }
+    {
+        timestamps: true, // Mantiene `createdAt` y `updatedAt` para seguimiento
+        toJSON: { getters: true },
+        toObject: { getters: true },
+    }
 );
 &nbsp;
-// Índice para buscar ventas por usuario de forma eficiente
-saleSchema.index({ user: 1 });
+// Middleware para asegurar que lastUsedAt se actualice en cada guardado
+globalProductSchema.pre('save', function (next) {
+    if (this.isModified()<span class="branch-0 cbranch-no" title="branch not covered" > || this.isNew)</span> {
+        this.lastUsedAt = Date.now();
+    }
+    next();
+});
 &nbsp;
-export default mongoose.model('Sale', saleSchema);</pre></td></tr></table></pre>
+// Middleware de Mongoose para manejar el error de SKU duplicado de forma más amigable
+globalProductSchema.post('save', function(error, doc, next) {
+<span class="cstat-no" title="statement not covered" >    if (error.name === 'MongoServerError' &amp;&amp; error.code === 11000 &amp;&amp; error.keyPattern &amp;&amp; error.keyPattern.sku) {</span>
+<span class="cstat-no" title="statement not covered" >        next(new Error('El SKU proporcionado ya existe en el catálogo global. Por favor, utiliza un SKU diferente.'));</span>
+<span class="cstat-no" title="statement not covered" >    } else {</span>
+<span class="cstat-no" title="statement not covered" >        next(error);</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+});
+&nbsp;
+export default mongoose.model('GlobalProduct', globalProductSchema);
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
