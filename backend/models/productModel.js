@@ -1,6 +1,7 @@
 // C:\Proyectos\Label\backend\models\productModel.js
 import mongoose from 'mongoose';
 import { SUPPORTED_CURRENCIES } from '../constants.js';
+import { calculateSalePrice } from '../utils/currencyCalculator.js';
 
 // Define el esquema para las variantes de producto
 const variantSchema = mongoose.Schema(
@@ -33,12 +34,17 @@ const variantSchema = mongoose.Schema(
             required: true,
             enum: SUPPORTED_CURRENCIES,
             default: 'USD',
-        },
+            },
         saleCurrency: { // Moneda en la que se registra el precio de venta de esta variante
             type: String,
             required: true,
             enum: SUPPORTED_CURRENCIES,
             default: 'USD',
+            },
+        profitPercentage: {
+            type: Number,
+            required: false,
+            min: 0,
         },
         // Stock y unidad de medida para la variante
         stock: {
@@ -182,6 +188,12 @@ const productSchema = mongoose.Schema(
             enum: SUPPORTED_CURRENCIES, // Puedes añadir más si quieres
             default: 'USD', // Por defecto, se asume que los precios se manejan en USD
         },
+        profitPercentage: { // Porcentaje de ganancia para productos simples
+            type: Number,
+            required: false,
+            min: 0,
+            default: 20,
+        },
         brand: {
             type: String,
             default: '',
@@ -267,29 +279,51 @@ productSchema.virtual('totalValueUSD').get(function() {
 productSchema.set('toJSON', { virtuals: true });
 productSchema.set('toObject', { virtuals: true });
 
-// Middleware pre-save para productos con variantes
-productSchema.pre('save', function(next) {
+// Hook para calcular el precio de venta y sincronizar datos antes de guardar
+productSchema.pre('save', async function (next) {
+    // Si no se ha modificado nada relevante para el precio, no hacemos nada.
+    const isCostModified = this.isModified('costPrice') || this.isModified('profitPercentage');
+    const areVariantsModified = this.isModified('variants');
+
+    if (!isCostModified && !areVariantsModified) {
+        return next();
+    }
+
+    // Necesitamos la configuración de tasas del usuario para hacer cualquier cálculo
+    const ExchangeRate = mongoose.model('ExchangeRate');
+    const exchangeRateConfig = await ExchangeRate.findOne({ user: this.user });
+
+    if (!exchangeRateConfig) {
+        const error = new Error('No se encontró la configuración de tasas de cambio para este usuario. No se puede calcular el precio.');
+        error.statusCode = 400; // Bad Request
+        return next(error);
+    }
+
+    // CASO 1: Producto con variantes.
     if (this.variants && this.variants.length > 0) {
-        // Si el producto tiene variantes, su stock, precio, costo y unidad de medida
-        // se derivan de las variantes o se ponen a cero/valor por defecto
+        // Sincronizar el stock total del padre
         this.stock = this.variants.reduce((acc, variant) => acc + variant.stock, 0);
 
-        // Establecer precio y costo del producto padre a un valor que indique que se usan variantes
-        // Usamos el precio y costo de la primera variante como base, o 0 si no hay variantes (aunque siempre habrá al menos 1)
-        this.price = this.variants.length > 0 ? this.variants[0].price : 0;
-        this.costPrice = this.variants.length > 0 ? this.variants[0].costPrice : 0;
-        this.unitOfMeasure = this.variants.length > 0 ? this.variants[0].unitOfMeasure : 'unidad';
-        // Nuevas líneas para manejar las monedas de costo, venta y visualización
-        // Si las variantes tienen monedas diferentes, se usa la moneda de la primera variante
-        this.costCurrency = this.variants.length > 0 ? this.variants[0].costCurrency : 'USD';
-        this.saleCurrency = this.variants.length > 0 ? this.variants[0].saleCurrency : 'USD';
-        this.displayCurrency = this.variants.length > 0 ? this.variants[0].saleCurrency : 'USD'; // Por defecto la misma que saleCurrency
-
-        // Para el SKU del padre: si el frontend no lo envía y hay variantes, lo dejamos vacío
-        // si el esquema permite que sea opcional. Actualmente es `required: true`.
-        // Por ahora, asumimos que el frontend maneja el SKU del padre si hay variantes.
-        // Si el SKU del padre debe ser vacío o derivado cuando hay variantes, tendríamos que cambiar `required: true` a `false` en `productModel.js` para el SKU principal.
+        // Calcular el precio de cada variante
+        for (const variant of this.variants) {
+            variant.price = calculateSalePrice(
+                variant.costPrice,
+                variant.costCurrency,
+                variant.profitPercentage,
+                exchangeRateConfig,
+                variant.saleCurrency
+            );
+            if (variant.price === null) {
+                return next(new Error(`No se pudo calcular el precio para la variante "${variant.name}" debido a una configuración de moneda inválida.`));
+            }
+        }
+    } else if (isCostModified) { // CASO 2: Producto simple (sin variantes) y se modificó su costo o ganancia.
+        this.price = calculateSalePrice(this.costPrice, this.costCurrency, this.profitPercentage, exchangeRateConfig, this.saleCurrency);
+        if (this.price === null) {
+            return next(new Error(`No se pudo calcular el precio para el producto "${this.name}" debido a una configuración de moneda inválida.`));
+        }
     }
+
     next();
 });
 

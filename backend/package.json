@@ -29,6 +29,7 @@
     "multer": "^2.0.1"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.28.0",
     "cross-env": "^7.0.3",
     "husky": "^9.1.5",
     "jest": "^30.0.3",

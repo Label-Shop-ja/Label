@@ -1,3 +1,4 @@
+// productController.js
 import asyncHandler from 'express-async-handler';
 import { productService } from '../services/productService.js';
 
@@ -69,6 +70,15 @@ const getHighStockProducts = asyncHandler(async (req, res) => {
     res.status(200).json(products);
 });
 
+// @desc    Obtener las opciones de filtro para el inventario
+// @route   GET /api/products/filter-options
+// @access  Private
+const getProductFilterOptions = asyncHandler(async (req, res) => {
+    const options = await productService.getFilterOptions(req.user.id);
+    res.status(200).json(options);
+});
+
+
 export {
     getProducts,
     getProductById,
@@ -78,4 +88,5 @@ export {
     getLowStockProducts,
     getHighStockProducts,
     getVariantInventoryReport,
+    getProductFilterOptions, // <-- Exportar la nueva función
 };

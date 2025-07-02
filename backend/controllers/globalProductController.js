@@ -43,7 +43,7 @@ export const createGlobalProduct = async (productData) => {
                 imageUrl: imageUrl || undefined, // Guardamos la URL, si no viene, Mongoose usará el default del modelo
                 lastUsedAt: Date.now(), // Se establece la primera vez que se usa
             });
-            console.log(`Nuevo GlobalProduct creado: ${globalProduct.sku}`);
+            // console.log(`Nuevo GlobalProduct creado: ${globalProduct.sku}`);
             return globalProduct;
         }
     } catch (error) {

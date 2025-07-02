@@ -9,6 +9,7 @@ import {
     getLowStockProducts,
     getHighStockProducts,
     getVariantInventoryReport,
+    getProductFilterOptions,
 } from '../controllers/productController.js';
 import { protect } from '../middleware/authMiddleware.js'; // Asumo que tu middleware de protección se llama así
 
@@ -28,6 +29,10 @@ router.route('/alerts/high-stock')
 router.route('/')
     .get(protect, getProducts)
     .post(protect, createProduct);
+
+// NUEVA RUTA: Endpoint optimizado para obtener las opciones de los filtros
+router.get('/filter-options', protect, getProductFilterOptions);
+
 
 // Ruta para un producto específico por su ID.
 router.route('/:id')

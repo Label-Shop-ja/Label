@@ -1,12 +1,9 @@
 // C:\Proyectos\Label\backend\controllers\authController.js
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
-import User from '../models/userModel.js'; // Asegúrate que la ruta al modelo es correcta y termina en .js
+import User from '../models/userModel.js';
 import ExchangeRate from '../models/ExchangeRate.js'; // Importamos el modelo de Tasa de Cambio
-import {
-  generateAccessToken,
-  generateRefreshToken,
-} from '../utils/generateToken.js';
+import { generateAccessToken, generateRefreshToken, } from '../utils/generateToken.js';
 
 const registerUser = asyncHandler(async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -30,14 +27,19 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
-    // ¡LA JUGADA MAESTRA!
-    // Al registrar un nuevo usuario, le creamos su documento de configuración de tasas de cambio.
-    // Esto asegura que la app no se rompa al buscar las tasas por primera vez.
+    // ¡IMPORTANTE! Crea una configuración de tasas por defecto para el nuevo usuario.
+    // El modelo de producto depende de esto para calcular precios.
     await ExchangeRate.create({
       user: user._id,
-      conversions: [], // Lo dejamos vacío. El usuario lo poblará desde el dashboard.
-      defaultProfitPercentage: 20, // Un valor por defecto sensato.
-      personalRateThresholdPercentage: 5, // Otro valor por defecto.
+      conversions: [
+        { fromCurrency: 'USD', toCurrency: 'VES', rate: 40.0, lastUpdated: new Date() },
+        { fromCurrency: 'EUR', toCurrency: 'USD', rate: 1.1, lastUpdated: new Date() },
+      ],
+      defaultProfitPercentage: 20,
+      personalRateThresholdPercentage: 5,
+      personalRate: 40.0,
+      officialRate: 40.0,
+      lastOfficialUpdate: new Date(),
     });
 
     // Al registrarse, generamos ambos tokens para que el usuario inicie sesión automáticamente.

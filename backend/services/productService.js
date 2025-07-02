@@ -1,44 +1,40 @@
-import Product from '../models/productModel.js';
-import ExchangeRate from '../models/ExchangeRate.js';
-import { calculateSalePrice } from '../utils/currencyCalculator.js';
-import logInventoryMovement from '../utils/inventoryLogger.js';
-import { createGlobalProduct } from '../controllers/globalProductController.js';
 import mongoose from 'mongoose';
+import Product from '../models/productModel.js';
+import { createGlobalProduct } from '../controllers/globalProductController.js';
 
-const getProducts = async (userId, queryParams) => {
-    const { searchTerm, category, brand, supplier, variantColor, variantSize, page, limit, sortBy, sortOrder } = queryParams;
+// --- OBTENER PRODUCTOS Y FILTROS ---
+const getProducts = async (userId, query) => {
+    const { searchTerm, category, brand, supplier, variantColor, variantSize, sortBy, sortOrder, page, limit } = query;
 
-    const query = { user: userId };
-
-    if (searchTerm) {
-        query.$or = [
-            { name: { $regex: searchTerm, $options: 'i' } },
-            { description: { $regex: searchTerm, $options: 'i' } },
-            { sku: { $regex: searchTerm, '$options': 'i' } },
-            { brand: { $regex: searchTerm, '$options': 'i' } },
-            { supplier: { $regex: searchTerm, '$options': 'i' } },
-            { 'variants.name': { $regex: searchTerm, $options: 'i' } },
-            { 'variants.sku': { $regex: searchTerm, '$options': 'i' } },
-        ];
-    }
-
-    if (category && category !== 'Todas las Categorías') query.category = category;
-    if (brand && brand !== 'Todas las Marcas') query.brand = brand;
-    if (supplier && supplier !== 'Todos los Proveedores') query.supplier = supplier;
-    if (variantColor && variantColor !== 'Todos los Colores') query['variants.color'] = variantColor;
-    if (variantSize && variantSize !== 'Todas las Tallas') query['variants.size'] = variantSize;
-
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 10;
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
     const skip = (pageNum - 1) * limitNum;
 
-    let sortOptions = { createdAt: -1 };
+    let filter = { user: userId };
+
+    if (searchTerm) {
+        filter.$text = { $search: searchTerm };
+    }
+    if (category) filter.category = category;
+    if (brand) filter.brand = brand;
+    if (supplier) filter.supplier = supplier;
+    if (variantColor) filter['variants.color'] = variantColor;
+    if (variantSize) filter['variants.size'] = variantSize;
+
+    const sortOptions = {};
     if (sortBy) {
-        sortOptions = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
+        sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    } else {
+        sortOptions.createdAt = -1; // Default sort
     }
 
-    const products = await Product.find(query).sort(sortOptions).skip(skip).limit(limitNum);
-    const totalProducts = await Product.countDocuments(query);
+    const products = await Product.find(filter)
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limitNum)
+        .lean(); // .lean() for better performance on read operations
+
+    const totalProducts = await Product.countDocuments(filter);
 
     return {
         products,
@@ -46,200 +42,196 @@ const getProducts = async (userId, queryParams) => {
             currentPage: pageNum,
             totalPages: Math.ceil(totalProducts / limitNum),
             totalProducts,
-            limit: limitNum,
         },
     };
 };
 
-const getProductById = async (productId, userId) => {
-    const product = await Product.findById(productId);
-    if (!product) {
-        const error = new Error('Producto no encontrado');
-        error.status = 404;
-        throw error;
-    }
-    if (product.user.toString() !== userId) {
-        const error = new Error('No autorizado para ver este producto');
-        error.status = 401;
-        throw error;
-    }
-    return product;
-};
+const getFilterOptions = async (userId) => {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
-const processProductData = async (productData, userId) => {
-    const { variants, profitPercentage, ...restOfData } = productData;
-
-    const exchangeRateDoc = await ExchangeRate.findOne({ user: userId });
-    if (!exchangeRateDoc) {
-        const error = new Error('No se encontró la configuración de tasas de cambio para este usuario.');
-        error.status = 400;
-        throw error;
-    }
-    const exchangeRateConfig = exchangeRateDoc.toObject();
-    const actualProfitPercentage = profitPercentage !== undefined ? Number(profitPercentage) : exchangeRateConfig.defaultProfitPercentage;
-
-    const processedVariants = (variants || []).map(variant => {
-        const calculatedVariantPrice = calculateSalePrice(
-            Number(variant.costPrice),
-            variant.costCurrency || restOfData.costCurrency || 'USD',
-            variant.profitPercentage !== undefined ? Number(variant.profitPercentage) : actualProfitPercentage,
-            exchangeRateConfig,
-            variant.saleCurrency || restOfData.saleCurrency || 'USD'
-        );
-        if (calculatedVariantPrice === null) {
-            const error = new Error(`No se pudo calcular el precio para la variante ${variant.name || variant.sku}.`);
-            error.status = 500;
-            throw error;
-        }
-        return { ...variant, price: calculatedVariantPrice };
-    });
-
-    let finalPriceForMainProduct = 0;
-    if (!processedVariants.length) {
-        finalPriceForMainProduct = calculateSalePrice(
-            Number(restOfData.costPrice),
-            restOfData.costCurrency || 'USD',
-            actualProfitPercentage,
-            exchangeRateConfig,
-            restOfData.saleCurrency || 'USD'
-        );
-        if (finalPriceForMainProduct === null) {
-            const error = new Error('No se pudo calcular el precio de venta para el producto principal.');
-            error.status = 500;
-            throw error;
-        }
-    }
+    // Using Promise.all to run queries concurrently for better performance
+    const [categories, brands, suppliers, variantOptions] = await Promise.all([
+        Product.distinct('category', { user: userObjectId }),
+        Product.distinct('brand', { user: userObjectId }),
+        Product.distinct('supplier', { user: userObjectId }),
+        Product.aggregate([
+            { $match: { user: userObjectId, 'variants.0': { $exists: true } } }, // Consider only products with variants
+            { $unwind: '$variants' },
+            {
+                $group: {
+                    _id: null,
+                    colors: { $addToSet: '$variants.color' },
+                    sizes: { $addToSet: '$variants.size' },
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    // Filter out empty strings from the results
+                    colors: { $filter: { input: '$colors', as: 'color', cond: { $ne: ['$$color', null] } } },
+                    sizes: { $filter: { input: '$sizes', as: 'size', cond: { $ne: ['$$size', null] } } },
+                }
+            }
+        ])
+    ]);
 
     return {
-        ...restOfData,
-        price: finalPriceForMainProduct,
-        variants: processedVariants,
-        profitPercentage: actualProfitPercentage,
+        categories: categories.filter(Boolean).sort(),
+        brands: brands.filter(Boolean).sort(),
+        suppliers: suppliers.filter(Boolean).sort(),
+        variantColors: variantOptions[0]?.colors.filter(Boolean).sort() || [],
+        variantSizes: variantOptions[0]?.sizes.filter(Boolean).sort() || [],
     };
 };
 
-const createProduct = async (productData, userId) => {
-    const processedData = await processProductData(productData, userId);
-    const product = await Product.create({ ...processedData, user: userId });
+// --- CRUD DE PRODUCTOS ---
 
-    // Log inventory for new product
-    if (product.variants && product.variants.length > 0) {
-        for (const variant of product.variants) {
-            if (variant.stock > 0) await logInventoryMovement({ user: userId, product: product._id, variantId: variant._id, productName: product.name, variantName: variant.name, sku: variant.sku, movementType: 'in', quantityChange: variant.stock, finalStock: variant.stock, reason: 'initial_stock' });
-        }
-    } else if (product.stock > 0) {
-        await logInventoryMovement({ user: userId, product: product._id, productName: product.name, sku: product.sku, movementType: 'in', quantityChange: product.stock, finalStock: product.stock, reason: 'initial_stock' });
+const getProductById = async (productId, userId) => {
+    const product = await Product.findById(productId);
+
+    if (!product) {
+        const error = new Error('Producto no encontrado');
+        error.statusCode = 404;
+        throw error;
     }
 
-    await createGlobalProduct(product.toObject());
+    if (product.user.toString() !== userId) {
+        const error = new Error('No autorizado para ver este producto');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    return product;
+};
+
+const createProduct = async (productData, userId) => {
+    const product = await Product.create({
+        ...productData,
+        user: userId, // ¡CRUCIAL! Asocia el producto con el usuario.
+    });
+
+    // Actualiza el catálogo global de productos.
+    await createGlobalProduct(product);
+
     return product;
 };
 
 const updateProduct = async (productId, productData, userId) => {
-    const product = await getProductById(productId, userId);
-    const oldProduct = product.toObject(); // Get a plain object copy for comparison
+    const product = await getProductById(productId, userId); // Reutilizamos para buscar y validar propiedad.
 
-    const processedData = await processProductData(productData, userId);
-    
-    Object.assign(product, processedData);
+    // Actualiza los campos del producto con los nuevos datos.
+    Object.assign(product, productData);
+
+    // Guardamos para que se ejecuten los hooks de Mongoose (ej. pre-save para calcular precios).
     const updatedProduct = await product.save();
 
-    // Log inventory changes by comparing old and new stock
-    // (This is a simplified version, a more detailed one would compare each variant)
-    if (oldProduct.stock !== updatedProduct.stock) {
-        const quantityDiff = updatedProduct.stock - oldProduct.stock;
-        await logInventoryMovement({ user: userId, product: updatedProduct._id, productName: updatedProduct.name, sku: updatedProduct.sku, movementType: quantityDiff > 0 ? 'in' : 'out', quantityChange: Math.abs(quantityDiff), finalStock: updatedProduct.stock, reason: 'adjustment' });
-    }
+    // Actualiza el catálogo global también.
+    await createGlobalProduct(updatedProduct);
 
-    await createGlobalProduct(updatedProduct.toObject());
     return updatedProduct;
 };
 
 const deleteProduct = async (productId, userId) => {
-    const product = await getProductById(productId, userId);
+    const product = await getProductById(productId, userId); // Reutilizamos para buscar y validar.
     await product.deleteOne();
-    return { message: 'Producto eliminado' };
 };
+
+// --- ALERTAS Y REPORTES ---
 
 const getLowStockProducts = async (userId) => {
-    const lowStockMainProducts = await Product.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(userId), variants: { $size: 0 } } },
-        { $match: { $expr: { $lte: ['$stock', '$reorderThreshold'] } } }
-    ]);
-
-    const lowStockVariantProducts = await Product.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(userId), 'variants.0': { $exists: true } } },
-        { $unwind: '$variants' },
-        { $match: { $expr: { $lte: ['$variants.stock', '$variants.reorderThreshold'] } } },
-        { $group: { _id: '$_id', name: { $first: '$name' }, sku: { $first: '$sku' }, imageUrl: { $first: '$imageUrl' }, variants: { $push: '$variants' } } }
-    ]);
-
-    const combined = [];
-    lowStockMainProducts.forEach(p => combined.push({ ...p, isMainProduct: true }));
-    lowStockVariantProducts.forEach(p => combined.push({ ...p, variantsInAlert: p.variants, isMainProduct: false }));
-
-    return combined;
-};
-
-const getHighStockProducts = async (userId) => {
-    const highStockMainProducts = await Product.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(userId), variants: { $size: 0 }, isPerishable: true } },
-        { $match: { $expr: { $gt: ['$stock', '$optimalMaxStock'] } } }
-    ]);
- 
-    const highStockVariantProducts = await Product.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(userId), 'variants.0': { $exists: true } } },
-        { $unwind: '$variants' },
-        { $match: { 'variants.isPerishable': true, $expr: { $gt: ['$variants.stock', '$variants.optimalMaxStock'] } } },
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    // Usamos una agregación para poder comparar campos dentro de los subdocumentos de variantes.
+    const lowStockAlerts = await Product.aggregate([
+        { $match: { user: userObjectId } },
         {
-            $group: {
-                _id: '$_id',
-                name: { $first: '$name' },
-                sku: { $first: '$sku' },
-                imageUrl: { $first: '$imageUrl' },
-                variants: { $push: '$variants' }
+            $addFields: {
+                // Creamos un campo temporal que contiene solo las variantes con stock bajo.
+                lowStockVariants: {
+                    $filter: {
+                        input: '$variants',
+                        as: 'variant',
+                        cond: {
+                            $and: [
+                                { $gt: ['$$variant.reorderThreshold', 0] },
+                                { $lte: ['$$variant.stock', '$$variant.reorderThreshold'] }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            $match: {
+                $or: [
+                    // Caso 1: Es un producto simple (sin variantes) y su stock es bajo.
+                    { 'variants.0': { $exists: false }, $expr: { $lte: ['$stock', '$reorderThreshold'] }, reorderThreshold: { $gt: 0 } },
+                    // Caso 2: Es un producto con variantes y tiene al menos una variante con stock bajo.
+                    { 'lowStockVariants.0': { $exists: true } }
+                ]
             }
         }
     ]);
+    return lowStockAlerts;
+};
 
-    const combined = [];
-    highStockMainProducts.forEach(p => combined.push({ ...p, isMainProduct: true }));
-    highStockVariantProducts.forEach(p => combined.push({ ...p, variantsInAlert: p.variants, isMainProduct: false }));
-
-    return combined;
+const getHighStockProducts = async (userId) => {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const highStockAlerts = await Product.aggregate([
+        { $match: { user: userObjectId } },
+        {
+            $addFields: {
+                highStockVariants: {
+                    $filter: {
+                        input: '$variants',
+                        as: 'variant',
+                        cond: {
+                            $and: [
+                                { $eq: ['$$variant.isPerishable', true] },
+                                { $gt: ['$$variant.optimalMaxStock', 0] },
+                                { $gt: ['$$variant.stock', '$$variant.optimalMaxStock'] }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            $match: {
+                $or: [
+                    { 'variants.0': { $exists: false }, isPerishable: true, $expr: { $gt: ['$stock', '$optimalMaxStock'] }, optimalMaxStock: { $gt: 0 } },
+                    { 'highStockVariants.0': { $exists: true } }
+                ]
+            }
+        }
+    ]);
+    return highStockAlerts;
 };
 
 const getVariantInventoryReport = async (userId) => {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
     const report = await Product.aggregate([
-        {
-            $match: {
-                user: new mongoose.Types.ObjectId(userId),
-                'variants.0': { $exists: true }
-            }
-        },
+        { $match: { user: userObjectId, 'variants.0': { $exists: true } } },
         { $unwind: '$variants' },
         {
             $project: {
                 _id: 0,
-                productId: '$_id',
                 productName: '$name',
-                variantId: '$variants._id',
                 variantName: '$variants.name',
-                variantSku: '$variants.sku',
-                variantStock: '$variants.stock',
-                variantPrice: '$variants.price',
-                variantCostPrice: '$variants.costPrice',
-                variantTotalValue: { $multiply: ['$variants.stock', '$variants.price'] },
-                variantTotalCostValue: { $multiply: ['$variants.stock', '$variants.costPrice'] }
+                sku: '$variants.sku',
+                stock: '$variants.stock',
+                costPrice: '$variants.costPrice',
+                salePrice: '$variants.price',
+                totalCostValue: { $multiply: ['$variants.stock', '$variants.costPrice'] },
+                totalSaleValue: { $multiply: ['$variants.stock', '$variants.price'] },
             }
-        },
-        { $sort: { productName: 1, variantName: 1 } }
+        }
     ]);
     return report;
 };
 
 export const productService = {
     getProducts,
+    getFilterOptions,
     getProductById,
     createProduct,
     updateProduct,
