@@ -1,12 +1,13 @@
 // C:\Proyectos\Label\frontend\src\components\SettingsPage.jsx
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { SlidersHorizontal } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
 import ErrorBoundary from "./Common/ErrorBoundary";
+import useAuth from '../hooks/useAuth'; // 1. Importar el hook de autenticación
 
 const SettingsPage = () => {
-  const { user, login } = useContext(AuthContext);
+  const { user } = useAuth(); // 2. Usar el hook en lugar del contexto
 
   const [profileData, setProfileData] = useState({
     name: '',
