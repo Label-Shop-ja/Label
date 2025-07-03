@@ -48,21 +48,11 @@ passport.use(
         }
 
         // 3. Si no existe de ninguna de las dos formas, creamos un nuevo usuario
-        const newUser = await new User({
+        const newUser = await User.createUserWithDefaults({
           googleId: profile.id,
           fullName: profile.displayName,
           email: googleEmail,
           // No se establece contraseña, el modelo debe permitirlo
-        }).save();
-
-        // ¡IMPORTANTE! Al igual que en el registro manual, creamos su configuración de tasas.
-        await ExchangeRate.create({
-          user: newUser._id,
-          conversions: [
-            { fromCurrency: 'USD', toCurrency: 'VES', rate: 40.0, lastUpdated: new Date() },
-            { fromCurrency: 'EUR', toCurrency: 'USD', rate: 1.1, lastUpdated: new Date() },
-          ],
-          defaultProfitPercentage: 20,
         });
 
         return done(null, newUser);

@@ -262,7 +262,7 @@ function PosPage() {
 
   return (
     <ErrorBoundary>
-      <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Mensaje de error destacado */}
         {error && (
           <div className="bg-red-700 bg-opacity-30 border border-red-500 text-red-300 px-4 py-3 rounded relative mb-6" role="alert">

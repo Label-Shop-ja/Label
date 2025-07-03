@@ -12,20 +12,28 @@ describe('Product API', () => {
   // Antes de CADA prueba, crea un nuevo usuario y obtén su token.
   // Esto garantiza que cada prueba se ejecute de forma aislada con un usuario limpio.
   beforeEach(async () => {
-    // Usamos el endpoint de registro para asegurar que el usuario se crea
-    // con toda la configuración asociada (ej. tasas de cambio por defecto).
-    const userEmail = `test-${Date.now()}@example.com`;
+    const userEmail = `test-product-${Date.now()}@example.com`;
     const userPassword = 'password123';
-    const res = await request(app)
+    
+    // 1. Registrar el usuario para asegurar que existe con su configuración por defecto.
+    await request(app)
       .post('/api/auth/register')
       .send({
-      fullName: 'Test User',
-      email: userEmail,
-      password: userPassword,
+        fullName: 'Product Test User',
+        email: userEmail,
+        password: userPassword,
       });
     
-    token = res.body.accessToken;
-    userId = res.body.user._id;
+    // 2. Iniciar sesión con ese usuario para obtener un token de acceso válido.
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email: userEmail,
+        password: userPassword,
+      });
+
+    token = loginRes.body.accessToken;
+    userId = loginRes.body.user._id;
   });
 
   // --- Pruebas para la creación de productos (POST /api/products) ---

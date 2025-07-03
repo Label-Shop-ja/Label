@@ -491,7 +491,9 @@ function InventoryPage() {
     // JSX para renderizar el componente de la página de inventario
     return (
         <ErrorBoundary>
-            <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen font-inter">
+            {/* Este div ya no necesita clases de layout (padding, background, height)
+                porque el DashboardLayout ya las proporciona. Solo actúa como un contenedor. */}
+            <div>
                 {/* Mensaje de error destacado */}
                 {error && (
                     <div className="mb-4 p-4 bg-red-900 bg-opacity-30 text-red-300 rounded-lg text-center font-semibold">

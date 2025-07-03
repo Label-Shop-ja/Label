@@ -11,6 +11,7 @@ const initialState = {
   isAuthenticated: !!tokenFromStorage,
   isLoading: false,
   isError: false,
+  isSuccess: false, // Nuevo estado para manejar el éxito de acciones como el registro
   message: '',
 };
 
@@ -81,6 +82,7 @@ export const authSlice = createSlice({
     reset: (state) => {
       state.isLoading = false;
       state.isError = false;
+      state.isSuccess = false; // Resetear el estado de éxito también
       state.message = '';
     },
     setAccessToken: (state, action) => {
@@ -127,9 +129,15 @@ export const authSlice = createSlice({
     };
 
     builder
-      .addCase(registerUser.pending, handlePending)
-      .addCase(registerUser.fulfilled, handleFulfilled)
-      .addCase(registerUser.rejected, handleRejected)
+      .addCase(registerUser.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true; // Marcamos que la operación fue exitosa
+        state.message = action.payload.message; // Guardamos el mensaje de éxito del backend
+      })
+      .addCase(registerUser.rejected, handleRejected) // Reutilizamos el manejador de rechazo
       .addCase(loginUser.pending, handlePending)
       .addCase(loginUser.fulfilled, handleFulfilled)
       .addCase(loginUser.rejected, handleRejected)

@@ -20,48 +20,22 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('Ya existe un usuario con este correo electrónico.');
   }
 
-  const user = await User.create({
+  const user = await User.createUserWithDefaults({
     fullName,
     email,
     password,
   });
 
   if (user) {
-    // ¡IMPORTANTE! Crea una configuración de tasas por defecto para el nuevo usuario.
-    // El modelo de producto depende de esto para calcular precios.
-    await ExchangeRate.create({
-      user: user._id,
-      conversions: [
-        { fromCurrency: 'USD', toCurrency: 'VES', rate: 40.0, lastUpdated: new Date() },
-        { fromCurrency: 'EUR', toCurrency: 'USD', rate: 1.1, lastUpdated: new Date() },
-      ],
-      defaultProfitPercentage: 20,
-      personalRateThresholdPercentage: 5,
-      personalRate: 40.0,
-      officialRate: 40.0,
-      lastOfficialUpdate: new Date(),
-    });
-
-    // Al registrarse, generamos ambos tokens para que el usuario inicie sesión automáticamente.
-    const accessToken = generateAccessToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
-
-    // Enviamos el refreshToken en una cookie segura y httpOnly
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true, // El frontend no puede acceder a esta cookie con JS
-      secure: process.env.NODE_ENV !== 'development', // Solo se envía en HTTPS en producción
-      sameSite: 'strict', // Mitiga ataques CSRF
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
-    });
-
+    // En lugar de iniciar sesión, devolvemos un mensaje de éxito.
+    // El usuario deberá iniciar sesión manualmente.
     res.status(201).json({
+      message: '¡Registro exitoso! Por favor, inicia sesión para continuar.',
       user: {
         _id: user._id,
         fullName: user.fullName,
         email: user.email,
       },
-      // Solo devolvemos el accessToken en el JSON
-      accessToken, 
     });
   } else {
     res.status(400);

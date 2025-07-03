@@ -22,7 +22,7 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
 // Ruta de callback de Google
 router.get(
   '/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login-failed' }), // Redirige si falla
+  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/?login_error=google_failed` }), // Redirige al frontend en caso de fallo
   (req, res) => {
     // Si tiene éxito, el usuario está en req.user gracias a Passport.
     // Simplemente redirigimos a una página de callback en el frontend.

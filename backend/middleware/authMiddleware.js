@@ -47,10 +47,10 @@ const protect = asyncHandler(async (req, res, next) => {
  */
 const authorize = (...roles) => {
   return (req, res, next) => {
-    // Asume que el middleware `protect` ya se ejecutó y adjuntó `req.user`.
     if (!req.user || !roles.includes(req.user.role)) {
-      res.status(403); // 403 Forbidden es más apropiado que 401 Unauthorized aquí.
-      throw new Error(`El rol de usuario '${req.user?.role}' no tiene permiso para acceder a este recurso.`);
+      const error = new Error(`El rol de usuario '${req.user?.role}' no tiene permiso para acceder a este recurso.`);
+      error.statusCode = 403; // Asignamos un código de estado al error
+      return next(error); // Pasamos el error al siguiente middleware (el de errores)
     }
     next();
   };

@@ -18,10 +18,10 @@ import CustomRatesSettings from './pages/Settings/CustomRatesSettings'; // ¡El 
 import AdminPanel from './pages/Admin/AdminPanel'; // Un componente de ejemplo para la página de admin
 import UnauthorizedPage from './pages/Common/UnauthorizedPage'; // Página para error 403
 
-import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 import useAuth from './hooks/useAuth'; // Importamos nuestro hook
 import { useCurrency } from './context/CurrencyContext';
+import ProtectedRoute from './components/Auth/ProtectedRoute'; // Importamos el componente una sola vez
 import ErrorBoundary from "./components/Common/ErrorBoundary";
 import AuthCallbackPage from './pages/Auth/AuthCallbackPage'; // Importamos la nueva página
 import LegalModal from './components/Common/LegalModal'; // Importamos el nuevo modal
@@ -144,7 +144,7 @@ function App() {
                         <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
                         {/* Grupo de rutas protegidas: El ProtectedRoute envuelve el DashboardLayout */}
-                        <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                        <Route path="/dashboard/*" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                             {/* Estas son las rutas anidadas que se renderizarán dentro del <Outlet /> de DashboardLayout */}
                             <Route index element={<DashboardHome />} /> {/* Ruta por defecto para /dashboard */}
                             <Route path="inventario" element={<InventoryPage />} />
@@ -152,14 +152,12 @@ function App() {
                             <Route path="pos" element={<PosPage />} />
                             <Route path="clientes" element={<ClientsPage />} />
                             <Route path="estadisticas" element={<StatsPage />} />
-
-                            {/* Grupo de rutas de ajustes anidadas */}
-                            <Route path="ajustes">
-                                <Route index element={<SettingsPage />} />
-                                <Route path="tasas-personalizadas" element={<CustomRatesSettings />} />
-                                {/* ¡RUTA SOLO PARA ADMINS! Envuelta en su propio ProtectedRoute con roles */}
-                                <Route path="panel-admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminPanel /></ProtectedRoute>} />
-                            </Route>
+                            
+                            {/* Rutas de Ajustes (ahora aplanadas para mayor claridad) */}
+                            <Route path="ajustes" element={<SettingsPage />} />
+                            <Route path="ajustes/tasas-personalizadas" element={<CustomRatesSettings />} />
+                            {/* ¡RUTA SOLO PARA ADMINS! Envuelta en su propio ProtectedRoute con roles */}
+                            <Route path="ajustes/panel-admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminPanel /></ProtectedRoute>} />
                         </Route>
 
                         {/* Ruta para la página de "No Autorizado" */}

@@ -17,8 +17,11 @@ describe('Auth API', () => {
     expect(res.statusCode).toEqual(201);
     expect(res.body).toHaveProperty('user');
     expect(res.body.user).toHaveProperty('email', 'test@example.com');
-    expect(res.body).toHaveProperty('accessToken');
-    expect(res.headers['set-cookie']).toBeDefined();
+    // Verificamos el mensaje de éxito en lugar de los tokens
+    expect(res.body).toHaveProperty('message', '¡Registro exitoso! Por favor, inicia sesión para continuar.');
+    // Verificamos que NO se envían tokens en el registro
+    expect(res.body).not.toHaveProperty('accessToken');
+    expect(res.headers['set-cookie']).toBeUndefined();
   });
 
   // Test para evitar registro duplicado

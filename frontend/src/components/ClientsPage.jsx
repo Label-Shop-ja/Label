@@ -75,7 +75,7 @@ const ClientsPage = () => {
 
   return (
     <ErrorBoundary>
-      <div className="p-6 bg-dark-slate-gray rounded-lg shadow-xl min-h-screen">
+      <div>
         <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Gestión de Clientes</h2>
 
         {/* Loader global */}

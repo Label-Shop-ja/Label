@@ -8,8 +8,8 @@ function DashboardHome() {
     // p-8: Relleno.
     // bg-gray-900: Fondo ligeramente más claro que el deep-night-blue.
     // text-neutral-light: Color de texto.
-    // overflow-y-auto: Permite scroll si el contenido es muy largo.
-    <main className="flex-1 p-8 bg-gray-900 text-neutral-light overflow-y-auto">
+    // El tag <main> y las clases de layout se eliminan. DashboardLayout ya los provee.
+    <div>
       <h1 className="text-4xl font-bold mb-8 text-copper-rose-accent">
         Panel de Control
       </h1>
@@ -59,7 +59,7 @@ function DashboardHome() {
         Aquí irán gráficos y reportes visuales
       </section>
 
-    </main>
+    </div>
   );
 }
 
