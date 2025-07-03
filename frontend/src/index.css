@@ -124,6 +124,26 @@
   to { transform: rotate(360deg); }
 }
 
+/* Estilos para el contenido renderizado desde Markdown */
+.markdown-content h1, .markdown-content h2, .markdown-content h3 {
+  @apply text-text-base font-bold mb-4;
+}
+.markdown-content h1 { @apply text-2xl; }
+.markdown-content h2 { @apply text-xl mt-6; }
+.markdown-content h3 { @apply text-lg mt-4; }
+
+.markdown-content p {
+  @apply mb-4 leading-relaxed;
+}
+
+.markdown-content ul {
+  @apply list-disc list-inside mb-4 pl-4 space-y-2;
+}
+
+.markdown-content a {
+  @apply text-primary hover:underline;
+}
+
 /* Estilos base para el body, usando las variables */
 body {
   background-color: hsl(var(--color-background));

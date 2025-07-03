@@ -1,7 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import cookieParser from 'cookie-parser';
+import dotenv from 'dotenv';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
+
+// Cargar las variables de entorno ANTES de cualquier otro import que las necesite
+dotenv.config();
+
 
 // Importar las rutas que hemos creado
 import authRoutes from './routes/authRoutes.js';
@@ -14,9 +18,26 @@ import clientRoutes from './routes/clientRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import passport from 'passport';
+import './config/passport-setup.js'; // Ahora sí puede leer las variables de entorno
 
 const app = express();
 
+// Configuración de Express Session (requerido por Passport)
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET, // Una clave secreta para firmar la cookie de sesión
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+// Configuración de CORS
+// Permite que el frontend se comunique con el backend
 // Opciones de CORS para mayor seguridad en producción
 const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Solo permite peticiones desde tu frontend

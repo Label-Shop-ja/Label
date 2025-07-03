@@ -1,5 +1,6 @@
 // C:\Proyectos\Label\frontend\src\components\Auth\AccessModal.jsx
 // AccessModal.jsx
+import PropTypes from 'prop-types';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotification } from '../../context/NotificationContext';
@@ -8,8 +9,10 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { loginSchema, registerSchema } from '../../schemas/authSchemas';
 import useAuth from "../../hooks/useAuth";
+import { Lock, Mail, User, Eye, EyeOff } from 'lucide-react';
+import { FaGoogle, FaFacebook } from 'react-icons/fa';
 
-function AccessModal({ onClose }) {
+function AccessModal({ onClose, onOpenLegalModal }) {
     const [isLogin, setIsLogin] = useState(true);
     const { login, register, isLoading, isError, message, reset, isAuthenticated } = useAuth();
     // Ahora, gracias a useCallback en el contexto, esta función `showNotification` es estable.
@@ -17,18 +20,6 @@ function AccessModal({ onClose }) {
 
     const [currentSlide, setCurrentSlide] = useState(0);
     const carouselContent = [
-        {
-            title: "¿Por qué registrarte en Label?",
-            description: "Únete a nuestra comunidad y desbloquea herramientas poderosas para gestionar tu negocio, conectar con clientes y crecer en el ecosistema local."
-        },
-        {
-            title: "Beneficios Exclusivos de Label",
-            description: "Optimiza inventario, gestiona finanzas, mejora la relación con clientes y toma decisiones inteligentes con nuestros reportes detallados. Todo lo que necesitas en un solo lugar."
-        },
-        {
-            title: "¡Bienvenido de nuevo a Label!",
-            description: "Nos alegra verte. Continúa explorando las funcionalidades y herramientas diseñadas para llevar tu negocio al siguiente nivel."
-        }
     ];
 
     useEffect(() => {
@@ -71,6 +62,7 @@ function AccessModal({ onClose }) {
         formState: { errors: loginErrors },
     } = useForm({
         resolver: yupResolver(loginSchema),
+        mode: 'onTouched', // Valida cuando el usuario sale del campo
     });
 
     const {
@@ -78,7 +70,9 @@ function AccessModal({ onClose }) {
         handleSubmit: handleRegister,
         formState: { errors: registerErrors },
     } = useForm({
+        // El schema de registro se actualizará para incluir el checkbox
         resolver: yupResolver(registerSchema),
+        mode: 'onTouched', // Valida cuando el usuario sale del campo
     });
 
     const handleLoginSubmit = (data) => {
@@ -89,7 +83,8 @@ function AccessModal({ onClose }) {
         register({
             fullName: data.fullName,
             email: data.email,
-            password: data.password
+            password: data.password,
+            // El campo 'terms' es validado por el schema pero no se envía al backend
         });
     };
 
@@ -99,97 +94,56 @@ function AccessModal({ onClose }) {
     };
 
     const cardVariants = {
-        hidden: { scale: 0.8, opacity: 0 },
-        visible: { scale: 1, opacity: 1, transition: { delay: 0.2, duration: 0.5, ease: 'easeOut' } },
+        hidden: { y: "100vh", opacity: 0 },
+        visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 80, damping: 20 } },
+        exit: { y: "100vh", opacity: 0, transition: { duration: 0.3 } }
     };
 
     const formContentVariants = {
-        hidden: { opacity: 0, y: 20, transition: { duration: 0.3 } },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-    };
-
-    const carouselSlideVariants = {
-        hidden: { opacity: 0, y: 50 },
-        visible: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: -50, transition: { ease: "easeOut" } },
+        hidden: { opacity: 0, x: -50 },
+        visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+        exit: { opacity: 0, x: 50, transition: { duration: 0.3, ease: 'easeIn' } },
     };
 
     return (
         <AnimatePresence>
             <motion.div
-                className="fixed inset-0 flex items-center justify-center z-50 text-neutral-light"
+                className="fixed inset-0 flex items-center justify-center z-50 text-text-base"
                 variants={overlayVariants}
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                style={{ backdropFilter: 'blur(0px)' }}
+                onClick={onClose}
             >
                 <motion.div
-                    className="w-full max-w-7xl h-[calc(100vh-2rem)] flex flex-col lg:flex-row rounded-lg overflow-hidden shadow-2xl relative"
+                    className="w-full max-w-md bg-surface/80 backdrop-blur-lg rounded-xl shadow-2xl overflow-hidden"
                     variants={cardVariants}
                     initial="hidden"
                     animate="visible"
                     exit="hidden"
+                    onClick={(e) => e.stopPropagation()}
                 >
-                    <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(https://i.imgur.com/eL51q2a.jpg)` }}></div>
-                    <div className="absolute inset-0 bg-deep-night-blue opacity-50"></div>
-
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 text-neutral-light hover:text-copper-rose-accent text-3xl font-bold transition-colors duration-200 z-20"
+                        className="absolute top-3 right-3 text-text-muted hover:text-error text-3xl font-bold transition-colors duration-200 z-20"
                         aria-label="Cerrar modal"
                     >
                         &times;
                     </button>
 
-                    <div className="absolute top-8 left-8 z-20">
-                        <img src="https://generativelanguage.googleapis.com/v1beta/files/file-1be8bac1-abc2-4630-8b8f-9e854302240d" alt="Logo de Label" className="h-16 sm:h-20 drop-shadow-lg" />
-                    </div>
-
-                    <div className="lg:w-1/2 w-full p-8 md:p-12 flex flex-col justify-between items-center text-center bg-black bg-opacity-70 relative z-10">
-                        <div className="relative w-full h-full flex flex-col justify-center items-center overflow-hidden">
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={currentSlide}
-                                    initial="hidden"
-                                    animate="visible"
-                                    exit="exit"
-                                    variants={carouselSlideVariants}
-                                    transition={{ duration: 0.8, ease: "easeOut" }}
-                                    className="absolute w-full"
-                                >
-                                    <h2 className="text-2xl md:text-3xl font-bold mb-4 text-copper-rose-accent font-['Cinzel']">
-                                        {carouselContent[currentSlide].title}
-                                    </h2>
-                                    <p className="text-lg md:text-xl text-neutral-light">
-                                        {carouselContent[currentSlide].description}
-                                    </p>
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
-                        <div className="flex space-x-2 mt-6">
-                            {carouselContent.map((_, index) => (
-                                <span
-                                    key={index}
-                                    className={`w-3 h-3 rounded-full cursor-pointer transition-all duration-300 ${
-                                        index === currentSlide ? 'bg-copper-rose-accent w-5' : 'bg-neutral-gray'
-                                    }`}
-                                    onClick={() => setCurrentSlide(index)}
-                                ></span>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="lg:w-1/2 w-full p-8 md:p-12 flex flex-col justify-center bg-deep-night-blue bg-opacity-90 relative z-10">
-                        <h2 className="text-3xl md:text-4xl font-bold text-copper-rose-accent mb-6 text-center font-['Cinzel']">
+                    <div className="p-8 md:p-10">
+                        <h2 className="text-3xl font-bold text-primary mb-2 text-center">
                             {isLogin ? LABELS.LOGIN_TITLE || 'Iniciar Sesión' : LABELS.REGISTER_TITLE || 'Registrarse'}
                         </h2>
+                        <p className="text-center text-text-muted mb-8">
+                            {isLogin ? 'Bienvenido de nuevo. Accede a tu cuenta.' : 'Crea una cuenta para empezar a gestionar tu negocio.'}
+                        </p>
 
                         <AnimatePresence mode="wait">
                             {isLogin ? (
                                 <motion.form
                                     key="loginForm"
-                                    className="space-y-6"
+                                    className="space-y-4"
                                     onSubmit={handleLogin(handleLoginSubmit)}
                                     variants={formContentVariants}
                                     initial="hidden"
@@ -197,44 +151,24 @@ function AccessModal({ onClose }) {
                                     exit="hidden"
                                 >
                                     {/* Formulario de Login */}
-                                    <div>
-                                        <label htmlFor="email-login" className="block text-neutral-light text-sm font-medium mb-2">
-                                            {LABELS.EMAIL}
-                                        </label>
-                                        <input
-                                            type="email"
-                                            id="email-login"
-                                            className="w-full p-3 bg-neutral-gray/20 rounded-md border border-neutral-gray/30 text-neutral-light focus:outline-none focus:ring-2 focus:ring-copper-rose-accent"
-                                            placeholder={PLACEHOLDERS.EMAIL}
-                                            {...registerLogin("email")}
-                                            disabled={isLoading}
-                                        />
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
+                                        <input type="email" id="email-login" className="w-full p-3 pl-10 bg-surface rounded-md border border-surface-secondary text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.EMAIL} {...registerLogin("email")} disabled={isLoading} />
                                         {loginErrors.email && <p className="mt-2 text-error-red text-sm">{loginErrors.email.message}</p>}
                                     </div>
-                                    <div>
-                                        <label htmlFor="password-login" className="block text-neutral-light text-sm font-medium mb-2">
-                                            {LABELS.PASSWORD}
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type={showLoginPassword ? "text" : "password"}
-                                                id="password-login"
-                                                className="w-full p-3 pr-10 bg-neutral-gray/20 rounded-md border border-neutral-gray/30 text-neutral-light focus:outline-none focus:ring-2 focus:ring-copper-rose-accent"
-                                                placeholder={PLACEHOLDERS.PASSWORD}
-                                                {...registerLogin("password")}
-                                                disabled={isLoading}
-                                            />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-neutral-gray hover:text-neutral-light" onClick={() => setShowLoginPassword((v) => !v)}>
-                                                {/* Icono de ojo */}
-                                            </span>
-                                        </div>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
+                                        <input type={showLoginPassword ? "text" : "password"} id="password-login" className="w-full p-3 pl-10 pr-10 bg-surface rounded-md border border-surface-secondary text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.PASSWORD} {...registerLogin("password")} disabled={isLoading} />
+                                        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-text-muted hover:text-text-base" onClick={() => setShowLoginPassword((v) => !v)}>
+                                            {showLoginPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
                                     </div>
-                                    <button type="submit" className="w-full bg-copper-rose-accent text-deep-night-blue font-bold py-3 rounded-md hover:bg-copper-rose-accent/90 transition duration-300 disabled:opacity-50" disabled={isLoading}>
+                                    <button type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary/90 transition duration-300 disabled:opacity-50" disabled={isLoading}>
                                         {isLoading ? 'Iniciando...' : 'Iniciar Sesión'}
                                     </button>
-                                    <p className="text-center text-sm text-neutral-gray">
+                                    <p className="text-center text-sm text-text-muted">
                                         ¿No tienes una cuenta?{' '}
-                                        <button type="button" onClick={() => setIsLogin(false)} className="text-action-blue hover:underline" disabled={isLoading}>
+                                        <button type="button" onClick={() => setIsLogin(false)} className="text-primary hover:underline font-semibold" disabled={isLoading}>
                                             Registrarse Aquí
                                         </button>
                                     </p>
@@ -242,7 +176,7 @@ function AccessModal({ onClose }) {
                             ) : (
                                 <motion.form
                                     key="registerForm"
-                                    className="space-y-6"
+                                    className="space-y-4"
                                     onSubmit={handleRegister(handleRegisterSubmit)}
                                     variants={formContentVariants}
                                     initial="hidden"
@@ -250,53 +184,89 @@ function AccessModal({ onClose }) {
                                     exit="hidden"
                                 >
                                     {/* Formulario de Registro */}
-                                    <div>
-                                        <label htmlFor="fullName-register" className="block text-neutral-light text-sm font-medium mb-2">{LABELS.FULL_NAME}</label>
-                                        <input type="text" id="fullName-register" className="w-full p-3 bg-neutral-gray/20 rounded-md border border-neutral-gray/30" placeholder={PLACEHOLDERS.FULL_NAME} {...registerRegister("fullName")} disabled={isLoading} />
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
+                                        <input type="text" id="fullName-register" className="w-full p-3 pl-10 bg-surface rounded-md border border-surface-secondary" placeholder={PLACEHOLDERS.FULL_NAME} {...registerRegister("fullName")} disabled={isLoading} />
                                         {registerErrors.fullName && <p className="mt-2 text-error-red text-sm">{registerErrors.fullName.message}</p>}
                                     </div>
-                                    <div>
-                                        <label htmlFor="email-register" className="block text-neutral-light text-sm font-medium mb-2">{LABELS.EMAIL}</label>
-                                        <input type="email" id="email-register" className="w-full p-3 bg-neutral-gray/20 rounded-md border border-neutral-gray/30" placeholder={PLACEHOLDERS.EMAIL} {...registerRegister("email")} disabled={isLoading} />
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
+                                        <input type="email" id="email-register" className="w-full p-3 pl-10 bg-surface rounded-md border border-surface-secondary" placeholder={PLACEHOLDERS.EMAIL} {...registerRegister("email")} disabled={isLoading} />
                                         {registerErrors.email && <p className="mt-2 text-error-red text-sm">{registerErrors.email.message}</p>}
                                     </div>
-                                    <div>
-                                        <label htmlFor="password-register" className="block text-neutral-light text-sm font-medium mb-2">{LABELS.PASSWORD}</label>
-                                        <div className="relative">
-                                            <input type={showRegPassword ? "text" : "password"} id="password-register" className="w-full p-3 pr-10 bg-neutral-gray/20 rounded-md border border-neutral-gray/30" placeholder={PLACEHOLDERS.PASSWORD} {...registerRegister("password")} disabled={isLoading} />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer" onClick={() => setShowRegPassword((v) => !v)}>
-                                                {/* Icono de ojo */}
-                                            </span>
-                                        </div>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
+                                        <input type={showRegPassword ? "text" : "password"} id="password-register" className="w-full p-3 pl-10 pr-10 bg-surface rounded-md border border-surface-secondary" placeholder={PLACEHOLDERS.PASSWORD} {...registerRegister("password")} disabled={isLoading} />
+                                        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-text-muted hover:text-text-base" onClick={() => setShowRegPassword((v) => !v)}>
+                                            {showRegPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
                                         {registerErrors.password && <p className="mt-2 text-error-red text-sm">{registerErrors.password.message}</p>}
                                     </div>
-                                    <div>
-                                        <label htmlFor="confirmPassword-register" className="block text-neutral-light text-sm font-medium mb-2">{LABELS.CONFIRM_PASSWORD}</label>
-                                        <div className="relative">
-                                            <input type={showRegConfirmPassword ? "text" : "password"} id="confirmPassword-register" className="w-full p-3 pr-10 bg-neutral-gray/20 rounded-md border border-neutral-gray/30" placeholder={PLACEHOLDERS.PASSWORD} {...registerRegister("confirmPassword")} disabled={isLoading} />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer" onClick={() => setShowRegConfirmPassword((v) => !v)}>
-                                                {/* Icono de ojo */}
-                                            </span>
-                                        </div>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
+                                        <input type={showRegConfirmPassword ? "text" : "password"} id="confirmPassword-register" className="w-full p-3 pl-10 pr-10 bg-surface rounded-md border border-surface-secondary" placeholder={PLACEHOLDERS.PASSWORD} {...registerRegister("confirmPassword")} disabled={isLoading} />
+                                        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-text-muted hover:text-text-base" onClick={() => setShowRegConfirmPassword((v) => !v)}>
+                                            {showRegConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
                                         {registerErrors.confirmPassword && <p className="mt-2 text-error-red text-sm">{registerErrors.confirmPassword.message}</p>}
                                     </div>
-                                    <button type="submit" className="w-full bg-copper-rose-accent text-deep-night-blue font-bold py-3 rounded-md hover:bg-copper-rose-accent/90 transition duration-300 disabled:opacity-50" disabled={isLoading}>
+                                    <div className="flex items-center space-x-2">
+                                        <input type="checkbox" id="terms" {...registerRegister("terms")} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                                        <label htmlFor="terms" className="text-sm text-text-muted">
+                                            Acepto los{' '}
+                                            <button type="button" onClick={() => onOpenLegalModal('terms')} className="font-semibold text-primary hover:underline">Términos de Servicio</button>
+                                            {' '}y la{' '}
+                                            <button type="button" onClick={() => onOpenLegalModal('privacy')} className="font-semibold text-primary hover:underline">Política de Privacidad</button>.
+                                        </label>
+                                    </div>
+                                    {registerErrors.terms && <p className="text-error-red text-sm">{registerErrors.terms.message}</p>}
+
+                                    <button type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary/90 transition duration-300 disabled:opacity-50" disabled={isLoading}>
                                         {isLoading ? 'Registrando...' : 'Registrarse'}
                                     </button>
-                                    <p className="text-center text-sm text-neutral-gray">
+                                    <p className="text-center text-sm text-text-muted">
                                         ¿Ya tienes una cuenta?{' '}
-                                        <button type="button" onClick={() => setIsLogin(true)} className="text-action-blue hover:underline" disabled={isLoading}>
+                                        <button type="button" onClick={() => setIsLogin(true)} className="text-primary hover:underline font-semibold" disabled={isLoading}>
                                             Iniciar sesión
                                         </button>
                                     </p>
                                 </motion.form>
                             )}
                         </AnimatePresence>
+
+                        <div className="relative flex pt-6 pb-4 items-center">
+                            <div className="flex-grow border-t border-surface-secondary"></div>
+                            <span className="flex-shrink mx-4 text-text-muted text-sm">O continúa con</span>
+                            <div className="flex-grow border-t border-surface-secondary"></div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            {/* El enlace apunta a la ruta del backend que iniciará el flujo de Google */}
+                            <a
+                                href={`${import.meta.env.VITE_API_BASE_URL}/auth/google`}
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-[#4285F4] hover:bg-[#357ae8] text-white font-semibold transition-colors duration-300"
+                            >
+                                <FaGoogle /> Google
+                            </a>
+                            {/* El botón de Facebook se aplaza temporalmente
+                            <a
+                                href={`${import.meta.env.VITE_API_BASE_URL}/auth/facebook`}
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-[#1877F2] hover:bg-[#166fe5] text-white font-semibold transition-colors duration-300"
+                            >
+                                <FaFacebook /> Facebook
+                            </a> */}
+                        </div>
+
                     </div>
                 </motion.div>
             </motion.div>
         </AnimatePresence>
     );
 }
+
+AccessModal.propTypes = {
+    onClose: PropTypes.func.isRequired,
+    onOpenLegalModal: PropTypes.func.isRequired,
+};
 
 export default AccessModal;

@@ -13,4 +13,8 @@ export const registerSchema = yup.object().shape({
     .string()
     .oneOf([yup.ref('password'), null], 'Las contraseñas deben coincidir')
     .required('Confirma tu contraseña'),
+  terms: yup
+      .boolean()
+      .oneOf([true], 'Debes aceptar los términos y condiciones para registrarte.')
+      .required(),
 });

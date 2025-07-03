@@ -17,7 +17,9 @@ const UserSchema = mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Por favor, ingresa una contraseña.'],
+    // La contraseña no es requerida para permitir inicios de sesión sociales (Google, etc.)
+    // La validación de que la contraseña existe se hará en el schema de Yup para el registro manual.
+    required: false,
     minlength: [6, 'La contraseña debe tener al menos 6 caracteres.'],
   },
   role: {
@@ -30,14 +32,22 @@ const UserSchema = mongoose.Schema({
     type: String,
     default: null
   },
+  // Campos para autenticación social
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true, // Permite múltiples documentos con valor null, pero solo uno con un valor específico.
+  },
 }, {
   timestamps: true,
 });
 
 // Encriptar la contraseña antes de guardar el usuario
 UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  // Solo hashear la contraseña si ha sido modificada (o es nueva) Y si existe.
+  if (!this.isModified('password') || !this.password) {
     next();
+    return;
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
@@ -45,6 +55,10 @@ UserSchema.pre('save', async function (next) {
 
 // Método para comparar contraseñas
 UserSchema.methods.matchPassword = async function (enteredPassword) {
+  // Si el usuario no tiene contraseña (ej. se registró con Google), la comparación siempre debe fallar.
+  if (!this.password) {
+    return false;
+  }
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 
 import AccessModal from './components/Auth/AccessModal';
 import DashboardHome from './components/Dashboard/DashboardHome';
+import WelcomePage from './pages/Public/WelcomePage'; // 1. Importamos nuestro nuevo componente
 
 // Importar los componentes de "páginas"
 import InventoryPage from "./components/Inventory/InventoryPage";
@@ -22,10 +23,17 @@ import DashboardLayout from './components/DashboardLayout';
 import useAuth from './hooks/useAuth'; // Importamos nuestro hook
 import { useCurrency } from './context/CurrencyContext';
 import ErrorBoundary from "./components/Common/ErrorBoundary";
+import AuthCallbackPage from './pages/Auth/AuthCallbackPage'; // Importamos la nueva página
+import LegalModal from './components/Common/LegalModal'; // Importamos el nuevo modal
 import Toast from './components/Common/Toast';
 
 function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    // Estado para el modal de términos y privacidad
+    const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+    const [legalContent, setLegalContent] = useState({ title: '', markdown: '' });
+    const [isLegalLoading, setIsLegalLoading] = useState(false);
+
     // Obtenemos el estado de autenticación y carga directamente desde el store de Redux. ¡Esto está perfecto!
     const { isAuthenticated, isLoading: authLoading, verify } = useAuth();
 
@@ -38,6 +46,34 @@ function App() {
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
+    };
+
+    const handleOpenLegalModal = async (type) => {
+        setIsLegalLoading(true);
+        setIsLegalModalOpen(true);
+        let filePath = '';
+        let title = '';
+
+        if (type === 'terms') {
+            filePath = '/legal/terms.md';
+            title = 'Términos de Servicio';
+        } else if (type === 'privacy') {
+            filePath = '/legal/privacy.md';
+            title = 'Política de Privacidad';
+        }
+
+        if (filePath) {
+            try {
+                const response = await fetch(filePath);
+                const markdown = await response.text();
+                setLegalContent({ title, markdown });
+            } catch (error) {
+                console.error("Error fetching legal content:", error);
+                setLegalContent({ title, markdown: 'Error al cargar el contenido. Por favor, inténtalo de nuevo más tarde.' });
+            } finally {
+                setIsLegalLoading(false);
+            }
+        }
     };
 
     useEffect(() => {
@@ -92,50 +128,20 @@ function App() {
                                     // Si ya está autenticado, redirigir al dashboard
                                     <Navigate to="/dashboard" replace />
                                 ) : (
-                                    // Si no está autenticado, mostrar la página de bienvenida con estética de referencia
-                                    <div className="relative w-full h-screen flex items-center justify-center p-4">
-                                        {/* Fondo de imagen - la nueva imagen proporcionada por el usuario */}
-                                        <div
-                                            className="absolute inset-0 bg-cover bg-center"
-                                            style={{ backgroundImage: `url(https://i.imgur.com/DhYqN9x.png)` }}
-                                        ></div>
-                                        {/* Overlay con degradado para integrar mejor la imagen */}
-                                        {/* De oscuro casi opaco a la izquierda (para el texto) a más transparente a la derecha */}
-                                        <div className="absolute inset-0 bg-gradient-to-r from-deep-night-blue via-deep-night-blue/70 to-transparent"></div>
-
-                                        {/* Contenedor principal del contenido (simula la estructura de la referencia) */}
-                                        {/* Usamos flex para alinear el contenido principal y el botón */}
-                                        <div className="relative z-10 w-full max-w-7xl h-[calc(100vh-2rem)] flex flex-col justify-center items-start p-8 md:p-12 lg:p-16">
-                                            {/* Contenedor para el texto principal y descripción, alineado a la izquierda */}
-                                            <div className="w-full max-w-lg lg:max-w-2xl text-white mb-8">
-                                                <h1 className="font-bold text-5xl md:text-6xl text-white drop-shadow-lg mb-4 font-['Inter']">LABEL</h1>
-                                                <h2 className="text-3xl md:text-4xl font-semibold mb-4 leading-tight drop-shadow-lg">
-                                                    Gestiona tu negocio con inteligencia y eficiencia.
-                                                </h2>
-                                                <p className="text-lg md:text-xl drop-shadow-lg">
-                                                    Label es la plataforma integral que te permite tomar el control total de tus operaciones,
-                                                    optimizar recursos y escalar con éxito. Simplifica tu gestión, potencia tu crecimiento.
-                                                </p>
-                                            </div>
-
-                                            {/* Botón de Acceder - Alineado a la derecha del contenedor principal */}
-                                            {/* Usamos flex y justify-end para empujarlo a la derecha */}
-                                            <div className="w-full flex justify-end pr-8 md:pr-16 lg:pr-24">
-                                                <button
-                                                    onClick={handleOpenModal}
-                                                    className="bg-action-blue hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full shadow-xl transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-8 focus:ring-blue-500 focus:ring-opacity-50 text-xl md:text-2xl w-fit"
-                                                >
-                                                    Acceder
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* El AccessModal se renderiza como un overlay si isModalOpen es true */}
-                                        {isModalOpen && <AccessModal onClose={handleCloseModal} />}
-                                    </div>
+                                    // 2. Renderizamos el nuevo componente y le pasamos la función para abrir el modal
+                                    <>
+                                        <WelcomePage onOpenModal={handleOpenModal} onOpenLegalModal={handleOpenLegalModal} />
+                                        {/* El modal sigue viviendo en App.jsx para que pueda ser llamado desde cualquier parte si es necesario */}
+                                        {isModalOpen && (
+                                            <AccessModal onClose={handleCloseModal} onOpenLegalModal={handleOpenLegalModal} />
+                                        )}
+                                    </>
                                 )
                             }
                         />
+
+                        {/* Nueva ruta para manejar el callback de OAuth */}
+                        <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
                         {/* Grupo de rutas protegidas: El ProtectedRoute envuelve el DashboardLayout */}
                         <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
@@ -164,6 +170,15 @@ function App() {
                     </Routes>
                 </AnimatePresence>
 
+                {/* Modal para contenido legal, se renderiza sobre todo */}
+                <LegalModal
+                    isOpen={isLegalModalOpen}
+                    onClose={() => setIsLegalModalOpen(false)}
+                    title={legalContent.title}
+                    isLoading={isLegalLoading}
+                >
+                    {legalContent.markdown}
+                </LegalModal>
                 {/* Componente Toast para mostrar notificaciones, fuera del <Routes> pero dentro del layout general */}
                 <Toast />
             </div>

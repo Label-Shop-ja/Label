@@ -106,8 +106,48 @@ const loginUser = asyncHandler(async (req, res, next) => {
   }
 });
 
+// Controlador para que el frontend verifique el estado de la autenticación post-OAuth
+const getAuthStatus = asyncHandler(async (req, res) => {
+  if (req.isAuthenticated()) { // req.isAuthenticated() es una función de Passport
+    const user = req.user; // El usuario completo está disponible aquí
+
+    // Generamos los tokens como en el login normal
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Establecemos la cookie del refresh token
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== 'development',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+    });
+
+    // Devolvemos los datos del usuario y el accessToken
+    res.status(200).json({
+      isAuthenticated: true,
+      user: { _id: user._id, fullName: user.fullName, email: user.email, role: user.role },
+      accessToken,
+    });
+  } else {
+    res.status(401);
+    throw new Error('Usuario no autenticado');
+  }
+});
+
+// Controlador para cerrar sesión
+const logoutUser = asyncHandler(async (req, res) => {
+  // Limpiamos la cookie del refreshToken
+  res.cookie('refreshToken', '', {
+    httpOnly: true,
+    expires: new Date(0), // La hacemos expirar inmediatamente
+  });
+  res.status(200).json({ message: 'Cierre de sesión exitoso' });
+});
+
+// Controlador para refrescar el token de acceso
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  // Ahora leemos el refreshToken desde la cookie que nos envía el navegador
+  // Leemos el refreshToken desde la cookie que nos envía el navegador
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
@@ -129,15 +169,4 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-// Controlador para cerrar sesión
-const logoutUser = asyncHandler(async (req, res) => {
-  // Limpiamos la cookie del refreshToken
-  res.cookie('refreshToken', '', {
-    httpOnly: true,
-    expires: new Date(0), // La hacemos expirar inmediatamente
-  });
-  res.status(200).json({ message: 'Cierre de sesión exitoso' });
-});
-
-
-export { registerUser, loginUser, refreshAccessToken, logoutUser };
+export { registerUser, loginUser, getAuthStatus, logoutUser, refreshAccessToken };
