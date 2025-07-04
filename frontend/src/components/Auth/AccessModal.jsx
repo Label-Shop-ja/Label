@@ -48,20 +48,20 @@ function AccessModal({ onClose, onOpenLegalModal }) {
     const {
         register: registerLogin,
         handleSubmit: handleLogin,
-        formState: { errors: loginErrors },
+        formState: { errors: loginErrors, isValid: isLoginValid },
     } = useForm({
         resolver: yupResolver(loginSchema),
-        mode: 'onTouched', // Valida cuando el usuario sale del campo
+        mode: 'onChange', // Valida en cada cambio para una respuesta instantánea
     });
 
     const {
         register: registerRegister,
         handleSubmit: handleRegister,
-        formState: { errors: registerErrors },
+        formState: { errors: registerErrors, isValid: isRegisterValid },
     } = useForm({
         // El schema de registro se actualizará para incluir el checkbox
         resolver: yupResolver(registerSchema),
-        mode: 'onTouched', // Valida cuando el usuario sale del campo
+        mode: 'onChange', // Valida en cada cambio para una respuesta instantánea
     });
 
     const handleLoginSubmit = (data) => {
@@ -105,7 +105,7 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                 onClick={onClose}
             >
                 <motion.div
-                    className="w-full max-w-md bg-background/50 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
+                    className="w-full max-w-md bg-surface/80 backdrop-blur-xl border border-surface-secondary rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
                     variants={cardVariants}
                     initial="hidden"
                     animate="visible"
@@ -113,7 +113,7 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className="p-4">
-                        <div className="grid grid-cols-2 gap-2 bg-black/20 p-1 rounded-lg mb-6">
+                        <div className="grid grid-cols-2 gap-2 bg-surface p-1 rounded-lg mb-6">
                             <button
                                 onClick={() => setIsLogin(true)}
                                 className={`w-full p-2 rounded-md text-sm font-semibold transition-colors duration-300 ${isLogin ? 'bg-primary text-white' : 'text-text-muted hover:bg-white/5'}`}
@@ -148,18 +148,23 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                                     {/* Formulario de Login */}
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                                        <input type="email" id="email-login" className="w-full p-3 pl-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.EMAIL} {...registerLogin("email")} disabled={isLoading} />
+                                        <input type="email" id="email-login" className="w-full p-3 pl-10 bg-surface rounded-md border border-surface-secondary text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.EMAIL} {...registerLogin("email")} disabled={isLoading} />
                                         {loginErrors.email && <p className="mt-1 text-error text-xs">{loginErrors.email.message}</p>}
                                     </div>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                                        <input type={showLoginPassword ? "text" : "password"} id="password-login" className="w-full p-3 pl-10 pr-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.PASSWORD} {...registerLogin("password")} disabled={isLoading} />
+                                        <input type={showLoginPassword ? "text" : "password"} id="password-login" className="w-full p-3 pl-10 pr-10 bg-surface rounded-md border border-surface-secondary text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.PASSWORD} {...registerLogin("password")} disabled={isLoading} />
                                         <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-text-muted hover:text-text-base" onClick={() => setShowLoginPassword((v) => !v)}>
                                             {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                         {loginErrors.password && <p className="mt-1 text-error text-xs">{loginErrors.password.message}</p>}
                                     </div>
-                                    <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-md hover:opacity-90 transition-opacity duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled={isLoading}>
+                                    <div className="text-right">
+                                        <button type="button" className="text-sm font-semibold text-primary hover:underline" disabled={isLoading}>
+                                            ¿Olvidaste tu contraseña?
+                                        </button>
+                                    </div>
+                                    <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-md hover:opacity-90 transition-opacity duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!isLoginValid || isLoading}>
                                         {isLoading ? 'Iniciando...' : 'Iniciar Sesión'}
                                     </button>
                                     <p className="text-center text-sm text-text-muted">
@@ -182,17 +187,17 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                                     {/* Formulario de Registro */}
                                     <div className="relative">
                                         <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                                        <input type="text" id="fullName-register" className="w-full p-3 pl-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.FULL_NAME} {...registerRegister("fullName")} disabled={isLoading} />
+                                        <input type="text" id="fullName-register" className="w-full p-3 pl-10 bg-surface rounded-md border border-surface-secondary text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.FULL_NAME} {...registerRegister("fullName")} disabled={isLoading} />
                                         {registerErrors.fullName && <p className="mt-1 text-error text-xs">{registerErrors.fullName.message}</p>}
                                     </div>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                                        <input type="email" id="email-register" className="w-full p-3 pl-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.EMAIL} {...registerRegister("email")} disabled={isLoading} />
+                                        <input type="email" id="email-register" className="w-full p-3 pl-10 bg-surface rounded-md border border-surface-secondary text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.EMAIL} {...registerRegister("email")} disabled={isLoading} />
                                         {registerErrors.email && <p className="mt-1 text-error text-xs">{registerErrors.email.message}</p>}
                                     </div>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                                        <input type={showRegPassword ? "text" : "password"} id="password-register" className="w-full p-3 pl-10 pr-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.PASSWORD} {...registerRegister("password")} disabled={isLoading} />
+                                        <input type={showRegPassword ? "text" : "password"} id="password-register" className="w-full p-3 pl-10 pr-10 bg-surface rounded-md border border-surface-secondary text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.PASSWORD} {...registerRegister("password")} disabled={isLoading} />
                                         <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-text-muted hover:text-text-base" onClick={() => setShowRegPassword((v) => !v)}>
                                             {showRegPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
@@ -200,14 +205,14 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                                     </div>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                                        <input type={showRegConfirmPassword ? "text" : "password"} id="confirmPassword-register" className="w-full p-3 pl-10 pr-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.CONFIRM_PASSWORD} {...registerRegister("confirmPassword")} disabled={isLoading} />
+                                        <input type={showRegConfirmPassword ? "text" : "password"} id="confirmPassword-register" className="w-full p-3 pl-10 pr-10 bg-surface rounded-md border border-surface-secondary text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.CONFIRM_PASSWORD} {...registerRegister("confirmPassword")} disabled={isLoading} />
                                         <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-text-muted hover:text-text-base" onClick={() => setShowRegConfirmPassword((v) => !v)}>
                                             {showRegConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                         {registerErrors.confirmPassword && <p className="mt-1 text-error text-xs">{registerErrors.confirmPassword.message}</p>}
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                        <input type="checkbox" id="terms" {...registerRegister("terms")} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                                        <input type="checkbox" id="terms" {...registerRegister("terms")} className="h-4 w-4 rounded border-surface-secondary text-primary focus:ring-primary" />
                                         <label htmlFor="terms" className="text-sm text-text-muted">
                                             Acepto los{' '}
                                             <button type="button" onClick={() => onOpenLegalModal('terms')} className="font-semibold text-primary hover:underline">Términos de Servicio</button>
@@ -217,7 +222,7 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                                     </div>
                                     {registerErrors.terms && <p className="text-error text-xs">{registerErrors.terms.message}</p>}
 
-                                    <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-md hover:opacity-90 transition-opacity duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled={isLoading}>
+                                    <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-md hover:opacity-90 transition-opacity duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!isRegisterValid || isLoading}>
                                         {isLoading ? 'Registrando...' : 'Registrarse'}
                                     </button>
                                     <p className="text-center text-sm text-text-muted">

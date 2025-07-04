@@ -68,7 +68,7 @@ const benefitsData = [
   }
 ];
 
-const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
+const WelcomePage = ({ onOpenModal, onOpenLegalModal, isModalOpening }) => {
   // Refs para apuntar a las secciones de la página
   const topSectionRef = useRef(null);
   const bottomSectionRef = useRef(null);
@@ -121,13 +121,16 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
         events: {
           onHover: {
             enable: true,
-            mode: 'repulse',
+            mode: isModalOpening ? 'grab' : 'repulse', // Cambia el modo de interacción al cargar
           },
         },
         modes: {
           repulse: {
             distance: 100,
             duration: 0.4,
+          },
+          grab: {
+            distance: 150,
           },
         },
       },
@@ -139,7 +142,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
           color: colors[theme]?.link || colors.dark.link,
           distance: 150,
           enable: true,
-          opacity: 0.2,
+          opacity: isModalOpening ? 0.5 : 0.2, // Aumenta la opacidad de los enlaces
           width: 1,
         },
         move: {
@@ -149,7 +152,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
             default: 'bounce',
           },
           random: false,
-          speed: 1,
+          speed: isModalOpening ? 4 : 1, // Aumenta la velocidad de las partículas
           straight: false,
         },
         number: {
@@ -165,12 +168,12 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
       },
       detectRetina: true,
     };
-  }, [theme]);
+  }, [theme, isModalOpening]); // Añadimos isModalOpening a las dependencias
 
   return (
     <div className="relative w-full h-screen flex flex-col bg-background overflow-hidden transition-colors duration-300">
       {/* 2. Añadimos el nuevo Header */}
-      <WelcomeHeader onOpenModal={onOpenModal} />
+      <WelcomeHeader onOpenModal={onOpenModal} isModalOpening={isModalOpening} />
 
       {/* Contenedor principal que ocupa el espacio restante */}
       <main className="relative flex-1 overflow-y-auto hide-scrollbar scroll-smooth">
@@ -187,7 +190,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
         <div
           className="fixed inset-0 bg-cover bg-center z-0"
           style={{
-            backgroundImage: `url(https://res.cloudinary.com/dnkr9tvtq/image/upload/v1751596741/img2.wallspic.com-luz-graficos_vectoriales-azul-ilustracion-diseno-5000x5000_jjastz.jpg)`,
+            backgroundImage: `url(https://res.cloudinary.com/dnkr9tvtq/image/upload/w_1920,h_1080,c_fill,q_auto,f_auto/v1751596741/img2.wallspic.com-luz-graficos_vectoriales-azul-ilustracion-diseno-5000x5000_jjastz.jpg)`,
           }}
         ></div>
         {/* Overlay con degradado */}
@@ -317,6 +320,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
 WelcomePage.propTypes = {
   onOpenModal: PropTypes.func.isRequired,
   onOpenLegalModal: PropTypes.func.isRequired,
+  isModalOpening: PropTypes.bool.isRequired,
 };
 
 export default WelcomePage;

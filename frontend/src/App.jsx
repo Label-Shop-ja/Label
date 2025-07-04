@@ -29,6 +29,7 @@ import Toast from './components/Common/Toast';
 
 function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalOpening, setIsModalOpening] = useState(false); // Estado para el spinner
     // Estado para el modal de términos y privacidad
     const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
     const [legalContent, setLegalContent] = useState({ title: '', markdown: '' });
@@ -41,7 +42,13 @@ function App() {
     const location = useLocation();
 
     const handleOpenModal = () => {
-        setIsModalOpen(true);
+        if (isModalOpening) return; // Prevenir doble clic
+        setIsModalOpening(true);
+        // Pequeño delay para que el spinner sea visible, mejorando la UX
+        setTimeout(() => {
+            setIsModalOpen(true);
+            setIsModalOpening(false);
+        }, 250);
     };
 
     const handleCloseModal = () => {
@@ -130,7 +137,7 @@ function App() {
                                 ) : (
                                     // 2. Renderizamos el nuevo componente y le pasamos la función para abrir el modal
                                     <>
-                                        <WelcomePage onOpenModal={handleOpenModal} onOpenLegalModal={handleOpenLegalModal} />
+                                        <WelcomePage onOpenModal={handleOpenModal} onOpenLegalModal={handleOpenLegalModal} isModalOpening={isModalOpening} />
                                         {/* El modal sigue viviendo en App.jsx para que pueda ser llamado desde cualquier parte si es necesario */}
                                         {isModalOpen && (
                                             <AccessModal onClose={handleCloseModal} onOpenLegalModal={handleOpenLegalModal} />

@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { motion } from 'framer-motion';
-import { LogIn } from 'lucide-react';
+import { LogIn, Loader2 } from 'lucide-react';
 
-const WelcomeHeader = ({ onOpenModal }) => {
+const WelcomeHeader = ({ onOpenModal, isModalOpening }) => {
   return (
     <motion.header
       className="relative z-30 flex items-center justify-between p-4 bg-black/75 backdrop-blur-lg border-b border-white/10 shadow-2xl shadow-black/40"
@@ -23,10 +23,15 @@ const WelcomeHeader = ({ onOpenModal }) => {
       </div>
       <button
         onClick={onOpenModal}
-        className="flex items-center gap-2 bg-primary text-white font-semibold px-5 py-2.5 rounded-full hover:bg-primary/90 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+        className="flex items-center justify-center gap-2 bg-primary text-white font-semibold px-5 py-2.5 rounded-full hover:bg-primary/90 transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-70 disabled:cursor-wait w-32"
+        disabled={isModalOpening}
       >
-        <LogIn size={18} />
-        Acceder
+        {isModalOpening ? (
+          <Loader2 size={18} className="animate-spin" />
+        ) : (
+          <LogIn size={18} />
+        )}
+        <span>{isModalOpening ? 'Abriendo...' : 'Acceder'}</span>
       </button>
     </motion.header>
   );
@@ -34,6 +39,7 @@ const WelcomeHeader = ({ onOpenModal }) => {
 
 WelcomeHeader.propTypes = {
   onOpenModal: PropTypes.func.isRequired,
+  isModalOpening: PropTypes.bool.isRequired,
 };
 
 export default WelcomeHeader;
