@@ -3,7 +3,9 @@ import PropTypes from 'prop-types';
 import { motion } from 'framer-motion';
 import Particles from 'react-tsparticles';
 import { loadSlim } from 'tsparticles-slim';
-import Footer from '../../components/Common/Footer'; // 1. Importamos el nuevo Footer
+import Footer from '../../components/Common/Footer';
+import { PackageCheck, TrendingUp, ShoppingCart, BarChart3 } from 'lucide-react';
+import WelcomeHeader from '../../components/Public/WelcomeHeader'; // 1. Importamos el nuevo Header
 
 // 1. Definimos las "variantes" de animación para orquestar la entrada.
 const containerVariants = {
@@ -95,71 +97,106 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
   };
 
   return (
-    <div className="relative w-full h-screen flex items-center justify-center p-4">
-      {/* 4. Componente de Partículas en el fondo */}
-      <Particles
-        id="tsparticles"
-        init={particlesInit}
-        loaded={particlesLoaded}
-        options={particleOptions}
-        className="absolute inset-0 z-0" // z-index bajo para que esté detrás de todo
-      />
+    <div className="relative w-full h-screen flex flex-col">
+      {/* 2. Añadimos el nuevo Header */}
+      <WelcomeHeader onOpenModal={onOpenModal} />
 
-      {/* Fondo de imagen */}
-      <div
-        className="absolute inset-0 bg-cover bg-center z-10" // z-index intermedio
-        style={{ backgroundImage: `url(https://i.imgur.com/DhYqN9x.png)` }}
-      ></div>
-      {/* Overlay con degradado */}
-      <div className="absolute inset-0 bg-gradient-to-r from-deep-night-blue via-deep-night-blue/70 to-transparent z-10"></div>
+      {/* Contenedor principal que ocupa el espacio restante */}
+      <main className="relative flex-1 overflow-y-auto">
+        {/* 4. Componente de Partículas en el fondo */}
+        <Particles
+          id="tsparticles"
+          init={particlesInit}
+          loaded={particlesLoaded}
+          options={particleOptions}
+          className="absolute inset-0 z-10" // Partículas sobre la imagen
+        />
 
-      {/* Contenedor principal del contenido */}
-      <motion.div
-        className="relative z-20 w-full max-w-7xl h-[calc(100vh-2rem)] flex flex-col justify-center items-start p-8 md:p-12 lg:p-16"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Contenido de texto */}
-        <div className="w-full max-w-lg lg:max-w-2xl text-white mb-8">
-          <motion.h1
-            className="font-bold text-5xl md:text-6xl text-white drop-shadow-lg mb-4 font-['Inter']"
-            variants={itemVariants}
-          >
-            LABEL
-          </motion.h1>
-          <motion.h2
-            className="text-3xl md:text-4xl font-semibold mb-4 leading-tight drop-shadow-lg"
-            variants={itemVariants}
-          >
-            Gestiona tu negocio con inteligencia y eficiencia.
-          </motion.h2>
-          <motion.p
-            className="text-lg md:text-xl drop-shadow-lg"
-            variants={itemVariants}
-          >
-            Label es la plataforma integral que te permite tomar el control total de tus operaciones,
-            optimizar recursos y escalar con éxito. Simplifica tu gestión, potencia tu crecimiento.
-          </motion.p>
-        </div>
+        {/* Fondo de imagen */}
+        <div
+          className="absolute inset-0 bg-cover bg-center z-0" // Imagen al fondo
+          style={{
+            backgroundImage: `url(https://res.cloudinary.com/dnkr9tvtq/image/upload/v1751596741/img2.wallspic.com-luz-graficos_vectoriales-azul-ilustracion-diseno-5000x5000_jjastz.jpg)`,
+          }}
+        ></div>
+        {/* Overlay con degradado */}
+        <div className="absolute inset-0 bg-gradient-to-r from-deep-night-blue via-deep-night-blue/70 to-transparent z-0"></div>
 
-        {/* Botón de Acceder */}
+        {/* Contenedor principal del contenido */}
         <motion.div
-          className="w-full flex justify-end pr-8 md:pr-16 lg:pr-24"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 0.5 }} // El botón aparece al final
+          className="relative z-20 w-full h-full flex flex-col justify-center p-8 md:p-12 lg:p-16" // Se quita items-start para permitir que los hijos se estiren
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
         >
-          <motion.button
-            onClick={onOpenModal}
-            className="bg-action-blue hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full shadow-xl transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-8 focus:ring-blue-500 focus:ring-opacity-50 text-xl md:text-2xl w-fit"
-            whileHover={{ scale: 1.05, boxShadow: '0px 0px 12px rgba(59, 130, 246, 0.8)' }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Acceder
-          </motion.button>
+          {/* Contenido de texto */}
+          <div className="w-full max-w-3xl lg:max-w-4xl text-white"> {/* Este div agrupa el contenido principal */}
+            <motion.h1 variants={itemVariants} className="font-bold text-5xl md:text-7xl text-white drop-shadow-lg mb-4">
+              Bienvenido a LABEL
+            </motion.h1>
+            <motion.p variants={itemVariants} className="text-xl md:text-2xl text-text-muted mb-12 drop-shadow-lg max-w-3xl">
+              Tu centro de mando para una gestión de negocios inteligente. Menos tiempo administrando, más tiempo creciendo.
+            </motion.p>
+
+            {/* Beneficios */}
+            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-12">
+              {/* Benefit 1 */}
+              <div className="flex items-start gap-4">
+                <div className="bg-primary/20 p-2 rounded-lg mt-1">
+                  <PackageCheck className="text-primary h-8 w-8" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Control Total de Inventario</h3>
+                  <p className="text-text-muted text-sm">Desde el stock hasta las variantes, ten una visión clara de cada producto en tiempo real.</p>
+                </div>
+              </div>
+              {/* Benefit 2 */}
+              <div className="flex items-start gap-4">
+                <div className="bg-primary/20 p-2 rounded-lg mt-1">
+                  <TrendingUp className="text-primary h-8 w-8" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Finanzas Claras</h3>
+                  <p className="text-text-muted text-sm">Registra ingresos, gastos y visualiza la salud de tu negocio con reportes automáticos.</p>
+                </div>
+              </div>
+              {/* Benefit 3 */}
+              <div className="flex items-start gap-4">
+                <div className="bg-primary/20 p-2 rounded-lg mt-1">
+                  <ShoppingCart className="text-primary h-8 w-8" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Punto de Venta Integrado</h3>
+                  <p className="text-text-muted text-sm">Agiliza tus ventas con un POS rápido e intuitivo que actualiza tu inventario al instante.</p>
+                </div>
+              </div>
+              {/* Benefit 4 */}
+              <div className="flex items-start gap-4">
+                <div className="bg-primary/20 p-2 rounded-lg mt-1">
+                  <BarChart3 className="text-primary h-8 w-8" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Decisiones Basadas en Datos</h3>
+                  <p className="text-text-muted text-sm">Utiliza estadísticas y análisis para identificar oportunidades y optimizar tu estrategia.</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Call to Action - Ahora es hermano del contenido para alinearse con el contenedor padre */}
+          <motion.div variants={itemVariants} className="w-full text-center mt-8"> {/* mt-auto lo empuja hacia abajo */}
+              <p className="text-lg text-text-muted mb-4">¿Listo para transformar tu Negocio?</p>
+              <motion.button
+                onClick={onOpenModal}
+                className="bg-gradient-to-r from-action-blue to-copper-rose-accent text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg hover:shadow-action-blue/40 focus:outline-none focus:ring-4 focus:ring-action-blue/50 text-lg"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Únete a Label y empieza a CRECER
+              </motion.button>
+            </motion.div>
         </motion.div>
-      </motion.div>
+      </main>
 
       {/* 5. Renderizamos el Footer */}
       <Footer onOpenLegalModal={onOpenLegalModal} />
