@@ -7,6 +7,8 @@ import {
   registerUser,
   verifyAuth,
   reset,
+  forgotPassword,
+  resetPassword,
 } from '../redux/authSlice';
 
 /**
@@ -18,8 +20,16 @@ export const useAuth = () => {
   const dispatch = useDispatch();
 
   // 1. Seleccionamos las partes del estado de autenticación que los componentes necesitan.
-  const { user, isAuthenticated, isLoading, isError, message } = useSelector(
-    (state) => state.auth
+  const {
+    user,
+    isAuthenticated,
+    isLoading,
+    isError,
+    message,
+    forgotPasswordStatus, // 2. Seleccionamos el nuevo estado
+    resetPasswordStatus,
+  } = useSelector(
+    (state) => state.auth,
   );
 
   // 2. `bindActionCreators` envuelve nuestras acciones en `dispatch`.
@@ -34,6 +44,8 @@ export const useAuth = () => {
           register: registerUser,
           verify: verifyAuth,
           reset,
+          forgotPassword, // 3. Añadimos la nueva acción para que se vincule
+          resetPassword,
         },
         dispatch
       ),
@@ -42,7 +54,16 @@ export const useAuth = () => {
 
   // 3. Devolvemos un objeto único y memorizado con el estado y las acciones.
   //    Esto es lo que consumirán nuestros componentes.
-  return { user, isAuthenticated, isLoading, isError, message, ...actions };
+  return {
+    user,
+    isAuthenticated,
+    isLoading,
+    isError,
+    message,
+    forgotPasswordStatus, // 4. Exponemos el nuevo estado
+    resetPasswordStatus,
+    ...actions,
+  };
 };
 
 export default useAuth;

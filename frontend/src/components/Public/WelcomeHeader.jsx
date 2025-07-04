@@ -6,7 +6,7 @@ import { LogIn, Loader2 } from 'lucide-react';
 const WelcomeHeader = ({ onOpenModal, isModalOpening }) => {
   return (
     <motion.header
-      className="relative z-30 flex items-center justify-between p-4 bg-black/75 backdrop-blur-lg border-b border-white/10 shadow-2xl shadow-black/40"
+      className="relative z-30 flex items-center justify-between p-4 bg-black/75 backdrop-blur-lg border border-white/10 shadow-2xl shadow-black/40 rounded-2xl mx-4 mt-4"
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}

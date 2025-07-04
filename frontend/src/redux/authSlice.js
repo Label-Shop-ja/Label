@@ -13,6 +13,8 @@ const initialState = {
   isError: false,
   isSuccess: false, // Nuevo estado para manejar el éxito de acciones como el registro
   message: '',
+  forgotPasswordStatus: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
+  resetPasswordStatus: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
 };
 
 // --- Async Thunks ---
@@ -75,6 +77,43 @@ export const verifyAuth = createAsyncThunk(
   }
 );
 
+// Async thunk para solicitar reseteo de contraseña
+export const forgotPassword = createAsyncThunk(
+  'auth/forgotPassword',
+  async (email, thunkAPI) => {
+    try {
+      // El servicio ya devuelve la data, así que la retornamos directamente.
+      return await authService.forgotPassword(email);
+    } catch (error) {
+      const message =
+        (error.response &&
+          error.response.data &&
+          error.response.data.message) ||
+        error.message ||
+        error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Async thunk para restablecer la contraseña
+export const resetPassword = createAsyncThunk(
+  'auth/resetPassword',
+  async (resetData, thunkAPI) => {
+    try {
+      return await authService.resetPassword(resetData);
+    } catch (error) {
+      const message =
+        (error.response &&
+          error.response.data &&
+          error.response.data.message) ||
+        error.message ||
+        error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 export const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -84,6 +123,8 @@ export const authSlice = createSlice({
       state.isError = false;
       state.isSuccess = false; // Resetear el estado de éxito también
       state.message = '';
+      state.forgotPasswordStatus = 'idle';
+      state.resetPasswordStatus = 'idle';
     },
     setAccessToken: (state, action) => {
       state.accessToken = action.payload;
@@ -152,10 +193,42 @@ export const authSlice = createSlice({
       })
       .addCase(verifyAuth.rejected, (state) => {
         state.isLoading = false;
+      })
+      // Casos para el reseteo de contraseña
+      .addCase(forgotPassword.pending, (state) => {
+        state.isLoading = true;
+        state.forgotPasswordStatus = 'loading';
+      })
+      .addCase(forgotPassword.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.forgotPasswordStatus = 'succeeded';
+        state.message = action.payload.message; // Guardamos el mensaje de éxito del backend
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.forgotPasswordStatus = 'failed';
+        state.message = action.payload;
+      })
+      // Casos para el restablecimiento de contraseña
+      .addCase(resetPassword.pending, (state) => {
+        state.isLoading = true;
+        state.resetPasswordStatus = 'loading';
+      })
+      .addCase(resetPassword.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.resetPasswordStatus = 'succeeded';
+        state.message = action.payload.message; // Mensaje de éxito del backend
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.resetPasswordStatus = 'failed';
+        state.message = action.payload;
       });
   },
 });
 
-export const { reset, setAccessToken, logoutUser, setCredentials } = authSlice.actions;
+export const { reset, setAccessToken, logoutUser, setCredentials } = authSlice.actions; // No olvides exportar la nueva acción
 
 export default authSlice.reducer;

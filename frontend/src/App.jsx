@@ -25,15 +25,19 @@ import ProtectedRoute from './components/Auth/ProtectedRoute'; // Importamos el 
 import ErrorBoundary from "./components/Common/ErrorBoundary";
 import AuthCallbackPage from './pages/Auth/AuthCallbackPage'; // Importamos la nueva página
 import LegalModal from './components/Common/LegalModal'; // Importamos el nuevo modal
+import ResetPasswordPage from './pages/Auth/ResetPasswordPage'; // Importamos la página de reseteo
+import ForgotPasswordModal from './components/Auth/ForgotPasswordModal'; // Importamos el nuevo modal
 import Toast from './components/Common/Toast';
 
 function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isModalOpening, setIsModalOpening] = useState(false); // Estado para el spinner
+    const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
     // Estado para el modal de términos y privacidad
     const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
     const [legalContent, setLegalContent] = useState({ title: '', markdown: '' });
     const [isLegalLoading, setIsLegalLoading] = useState(false);
+    
 
     // Obtenemos el estado de autenticación y carga directamente desde el store de Redux. ¡Esto está perfecto!
     const { isAuthenticated, isLoading: authLoading, verify } = useAuth();
@@ -53,6 +57,20 @@ function App() {
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
+    };
+    
+    const handleOpenForgotPasswordModal = () => {
+        setIsModalOpen(false); // Cierra el modal de acceso
+        // Pequeño delay para que la animación de salida del primer modal termine
+        setTimeout(() => {
+            setIsForgotPasswordModalOpen(true);
+        }, 300);
+    };
+
+    const handleBackToLogin = () => {
+        setIsForgotPasswordModalOpen(false);
+        // Pequeño delay para que la animación de salida termine
+        setTimeout(() => setIsModalOpen(true), 300);
     };
 
     const handleOpenLegalModal = async (type) => {
@@ -136,19 +154,15 @@ function App() {
                                     <Navigate to="/dashboard" replace />
                                 ) : (
                                     // 2. Renderizamos el nuevo componente y le pasamos la función para abrir el modal
-                                    <>
-                                        <WelcomePage onOpenModal={handleOpenModal} onOpenLegalModal={handleOpenLegalModal} isModalOpening={isModalOpening} />
-                                        {/* El modal sigue viviendo en App.jsx para que pueda ser llamado desde cualquier parte si es necesario */}
-                                        {isModalOpen && (
-                                            <AccessModal onClose={handleCloseModal} onOpenLegalModal={handleOpenLegalModal} />
-                                        )}
-                                    </>
+                                    <WelcomePage onOpenModal={handleOpenModal} onOpenLegalModal={handleOpenLegalModal} isModalOpening={isModalOpening} />
                                 )
                             }
                         />
 
                         {/* Nueva ruta para manejar el callback de OAuth */}
                         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+                        {/* Nueva ruta para la página de reseteo de contraseña */}
+                        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
                         {/* Grupo de rutas protegidas: El ProtectedRoute envuelve el DashboardLayout */}
                         <Route path="/dashboard/*" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
@@ -173,6 +187,16 @@ function App() {
                         {/* Ruta comodín para cualquier otra ruta no definida (redirige a la raíz) */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
+                </AnimatePresence>
+
+                {/* El modal de acceso ahora está envuelto en AnimatePresence para animar su salida */}
+                <AnimatePresence>
+                    {isModalOpen && (
+                        <AccessModal onClose={handleCloseModal} onOpenLegalModal={handleOpenLegalModal} onOpenForgotPasswordModal={handleOpenForgotPasswordModal} />
+                    )}
+                    {isForgotPasswordModalOpen && (
+                        <ForgotPasswordModal onClose={() => setIsForgotPasswordModalOpen(false)} onBackToLogin={handleBackToLogin} />
+                    )}
                 </AnimatePresence>
 
                 {/* Modal para contenido legal, se renderiza sobre todo */}

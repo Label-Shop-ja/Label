@@ -27,6 +27,9 @@ const UserSchema = mongoose.Schema(
     googleId: {
       type: String,
     },
+    // Nuevos campos para el reseteo de contraseña
+    passwordResetToken: String,
+    passwordResetExpires: Date,
   },
   {
     timestamps: true,

@@ -15,4 +15,17 @@ const verifyToken = async () => {
   return axiosInstance.get('/users/profile');
 };
 
-export const authService = { login, register, verifyToken };
+const forgotPassword = async (email) => {
+  // Hacemos una petición POST a la nueva ruta del backend
+  const response = await axiosInstance.post(API_URL + 'forgot-password', { email });
+  return response.data;
+};
+
+const resetPassword = async (resetData) => {
+  const { token, password, confirmPassword } = resetData;
+  // Llama a la nueva ruta del backend con el token y las contraseñas
+  const response = await axiosInstance.post(API_URL + `reset-password/${token}`, { password, confirmPassword });
+  return response.data;
+};
+
+export const authService = { login, register, verifyToken, forgotPassword, resetPassword };

@@ -12,7 +12,7 @@ import useAuth from "../../hooks/useAuth";
 import { Lock, Mail, User, Eye, EyeOff } from 'lucide-react';
 import { FaGoogle, FaFacebook } from 'react-icons/fa';
 
-function AccessModal({ onClose, onOpenLegalModal }) {
+function AccessModal({ onClose, onOpenLegalModal, onOpenForgotPasswordModal }) {
     const [isLogin, setIsLogin] = useState(true);
     const { login, register, isLoading, isError, message, reset, isAuthenticated } = useAuth();
     // Ahora, gracias a useCallback en el contexto, esta función `showNotification` es estable.
@@ -78,8 +78,9 @@ function AccessModal({ onClose, onOpenLegalModal }) {
     };
 
     const overlayVariants = {
-        hidden: { backgroundColor: 'rgba(0, 0, 0, 0)', backdropFilter: 'blur(0px)' },
-        visible: { backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)', transition: { duration: 0.5 } },
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { duration: 0.3 } },
+        exit: { opacity: 0, transition: { duration: 0.3 } },
     };
 
     const cardVariants = {
@@ -95,24 +96,24 @@ function AccessModal({ onClose, onOpenLegalModal }) {
     };
 
     return (
-        <AnimatePresence>
+        // El componente AnimatePresence se movió a App.jsx para controlar la salida del modal completo.
+        <motion.div
+            className="fixed inset-0 flex items-end sm:items-center justify-center z-50 text-text-base bg-black/60 backdrop-blur-sm"
+            variants={overlayVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            onClick={onClose}
+        >
             <motion.div
-                className="fixed inset-0 flex items-center justify-center z-50 text-text-base"
-                variants={overlayVariants}
+                className="w-full max-w-md bg-surface/80 backdrop-blur-xl border-t sm:border border-surface-secondary rounded-t-2xl sm:rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
+                variants={cardVariants}
                 initial="hidden"
                 animate="visible"
-                exit="hidden"
-                onClick={onClose}
+                exit="exit"
+                onClick={(e) => e.stopPropagation()}
             >
-                <motion.div
-                    className="w-full max-w-md bg-surface/80 backdrop-blur-xl border border-surface-secondary rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
-                    variants={cardVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="hidden"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="p-4">
+                <div className="p-4">
                         <div className="grid grid-cols-2 gap-2 bg-surface p-1 rounded-lg mb-6">
                             <button
                                 onClick={() => setIsLogin(true)}
@@ -160,7 +161,7 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                                         {loginErrors.password && <p className="mt-1 text-error text-xs">{loginErrors.password.message}</p>}
                                     </div>
                                     <div className="text-right">
-                                        <button type="button" className="text-sm font-semibold text-primary hover:underline" disabled={isLoading}>
+                                        <button type="button" onClick={onOpenForgotPasswordModal} className="text-sm font-semibold text-primary hover:underline" disabled={isLoading}>
                                             ¿Olvidaste tu contraseña?
                                         </button>
                                     </div>
@@ -259,15 +260,15 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                         </div>
 
                     </div>
-                </motion.div>
             </motion.div>
-        </AnimatePresence>
+        </motion.div>
     );
 }
 
 AccessModal.propTypes = {
     onClose: PropTypes.func.isRequired,
     onOpenLegalModal: PropTypes.func.isRequired,
+    onOpenForgotPasswordModal: PropTypes.func.isRequired,
 };
 
 export default AccessModal;

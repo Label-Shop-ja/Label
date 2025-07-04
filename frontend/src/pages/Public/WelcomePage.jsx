@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Particles from 'react-tsparticles';
 import { loadSlim } from 'tsparticles-slim';
 import Footer from '../../components/Common/Footer';
-import { PackageCheck, TrendingUp, ShoppingCart, BarChart3, Users, ShieldCheck, ArrowDown, ArrowUp } from 'lucide-react';
+import { PackageCheck, TrendingUp, ShoppingCart, BarChart3, Users, ShieldCheck, ArrowDown, ArrowUp, Loader2 } from 'lucide-react';
 import WelcomeHeader from '../../components/Public/WelcomeHeader'; // 1. Importamos el nuevo Header
 import { useTheme } from '../../context/ThemeContext';
 
@@ -214,11 +214,19 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal, isModalOpening }) => {
               <p className="text-lg text-text-muted mb-4">¿Listo para transformar tu Negocio?</p>
               <motion.button
                 onClick={onOpenModal}
-                className="bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg hover:shadow-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/50 text-lg"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="flex items-center justify-center gap-3 bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg hover:shadow-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/50 text-lg disabled:opacity-70 disabled:cursor-wait min-w-[350px]"
+                whileHover={!isModalOpening ? { scale: 1.05 } : {}}
+                whileTap={!isModalOpening ? { scale: 0.95 } : {}}
+                disabled={isModalOpening}
               >
-                Únete a Label y empieza a CRECER
+                {isModalOpening ? (
+                  <>
+                    <Loader2 size={22} className="animate-spin" />
+                    <span>Abriendo...</span>
+                  </>
+                ) : (
+                  'Únete a Label y empieza a CRECER'
+                )}
               </motion.button>
             </motion.div>
           </motion.div>
