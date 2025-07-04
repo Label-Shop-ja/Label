@@ -1,10 +1,10 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Particles from 'react-tsparticles';
 import { loadSlim } from 'tsparticles-slim';
 import Footer from '../../components/Common/Footer';
-import { PackageCheck, TrendingUp, ShoppingCart, BarChart3 } from 'lucide-react';
+import { PackageCheck, TrendingUp, ShoppingCart, BarChart3, Users, ShieldCheck, ArrowDown, ArrowUp } from 'lucide-react';
 import WelcomeHeader from '../../components/Public/WelcomeHeader'; // 1. Importamos el nuevo Header
 
 // 1. Definimos las "variantes" de animación para orquestar la entrada.
@@ -21,7 +21,76 @@ const itemVariants = {
   visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } },
 };
 
+// Datos para los beneficios, para mantener el JSX limpio
+const benefitsData = [
+  {
+    id: 1,
+    icon: PackageCheck,
+    title: "Control Total de Inventario",
+    shortDescription: "Visión clara de cada producto en tiempo real.",
+    longDescription: "Desde la materia prima hasta el producto final, con variantes y SKUs. Registra entradas, salidas y ajustes de stock con precisión. Nuestro sistema te alerta cuando los niveles están bajos para que nunca pierdas una venta."
+  },
+  {
+    id: 2,
+    icon: TrendingUp,
+    title: "Finanzas Claras",
+    shortDescription: "Reportes automáticos de ingresos y gastos.",
+    longDescription: "Conecta tus ventas y compras para tener un panorama financiero en tiempo real. Genera reportes de ganancias, pérdidas y flujo de caja con un solo clic. Simplifica tu contabilidad y toma decisiones basadas en números reales."
+  },
+  {
+    id: 3,
+    icon: ShoppingCart,
+    title: "Punto de Venta Integrado",
+    shortDescription: "POS rápido que actualiza tu inventario al instante.",
+    longDescription: "Un sistema de Punto de Venta (POS) intuitivo y veloz. Cada venta actualiza automáticamente tu inventario y tus registros financieros. Compatible con lectores de códigos de barras para agilizar el checkout."
+  },
+  {
+    id: 4,
+    icon: BarChart3,
+    title: "Decisiones Basadas en Datos",
+    shortDescription: "Análisis para optimizar tu estrategia de negocio.",
+    longDescription: "Identifica tus productos más vendidos, tus clientes más leales y tus horas pico. Nuestras estadísticas te dan el poder de optimizar precios, promociones y estrategias de compra para maximizar tu rentabilidad."
+  },
+  {
+    id: 5,
+    icon: Users,
+    title: "Gestión de Contactos",
+    shortDescription: "Centraliza la información de clientes y proveedores.",
+    longDescription: "Crea perfiles para tus clientes y proveedores. Lleva un historial de compras, deudas y pagos. Mejora la relación con tus contactos y agiliza la comunicación y la gestión de créditos."
+  },
+  {
+    id: 6,
+    icon: ShieldCheck,
+    title: "Blindaje Anti-Devaluación",
+    shortDescription: "Protege tu capital con precios actualizados a la tasa.",
+    longDescription: "En economías volátiles, tu capital está en riesgo. Label ajusta los precios de venta de tus productos automáticamente basándose en la tasa de cambio actualizada, protegiendo tus márgenes de ganancia y asegurando que puedas reponer tu inventario sin pérdidas."
+  }
+];
+
 const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
+  // Refs para apuntar a las secciones de la página
+  const topSectionRef = useRef(null);
+  const bottomSectionRef = useRef(null);
+
+  // Estado para controlar qué beneficio está expandido
+  const [expandedBenefit, setExpandedBenefit] = useState(null);
+
+  // Manejador para expandir/contraer un beneficio
+  const handleBenefitClick = (id) => {
+    // Si se hace clic en el mismo, se cierra (null). Si no, se abre el nuevo.
+    setExpandedBenefit(expandedBenefit === id ? null : id);
+  };
+
+  // Funciones para manejar el scroll suave
+  const scrollToBottom = () => {
+    // El comportamiento de scroll suave ahora es manejado por CSS (`scroll-smooth`)
+    bottomSectionRef.current?.scrollIntoView();
+  };
+  const scrollToTop = () => {
+    // El comportamiento de scroll suave ahora es manejado por CSS (`scroll-smooth`)
+    topSectionRef.current?.scrollIntoView();
+  };
+
   // 2. Funciones necesarias para inicializar el motor de partículas
   const particlesInit = useCallback(async (engine) => {
     // Puedes inicializar instancias de tsParticles (engine) aquí, añadiendo formas personalizadas o presets
@@ -35,6 +104,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
 
   // 3. Configuración para un efecto de partículas sutil y elegante
   const particleOptions = {
+    fullScreen: { enable: true, zIndex: 1 }, // Hacemos que las partículas ocupen toda la pantalla y estén detrás del contenido
     background: {
       color: {
         value: 'transparent', // El fondo de las partículas es transparente
@@ -97,94 +167,46 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
   };
 
   return (
-    <div className="relative w-full h-screen flex flex-col">
+    <div className="relative w-full h-screen flex flex-col bg-deep-night-blue overflow-hidden">
       {/* 2. Añadimos el nuevo Header */}
       <WelcomeHeader onOpenModal={onOpenModal} />
 
       {/* Contenedor principal que ocupa el espacio restante */}
-      <main className="relative flex-1 overflow-y-auto">
-        {/* 4. Componente de Partículas en el fondo */}
+      <main className="relative flex-1 overflow-y-auto hide-scrollbar scroll-smooth">
+        {/* Partículas y fondo ahora son fijos para permanecer en su sitio durante el scroll */}
         <Particles
           id="tsparticles"
           init={particlesInit}
           loaded={particlesLoaded}
           options={particleOptions}
-          className="absolute inset-0 z-10" // Partículas sobre la imagen
+          className="fixed inset-0 z-10"
         />
 
         {/* Fondo de imagen */}
         <div
-          className="absolute inset-0 bg-cover bg-center z-0" // Imagen al fondo
+          className="fixed inset-0 bg-cover bg-center z-0"
           style={{
             backgroundImage: `url(https://res.cloudinary.com/dnkr9tvtq/image/upload/v1751596741/img2.wallspic.com-luz-graficos_vectoriales-azul-ilustracion-diseno-5000x5000_jjastz.jpg)`,
           }}
         ></div>
         {/* Overlay con degradado */}
-        <div className="absolute inset-0 bg-gradient-to-r from-deep-night-blue via-deep-night-blue/70 to-transparent z-0"></div>
+        <div className="fixed inset-0 bg-gradient-to-r from-deep-night-blue via-deep-night-blue/70 to-transparent z-2"></div>
 
-        {/* Contenedor principal del contenido */}
-        <motion.div
-          className="relative z-20 w-full h-full flex flex-col justify-center p-8 md:p-12 lg:p-16" // Se quita items-start para permitir que los hijos se estiren
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* Contenido de texto */}
-          <div className="w-full max-w-3xl lg:max-w-4xl text-white"> {/* Este div agrupa el contenido principal */}
+        {/* SECCIÓN 1: PANTALLA SUPERIOR */}
+        <section ref={topSectionRef} className="relative z-20 w-full h-full flex flex-col justify-center items-center p-8">
+          <motion.div
+            className="w-full max-w-4xl text-center"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
             <motion.h1 variants={itemVariants} className="font-bold text-5xl md:text-7xl text-white drop-shadow-lg mb-4">
               Bienvenido a LABEL
             </motion.h1>
-            <motion.p variants={itemVariants} className="text-xl md:text-2xl text-text-muted mb-12 drop-shadow-lg max-w-3xl">
+            <motion.p variants={itemVariants} className="text-xl md:text-2xl text-text-muted mb-12 drop-shadow-lg max-w-3xl mx-auto">
               Tu centro de mando para una gestión de negocios inteligente. Menos tiempo administrando, más tiempo creciendo.
             </motion.p>
-
-            {/* Beneficios */}
-            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-12">
-              {/* Benefit 1 */}
-              <div className="flex items-start gap-4">
-                <div className="bg-primary/20 p-2 rounded-lg mt-1">
-                  <PackageCheck className="text-primary h-8 w-8" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Control Total de Inventario</h3>
-                  <p className="text-text-muted text-sm">Desde el stock hasta las variantes, ten una visión clara de cada producto en tiempo real.</p>
-                </div>
-              </div>
-              {/* Benefit 2 */}
-              <div className="flex items-start gap-4">
-                <div className="bg-primary/20 p-2 rounded-lg mt-1">
-                  <TrendingUp className="text-primary h-8 w-8" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Finanzas Claras</h3>
-                  <p className="text-text-muted text-sm">Registra ingresos, gastos y visualiza la salud de tu negocio con reportes automáticos.</p>
-                </div>
-              </div>
-              {/* Benefit 3 */}
-              <div className="flex items-start gap-4">
-                <div className="bg-primary/20 p-2 rounded-lg mt-1">
-                  <ShoppingCart className="text-primary h-8 w-8" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Punto de Venta Integrado</h3>
-                  <p className="text-text-muted text-sm">Agiliza tus ventas con un POS rápido e intuitivo que actualiza tu inventario al instante.</p>
-                </div>
-              </div>
-              {/* Benefit 4 */}
-              <div className="flex items-start gap-4">
-                <div className="bg-primary/20 p-2 rounded-lg mt-1">
-                  <BarChart3 className="text-primary h-8 w-8" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Decisiones Basadas en Datos</h3>
-                  <p className="text-text-muted text-sm">Utiliza estadísticas y análisis para identificar oportunidades y optimizar tu estrategia.</p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Call to Action - Ahora es hermano del contenido para alinearse con el contenedor padre */}
-          <motion.div variants={itemVariants} className="w-full text-center mt-8"> {/* mt-auto lo empuja hacia abajo */}
+            <motion.div variants={itemVariants}>
               <p className="text-lg text-text-muted mb-4">¿Listo para transformar tu Negocio?</p>
               <motion.button
                 onClick={onOpenModal}
@@ -195,11 +217,93 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
                 Únete a Label y empieza a CRECER
               </motion.button>
             </motion.div>
-        </motion.div>
-      </main>
+          </motion.div>
 
-      {/* 5. Renderizamos el Footer */}
-      <Footer onOpenLegalModal={onOpenLegalModal} />
+          {/* Botón para bajar */}
+          <motion.button
+            onClick={scrollToBottom}
+            className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/70 hover:text-white transition-colors"
+            aria-label="Ir a más información"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { delay: 1.5 } }}
+          >
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ArrowDown size={32} />
+            </motion.div>
+          </motion.button>
+        </section>
+
+        {/* SECCIÓN 2: PANTALLA INFERIOR (BENEFICIOS) */}
+        <section ref={bottomSectionRef} className="relative z-20 w-full h-full flex flex-col justify-center items-center p-8 bg-deep-night-blue/50 backdrop-blur-sm">
+          <motion.div
+            className="w-full max-w-5xl text-white"
+            initial="hidden"
+            whileInView="visible" // La animación se activa cuando la sección entra en la vista
+            viewport={{ once: true, amount: 0.3 }}
+            variants={containerVariants}
+          >
+            <motion.h2 variants={itemVariants} className="text-4xl font-bold text-center mb-12">
+              Todo lo que necesitas, en un solo lugar
+            </motion.h2>
+            
+            {/* Beneficios */}
+            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {benefitsData.map((benefit) => (
+                <motion.div
+                  key={benefit.id}
+                  layout // Prop mágica para animar cambios de tamaño
+                  onClick={() => handleBenefitClick(benefit.id)}
+                  className="cursor-pointer p-4 rounded-xl bg-black/20 border border-white/10 hover:bg-black/40 transition-all duration-300 overflow-hidden"
+                >
+                  <motion.div layout="position" className="flex items-start gap-4">
+                    <motion.div
+                      className="bg-action-blue/20 p-2 rounded-lg mt-1 flex-shrink-0"
+                      animate={{ rotate: expandedBenefit === benefit.id ? 360 : 0 }}
+                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                    >
+                      <benefit.icon className="text-action-blue h-6 w-6" />
+                    </motion.div>
+                    <div>
+                      <h3 className="font-semibold text-lg">{benefit.title}</h3>
+                      <p className="text-muted text-sm">{benefit.shortDescription}</p>
+                    </div>
+                  </motion.div>
+                  <AnimatePresence>
+                    {expandedBenefit === benefit.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                        animate={{ opacity: 1, height: 'auto', marginTop: '1rem' }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      >
+                        <p className="text-text-base text-base leading-relaxed border-t border-white/10 pt-4">
+                          {benefit.longDescription}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+
+          {/* Botón para subir */}
+          <motion.button
+            onClick={scrollToTop}
+            className="absolute top-10 left-1/2 -translate-x-1/2 text-white/70 hover:text-white transition-colors"
+            aria-label="Volver arriba"
+          >
+            <ArrowUp size={32} />
+          </motion.button>
+
+          <div className="absolute bottom-0 w-full">
+            <Footer onOpenLegalModal={onOpenLegalModal} />
+          </div>
+        </section>
+      </main>
     </div>
   );
 };
