@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { motion, AnimatePresence } from 'framer-motion';
 import Particles from 'react-tsparticles';
@@ -6,6 +6,7 @@ import { loadSlim } from 'tsparticles-slim';
 import Footer from '../../components/Common/Footer';
 import { PackageCheck, TrendingUp, ShoppingCart, BarChart3, Users, ShieldCheck, ArrowDown, ArrowUp } from 'lucide-react';
 import WelcomeHeader from '../../components/Public/WelcomeHeader'; // 1. Importamos el nuevo Header
+import { useTheme } from '../../context/ThemeContext';
 
 // 1. Definimos las "variantes" de animación para orquestar la entrada.
 const containerVariants = {
@@ -71,6 +72,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
   // Refs para apuntar a las secciones de la página
   const topSectionRef = useRef(null);
   const bottomSectionRef = useRef(null);
+  const { theme } = useTheme(); // Obtenemos el tema actual
 
   // Estado para controlar qué beneficio está expandido
   const [expandedBenefit, setExpandedBenefit] = useState(null);
@@ -103,71 +105,70 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
   }, []);
 
   // 3. Configuración para un efecto de partículas sutil y elegante
-  const particleOptions = {
-    fullScreen: { enable: true, zIndex: 1 }, // Hacemos que las partículas ocupen toda la pantalla y estén detrás del contenido
-    background: {
-      color: {
-        value: 'transparent', // El fondo de las partículas es transparente
+  const particleOptions = useMemo(() => {
+    const colors = {
+      light: { particle: '#3B82F6', link: '#D1D5DB' }, // Azul primario, gris claro
+      dark: { particle: '#3b82f6', link: '#4A5568' },  // Azul primario, gris oscuro
+    };
+
+    return {
+      fullScreen: { enable: true, zIndex: 1 },
+      background: {
+        color: { value: 'transparent' },
       },
-    },
-    fpsLimit: 60,
-    interactivity: {
-      events: {
-        onHover: {
+      fpsLimit: 60,
+      interactivity: {
+        events: {
+          onHover: {
+            enable: true,
+            mode: 'repulse',
+          },
+        },
+        modes: {
+          repulse: {
+            distance: 100,
+            duration: 0.4,
+          },
+        },
+      },
+      particles: {
+        color: {
+          value: colors[theme]?.particle || colors.dark.particle,
+        },
+        links: {
+          color: colors[theme]?.link || colors.dark.link,
+          distance: 150,
           enable: true,
-          mode: 'repulse',
+          opacity: 0.2,
+          width: 1,
         },
-      },
-      modes: {
-        repulse: {
-          distance: 100,
-          duration: 0.4,
-        },
-      },
-    },
-    particles: {
-      color: {
-        value: '#3B82F6', // Color de las partículas (action-blue)
-      },
-      links: {
-        color: '#4A5568', // Color de las líneas (neutral-gray-700)
-        distance: 150,
-        enable: true,
-        opacity: 0.2,
-        width: 1,
-      },
-      move: {
-        direction: 'none',
-        enable: true,
-        outModes: {
-          default: 'bounce',
-        },
-        random: false,
-        speed: 1,
-        straight: false,
-      },
-      number: {
-        density: {
+        move: {
+          direction: 'none',
           enable: true,
-          area: 800,
+          outModes: {
+            default: 'bounce',
+          },
+          random: false,
+          speed: 1,
+          straight: false,
         },
-        value: 50, // Número reducido de partículas
+        number: {
+          density: {
+            enable: true,
+            area: 800,
+          },
+          value: 50,
+        },
+        opacity: { value: 0.2 },
+        shape: { type: 'circle' },
+        size: { value: { min: 1, max: 3 } },
       },
-      opacity: {
-        value: 0.2,
-      },
-      shape: {
-        type: 'circle',
-      },
-      size: {
-        value: { min: 1, max: 3 },
-      },
-    },
-    detectRetina: true,
-  };
+      detectRetina: true,
+    };
+  }, [theme]);
 
   return (
-    <div className="relative w-full h-screen flex flex-col bg-deep-night-blue overflow-hidden">
+    <div className="relative w-full h-screen flex flex-col bg-background overflow-hidden transition-colors duration-300">
       {/* 2. Añadimos el nuevo Header */}
       <WelcomeHeader onOpenModal={onOpenModal} />
 
@@ -190,7 +191,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
           }}
         ></div>
         {/* Overlay con degradado */}
-        <div className="fixed inset-0 bg-gradient-to-r from-deep-night-blue via-deep-night-blue/70 to-transparent z-2"></div>
+        <div className="fixed inset-0 bg-gradient-to-r from-background via-background/70 to-transparent z-2"></div>
 
         {/* SECCIÓN 1: PANTALLA SUPERIOR */}
         <section ref={topSectionRef} className="relative z-20 w-full h-full flex flex-col justify-center items-center p-8">
@@ -200,7 +201,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
             initial="hidden"
             animate="visible"
           >
-            <motion.h1 variants={itemVariants} className="font-bold text-5xl md:text-7xl text-white drop-shadow-lg mb-4">
+            <motion.h1 variants={itemVariants} className="font-bold text-5xl md:text-7xl text-text-base drop-shadow-lg mb-4">
               Bienvenido a LABEL
             </motion.h1>
             <motion.p variants={itemVariants} className="text-xl md:text-2xl text-text-muted mb-12 drop-shadow-lg max-w-3xl mx-auto">
@@ -210,7 +211,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
               <p className="text-lg text-text-muted mb-4">¿Listo para transformar tu Negocio?</p>
               <motion.button
                 onClick={onOpenModal}
-                className="bg-gradient-to-r from-action-blue to-copper-rose-accent text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg hover:shadow-action-blue/40 focus:outline-none focus:ring-4 focus:ring-action-blue/50 text-lg"
+                className="bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg hover:shadow-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/50 text-lg"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -222,10 +223,10 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
           {/* Botón para bajar */}
           <motion.button
             onClick={scrollToBottom}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/70 hover:text-white transition-colors"
+            className="absolute bottom-10 left-0 right-0 mx-auto w-14 h-14 rounded-full flex items-center justify-center bg-surface/20 backdrop-blur-sm border border-white/10 text-text-muted hover:bg-surface/40 hover:text-text-base transition-all duration-300 shadow-lg"
             aria-label="Ir a más información"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { delay: 1.5 } }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1, transition: { delay: 1.5, type: 'spring' } }}
           >
             <motion.div
               animate={{ y: [0, 8, 0] }}
@@ -237,15 +238,15 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
         </section>
 
         {/* SECCIÓN 2: PANTALLA INFERIOR (BENEFICIOS) */}
-        <section ref={bottomSectionRef} className="relative z-20 w-full h-full flex flex-col justify-center items-center p-8 bg-deep-night-blue/50 backdrop-blur-sm">
-          <motion.div
-            className="w-full max-w-5xl text-white"
+        <section ref={bottomSectionRef} className="relative z-20 w-full h-full flex flex-col justify-center items-center p-8 bg-background/50 backdrop-blur-sm">
+          <motion.div 
+            className="w-full max-w-5xl text-text-base"
             initial="hidden"
             whileInView="visible" // La animación se activa cuando la sección entra en la vista
             viewport={{ once: true, amount: 0.3 }}
             variants={containerVariants}
           >
-            <motion.h2 variants={itemVariants} className="text-4xl font-bold text-center mb-12">
+            <motion.h2 variants={itemVariants} className="text-4xl font-bold text-center mb-12 text-text-base">
               Todo lo que necesitas, en un solo lugar
             </motion.h2>
             
@@ -256,19 +257,19 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
                   key={benefit.id}
                   layout // Prop mágica para animar cambios de tamaño
                   onClick={() => handleBenefitClick(benefit.id)}
-                  className="cursor-pointer p-4 rounded-xl bg-black/20 border border-white/10 hover:bg-black/40 transition-all duration-300 overflow-hidden"
+                  className="cursor-pointer p-4 rounded-xl bg-surface/50 border border-surface-secondary hover:bg-surface/80 transition-all duration-300 overflow-hidden"
                 >
                   <motion.div layout="position" className="flex items-start gap-4">
                     <motion.div
-                      className="bg-action-blue/20 p-2 rounded-lg mt-1 flex-shrink-0"
+                      className="bg-primary/20 p-2 rounded-lg mt-1 flex-shrink-0"
                       animate={{ rotate: expandedBenefit === benefit.id ? 360 : 0 }}
                       transition={{ duration: 0.5, ease: "easeInOut" }}
                     >
-                      <benefit.icon className="text-action-blue h-6 w-6" />
+                      <benefit.icon className="text-primary h-6 w-6" />
                     </motion.div>
                     <div>
                       <h3 className="font-semibold text-lg">{benefit.title}</h3>
-                      <p className="text-muted text-sm">{benefit.shortDescription}</p>
+                      <p className="text-text-muted text-sm">{benefit.shortDescription}</p>
                     </div>
                   </motion.div>
                   <AnimatePresence>
@@ -279,7 +280,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
                         exit={{ opacity: 0, height: 0, marginTop: 0 }}
                         transition={{ duration: 0.3, ease: 'easeInOut' }}
                       >
-                        <p className="text-text-base text-base leading-relaxed border-t border-white/10 pt-4">
+                        <p className="text-text-base text-base leading-relaxed border-t border-surface-secondary pt-4">
                           {benefit.longDescription}
                         </p>
                       </motion.div>
@@ -293,10 +294,15 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal }) => {
           {/* Botón para subir */}
           <motion.button
             onClick={scrollToTop}
-            className="absolute top-10 left-1/2 -translate-x-1/2 text-white/70 hover:text-white transition-colors"
+            className="absolute top-10 left-0 right-0 mx-auto w-14 h-14 rounded-full flex items-center justify-center bg-surface/20 backdrop-blur-sm border border-white/10 text-text-muted hover:bg-surface/40 hover:text-text-base transition-all duration-300 shadow-lg"
             aria-label="Volver arriba"
           >
-            <ArrowUp size={32} />
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ArrowUp size={32} />
+            </motion.div>
           </motion.button>
 
           <div className="absolute bottom-0 w-full">

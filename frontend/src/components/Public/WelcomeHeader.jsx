@@ -1,29 +1,33 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { motion } from 'framer-motion';
+import { LogIn } from 'lucide-react';
 
 const WelcomeHeader = ({ onOpenModal }) => {
   return (
     <motion.header
-      className="relative z-20 flex items-center justify-between p-4 bg-gray-950 border-b border-gray-800 shadow-lg"
+      className="relative z-30 flex items-center justify-between p-4 bg-black/75 backdrop-blur-lg border-b border-white/10 shadow-2xl shadow-black/40"
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
       <div className="flex items-center gap-3">
-        <img src="https://res.cloudinary.com/dnkr9tvtq/image/upload/v1751604992/Gemini_Generated_Image_t1q1t8t1q1t8t1q1_xmbwgc_c_crop_w_600_h_800_c9nu4e.png" alt="Label Logo" className="h-14 w-12" />
+        <img
+          src="https://res.cloudinary.com/dnkr9tvtq/image/upload/v1751604992/Gemini_Generated_Image_t1q1t8t1q1t8t1q1_xmbwgc_c_crop_w_600_h_800_c9nu4e.png"
+          alt="Label Logo"
+          className="h-12 w-auto"
+        />
         <span className="text-2xl font-bold text-primary">
           LABEL
         </span>
       </div>
-      <motion.button
+      <button
         onClick={onOpenModal}
-        className="bg-gradient-to-r from-action-blue to-copper-rose-accent text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg hover:shadow-action-blue/40 focus:outline-none focus:ring-4 focus:ring-action-blue/50"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        className="flex items-center gap-2 bg-primary text-white font-semibold px-5 py-2.5 rounded-full hover:bg-primary/90 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-primary/50"
       >
+        <LogIn size={18} />
         Acceder
-      </motion.button>
+      </button>
     </motion.header>
   );
 };

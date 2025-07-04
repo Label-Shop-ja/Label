@@ -11,6 +11,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        inter: ['Inter', 'sans-serif'],
+      },
       // Define tus colores personalizados para usar en Tailwind
       // Ahora apuntan a las variables CSS que definimos en index.css
       colors: {

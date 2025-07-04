@@ -2,40 +2,37 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext();
 
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme debe ser usado dentro de un ThemeProvider');
-  }
-  return context;
-}
+export const useTheme = () => useContext(ThemeContext);
 
-export function ThemeProvider({ children }) {
-  // El tema "Clásico" (tu diseño original) será el por defecto.
+export const ThemeProvider = ({ children }) => {
+  // 1. El valor por defecto ahora es 'dark'.
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme && ['light', 'dark', 'classic'].includes(savedTheme)) {
-      return savedTheme;
-    }
-    // Si no hay nada guardado, el tema por defecto es 'classic'.
-    return 'classic';
+    // Solo permitimos 'light' o 'dark'. Cualquier otra cosa vuelve a 'dark'.
+    return savedTheme === 'light' ? 'light' : 'dark';
   });
 
   useEffect(() => {
     const root = window.document.documentElement;
-    // Limpiamos cualquier clase de tema anterior para evitar conflictos.
+    
+    // Limpiamos las clases de tema anteriores
     root.classList.remove('light', 'dark', 'classic');
-
-    // Añadimos la clase del tema actual al elemento <html>.
-    // Tailwind usará esta clase para aplicar los estilos condicionales.
-    root.classList.add(theme);
-
+    
+    // Añadimos la clase del tema actual si es 'light'
+    // Si es 'dark', no añadimos ninguna clase, ya que es el tema por defecto en :root
+    if (theme === 'light') {
+      root.classList.add('light');
+    }
+    
+    // Guardamos la preferencia en localStorage
     localStorage.setItem('theme', theme);
   }, [theme]);
 
   const value = { theme, setTheme };
 
   return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>
+      {children}
+    </ThemeContext.Provider>
   );
-}
+};

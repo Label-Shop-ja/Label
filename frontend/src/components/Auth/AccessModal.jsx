@@ -1,6 +1,6 @@
 // C:\Proyectos\Label\frontend\src\components\Auth\AccessModal.jsx
 // AccessModal.jsx
-import PropTypes from 'prop-types';
+import PropTypes from 'prop-types'; // eslint-disable-line no-unused-vars
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotification } from '../../context/NotificationContext';
@@ -17,17 +17,6 @@ function AccessModal({ onClose, onOpenLegalModal }) {
     const { login, register, isLoading, isError, message, reset, isAuthenticated } = useAuth();
     // Ahora, gracias a useCallback en el contexto, esta función `showNotification` es estable.
     const { showNotification } = useNotification();
-
-    const [currentSlide, setCurrentSlide] = useState(0);
-    const carouselContent = [
-    ];
-
-    useEffect(() => {
-        const intervalId = setInterval(() => {
-            setCurrentSlide(prev => (prev + 1) % carouselContent.length);
-        }, 5000);
-        return () => clearInterval(intervalId);
-    }, [carouselContent.length]);
 
     // Este useEffect ahora es seguro y no causará bucles infinitos.
     useEffect(() => {
@@ -94,15 +83,15 @@ function AccessModal({ onClose, onOpenLegalModal }) {
     };
 
     const cardVariants = {
-        hidden: { y: "100vh", opacity: 0 },
-        visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 80, damping: 20 } },
-        exit: { y: "100vh", opacity: 0, transition: { duration: 0.3 } }
+        hidden: { y: 50, opacity: 0 },
+        visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100, damping: 20, duration: 0.5 } },
+        exit: { y: 50, opacity: 0, transition: { duration: 0.3 } }
     };
 
     const formContentVariants = {
-        hidden: { opacity: 0, scale: 0.98 },
-        visible: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: 'easeOut' } },
-        exit: { opacity: 0, scale: 0.98, transition: { duration: 0.2, ease: 'easeIn' } },
+        hidden: { opacity: 0, x: isLogin ? -20 : 20 },
+        visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+        exit: { opacity: 0, x: isLogin ? 20 : -20, transition: { duration: 0.2, ease: 'easeIn' } },
     };
 
     return (
@@ -116,28 +105,34 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                 onClick={onClose}
             >
                 <motion.div
-                    className="w-full max-w-md bg-surface/80 backdrop-blur-lg rounded-xl shadow-2xl overflow-hidden"
+                    className="w-full max-w-md bg-background/50 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
                     variants={cardVariants}
                     initial="hidden"
                     animate="visible"
                     exit="hidden"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <button
-                        onClick={onClose}
-                        className="absolute top-3 right-3 text-text-muted hover:text-error text-3xl font-bold transition-colors duration-200 z-20"
-                        aria-label="Cerrar modal"
-                    >
-                        &times;
-                    </button>
+                    <div className="p-4">
+                        <div className="grid grid-cols-2 gap-2 bg-black/20 p-1 rounded-lg mb-6">
+                            <button
+                                onClick={() => setIsLogin(true)}
+                                className={`w-full p-2 rounded-md text-sm font-semibold transition-colors duration-300 ${isLogin ? 'bg-primary text-white' : 'text-text-muted hover:bg-white/5'}`}
+                            >
+                                {LABELS.LOGIN_TITLE || 'Iniciar Sesión'}
+                            </button>
+                            <button
+                                onClick={() => setIsLogin(false)}
+                                className={`w-full p-2 rounded-md text-sm font-semibold transition-colors duration-300 ${!isLogin ? 'bg-primary text-white' : 'text-text-muted hover:bg-white/5'}`}
+                            >
+                                {LABELS.REGISTER_TITLE || 'Registrarse'}
+                            </button>
+                        </div>
 
-                    <div className="p-8 md:p-10">
-                        <h2 className="text-3xl font-bold text-primary mb-2 text-center">
-                            {isLogin ? LABELS.LOGIN_TITLE || 'Iniciar Sesión' : LABELS.REGISTER_TITLE || 'Registrarse'}
-                        </h2>
-                        <p className="text-center text-text-muted mb-8">
-                            {isLogin ? 'Bienvenido de nuevo. Accede a tu cuenta.' : 'Crea una cuenta para empezar a gestionar tu negocio.'}
-                        </p>
+                        <AnimatePresence mode="wait">
+                            <motion.p key={isLogin ? 'login-text' : 'register-text'} className="text-center text-text-muted mb-6 text-sm" variants={formContentVariants} initial="hidden" animate="visible" exit="hidden">
+                                {isLogin ? 'Bienvenido de nuevo. Accede a tu cuenta.' : 'Crea una cuenta para empezar a gestionar tu negocio.'}
+                            </motion.p>
+                        </AnimatePresence>
 
                         <AnimatePresence mode="wait">
                             {isLogin ? (
@@ -152,18 +147,19 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                                 >
                                     {/* Formulario de Login */}
                                     <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
-                                        <input type="email" id="email-login" className="w-full p-3 pl-10 bg-surface rounded-md border border-surface-secondary text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.EMAIL} {...registerLogin("email")} disabled={isLoading} />
-                                        {loginErrors.email && <p className="mt-2 text-error-red text-sm">{loginErrors.email.message}</p>}
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                                        <input type="email" id="email-login" className="w-full p-3 pl-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.EMAIL} {...registerLogin("email")} disabled={isLoading} />
+                                        {loginErrors.email && <p className="mt-1 text-error text-xs">{loginErrors.email.message}</p>}
                                     </div>
                                     <div className="relative">
-                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
-                                        <input type={showLoginPassword ? "text" : "password"} id="password-login" className="w-full p-3 pl-10 pr-10 bg-surface rounded-md border border-surface-secondary text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.PASSWORD} {...registerLogin("password")} disabled={isLoading} />
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                                        <input type={showLoginPassword ? "text" : "password"} id="password-login" className="w-full p-3 pl-10 pr-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.PASSWORD} {...registerLogin("password")} disabled={isLoading} />
                                         <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-text-muted hover:text-text-base" onClick={() => setShowLoginPassword((v) => !v)}>
-                                            {showLoginPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                            {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
+                                        {loginErrors.password && <p className="mt-1 text-error text-xs">{loginErrors.password.message}</p>}
                                     </div>
-                                    <button type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary/90 transition duration-300 disabled:opacity-50" disabled={isLoading}>
+                                    <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-md hover:opacity-90 transition-opacity duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled={isLoading}>
                                         {isLoading ? 'Iniciando...' : 'Iniciar Sesión'}
                                     </button>
                                     <p className="text-center text-sm text-text-muted">
@@ -185,30 +181,30 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                                 >
                                     {/* Formulario de Registro */}
                                     <div className="relative">
-                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
-                                        <input type="text" id="fullName-register" className="w-full p-3 pl-10 bg-surface rounded-md border border-surface-secondary" placeholder={PLACEHOLDERS.FULL_NAME} {...registerRegister("fullName")} disabled={isLoading} />
-                                        {registerErrors.fullName && <p className="mt-2 text-error-red text-sm">{registerErrors.fullName.message}</p>}
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                                        <input type="text" id="fullName-register" className="w-full p-3 pl-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.FULL_NAME} {...registerRegister("fullName")} disabled={isLoading} />
+                                        {registerErrors.fullName && <p className="mt-1 text-error text-xs">{registerErrors.fullName.message}</p>}
                                     </div>
                                     <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
-                                        <input type="email" id="email-register" className="w-full p-3 pl-10 bg-surface rounded-md border border-surface-secondary" placeholder={PLACEHOLDERS.EMAIL} {...registerRegister("email")} disabled={isLoading} />
-                                        {registerErrors.email && <p className="mt-2 text-error-red text-sm">{registerErrors.email.message}</p>}
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                                        <input type="email" id="email-register" className="w-full p-3 pl-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.EMAIL} {...registerRegister("email")} disabled={isLoading} />
+                                        {registerErrors.email && <p className="mt-1 text-error text-xs">{registerErrors.email.message}</p>}
                                     </div>
                                     <div className="relative">
-                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
-                                        <input type={showRegPassword ? "text" : "password"} id="password-register" className="w-full p-3 pl-10 pr-10 bg-surface rounded-md border border-surface-secondary" placeholder={PLACEHOLDERS.PASSWORD} {...registerRegister("password")} disabled={isLoading} />
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                                        <input type={showRegPassword ? "text" : "password"} id="password-register" className="w-full p-3 pl-10 pr-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.PASSWORD} {...registerRegister("password")} disabled={isLoading} />
                                         <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-text-muted hover:text-text-base" onClick={() => setShowRegPassword((v) => !v)}>
-                                            {showRegPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                            {showRegPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
-                                        {registerErrors.password && <p className="mt-2 text-error-red text-sm">{registerErrors.password.message}</p>}
+                                        {registerErrors.password && <p className="mt-1 text-error text-xs">{registerErrors.password.message}</p>}
                                     </div>
                                     <div className="relative">
-                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
-                                        <input type={showRegConfirmPassword ? "text" : "password"} id="confirmPassword-register" className="w-full p-3 pl-10 pr-10 bg-surface rounded-md border border-surface-secondary" placeholder={PLACEHOLDERS.PASSWORD} {...registerRegister("confirmPassword")} disabled={isLoading} />
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                                        <input type={showRegConfirmPassword ? "text" : "password"} id="confirmPassword-register" className="w-full p-3 pl-10 pr-10 bg-black/20 rounded-md border border-white/10 text-text-base focus:outline-none focus:ring-2 focus:ring-primary" placeholder={PLACEHOLDERS.CONFIRM_PASSWORD} {...registerRegister("confirmPassword")} disabled={isLoading} />
                                         <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-text-muted hover:text-text-base" onClick={() => setShowRegConfirmPassword((v) => !v)}>
-                                            {showRegConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                            {showRegConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
-                                        {registerErrors.confirmPassword && <p className="mt-2 text-error-red text-sm">{registerErrors.confirmPassword.message}</p>}
+                                        {registerErrors.confirmPassword && <p className="mt-1 text-error text-xs">{registerErrors.confirmPassword.message}</p>}
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <input type="checkbox" id="terms" {...registerRegister("terms")} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
@@ -219,9 +215,9 @@ function AccessModal({ onClose, onOpenLegalModal }) {
                                             <button type="button" onClick={() => onOpenLegalModal('privacy')} className="font-semibold text-primary hover:underline">Política de Privacidad</button>.
                                         </label>
                                     </div>
-                                    {registerErrors.terms && <p className="text-error-red text-sm">{registerErrors.terms.message}</p>}
+                                    {registerErrors.terms && <p className="text-error text-xs">{registerErrors.terms.message}</p>}
 
-                                    <button type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary/90 transition duration-300 disabled:opacity-50" disabled={isLoading}>
+                                    <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-md hover:opacity-90 transition-opacity duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled={isLoading}>
                                         {isLoading ? 'Registrando...' : 'Registrarse'}
                                     </button>
                                     <p className="text-center text-sm text-text-muted">

@@ -4,21 +4,8 @@
 
 /* --- DEFINICIÓN DE TEMAS CON VARIABLES CSS --- */
 
-/* Tema por defecto ("Clásico") */
+/* Tema por defecto (Oscuro) */
 :root {
-  --color-background: 204 22% 15%; /* deep-night-blue: #1a202c */
-  --color-surface: 210 22% 23%; /* dark-charcoal: #2D3748 */
-  --color-surface-secondary: 210 14% 39%; /* neutral-gray-700: #4A5568 */
-  --color-primary: 212 72% 59%; /* action-blue: #4A90E2 */
-  --color-secondary: 0 100% 71%; /* copper-rose-accent: #FF6B6B */
-  --color-success: 122 39% 49%; /* success-green: #4CAF50 */
-  --color-error: 0 84% 60%; /* error-red: #EF4444 */
-  --color-text-base: 240 8% 97%; /* neutral-light: #F8F8F2 */
-  --color-text-muted: 210 14% 65%; /* neutral-gray: #A0AEC0 */
-}
-
-/* Tema Oscuro */
-.dark {
   --color-background: 225 29% 9%; /* #111827 */
   --color-surface: 221 28% 17%; /* #1f2937 */
   --color-surface-secondary: 220 15% 26%; /* #374151 */
