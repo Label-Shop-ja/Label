@@ -22,8 +22,8 @@ const forgotPassword = async (email) => {
 };
 
 const verifyResetCode = async (verificationData) => {
-  const { email, code } = verificationData;
-  const response = await axiosInstance.post(API_URL + 'verify-reset-code', { email, code });
+  const { code } = verificationData;
+  const response = await axiosInstance.post(API_URL + 'verify-reset-code', { code });
   return response.data;
 };
 

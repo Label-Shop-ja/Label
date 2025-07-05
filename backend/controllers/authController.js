@@ -15,7 +15,9 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('Por favor, completa todos los campos.');
   }
 
-  const userExists = await User.findOne({ email });
+  const lowerCaseEmail = email.toLowerCase();
+
+  const userExists = await User.findOne({ email: lowerCaseEmail });
 
   if (userExists) {
     res.status(400);
@@ -24,7 +26,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const user = await User.createUserWithDefaults({
     fullName,
-    email,
+    email: lowerCaseEmail,
     password,
   });
 
@@ -48,7 +50,8 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const lowerCaseEmail = email.toLowerCase();
+    const user = await User.findOne({ email: lowerCaseEmail });
 
     if (user && (await user.matchPassword(password))) {
       // Usamos las funciones centralizadas de tu `generateToken.js`
@@ -151,7 +154,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 // @access  Public
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  const user = await User.findOne({ email });
+  const lowerCaseEmail = email.toLowerCase();
+  const user = await User.findOne({ email: lowerCaseEmail });
 
   if (!user) {
     // Respuesta genérica para no revelar si un correo existe
@@ -192,13 +196,18 @@ const forgotPassword = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/verify-reset-code
 // @access  Public
 const verifyResetCode = asyncHandler(async (req, res) => {
-  const { email, code } = req.body;
+  const { code } = req.body;
+
+  // Medida de seguridad: Asegurarse de que el código es una cadena antes de limpiarlo.
+  if (!code || typeof code !== 'string') {
+    res.status(400);
+    throw new Error('El formato del código es inválido.');
+  }
 
   // Hashear el código que envía el usuario para compararlo con el de la BD
-  const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+  const hashedCode = crypto.createHash('sha256').update(code.trim()).digest('hex');
 
   const user = await User.findOne({
-    email,
     passwordResetToken: hashedCode,
     passwordResetExpires: { $gt: Date.now() },
   });

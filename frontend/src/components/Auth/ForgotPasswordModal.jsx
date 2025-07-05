@@ -82,7 +82,7 @@ const ForgotPasswordModal = ({ onClose, onBackToLogin }) => {
   };
 
   const onCodeSubmit = (data) => {
-    verifyResetCode({ email: userEmail, code: data.code });
+    verifyResetCode({ code: data.code });
   };
 
   // Variantes de animación (consistentes con AccessModal)

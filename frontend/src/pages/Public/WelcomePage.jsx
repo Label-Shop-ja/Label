@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Particles from 'react-tsparticles';
 import { loadSlim } from 'tsparticles-slim';
 import Footer from '../../components/Common/Footer';
-import { PackageCheck, TrendingUp, ShoppingCart, BarChart3, Users, ShieldCheck, ArrowDown, ArrowUp, Loader2 } from 'lucide-react';
-import WelcomeHeader from '../../components/Public/WelcomeHeader'; // 1. Importamos el nuevo Header
+import { PackageCheck, TrendingUp, ShoppingCart, BarChart3, Users, ShieldCheck, ArrowDown, ArrowUp, Loader2, Zap } from 'lucide-react';
+import WelcomeHeader from '../../components/Public/WelcomeHeader';
 import { useTheme } from '../../context/ThemeContext';
 
 // 1. Definimos las "variantes" de animación para orquestar la entrada.
@@ -172,7 +172,6 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal, isModalOpening }) => {
 
   return (
     <div className="relative w-full h-screen flex flex-col bg-background overflow-hidden transition-colors duration-300">
-      {/* 2. Añadimos el nuevo Header */}
       <WelcomeHeader onOpenModal={onOpenModal} isModalOpening={isModalOpening} />
 
       {/* Contenedor principal que ocupa el espacio restante */}
@@ -210,8 +209,8 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal, isModalOpening }) => {
             <motion.p variants={itemVariants} className="text-xl md:text-2xl text-text-muted mb-12 drop-shadow-lg max-w-3xl mx-auto">
               Tu centro de mando para una gestión de negocios inteligente. Menos tiempo administrando, más tiempo creciendo.
             </motion.p>
-            <motion.div variants={itemVariants}>
-              <p className="text-lg text-text-muted mb-4">¿Listo para transformar tu Negocio?</p>
+            <motion.div variants={itemVariants} className="flex flex-col items-center">
+              <p className="text-lg text-text-muted mb-4">¿Listo para transformar tu negocio?</p>
               <motion.button
                 onClick={onOpenModal}
                 className="flex items-center justify-center gap-3 bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg hover:shadow-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/50 text-lg disabled:opacity-70 disabled:cursor-wait min-w-[350px]"
@@ -225,7 +224,10 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal, isModalOpening }) => {
                     <span>Abriendo...</span>
                   </>
                 ) : (
-                  'Únete a Label y empieza a CRECER'
+                  <>
+                    <Zap size={20} />
+                    Únete a Label y empieza a CRECER
+                  </>
                 )}
               </motion.button>
             </motion.div>
@@ -305,7 +307,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal, isModalOpening }) => {
           {/* Botón para subir */}
           <motion.button
             onClick={scrollToTop}
-            className="absolute top-10 left-0 right-0 mx-auto w-14 h-14 rounded-full flex items-center justify-center bg-surface/20 backdrop-blur-sm border border-white/10 text-text-muted hover:bg-surface/40 hover:text-text-base transition-all duration-300 shadow-lg"
+            className="absolute top-28 left-0 right-0 mx-auto w-14 h-14 rounded-full flex items-center justify-center bg-surface/20 backdrop-blur-sm border border-white/10 text-text-muted hover:bg-surface/40 hover:text-text-base transition-all duration-300 shadow-lg z-40"
             aria-label="Volver arriba"
           >
             <motion.div

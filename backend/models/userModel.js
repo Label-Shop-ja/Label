@@ -13,6 +13,7 @@ const UserSchema = mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      lowercase: true, // Mongoose convertirá automáticamente a minúsculas
     },
     password: {
       type: String,
