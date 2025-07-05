@@ -5,6 +5,7 @@ import useAuth from '../hooks/useAuth';
 import useClickOutside from '../hooks/useClickOutside';
 import { LogOut, Settings } from 'lucide-react';
 import ThemeSwitcher from './Common/ThemeSwitcher';
+import FullscreenToggle from './Common/FullscreenToggle'; // 1. Importamos el nuevo componente
 
 function Header({ heightClass }) {
     const { user, logout } = useAuth();
@@ -24,6 +25,7 @@ function Header({ heightClass }) {
             </Link>
             <div className="flex items-center gap-4">
                 <ThemeSwitcher />
+                <FullscreenToggle /> {/* 2. Lo añadimos junto a los otros iconos */}
                 {user && (
                     <div className="relative" ref={menuRef}>
                         <button
