@@ -33,15 +33,17 @@ function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isModalOpening, setIsModalOpening] = useState(false); // Estado para el spinner
     const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
-    // Estado para el modal de términos y privacidad
     const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
     const [legalContent, setLegalContent] = useState({ title: '', markdown: '' });
     const [isLegalLoading, setIsLegalLoading] = useState(false);
     
+    // ¡AQUÍ ESTÁ EL NUEVO GUISO! El estado del sidebar ahora vive en App.jsx
+    const [isSidebarPinned, setSidebarPinned] = useState(false);
+    const [isSidebarHovered, setSidebarHovered] = useState(false);
+    
+    const isSidebarExpanded = isSidebarPinned || isSidebarHovered;
 
-    // Obtenemos el estado de autenticación y carga directamente desde el store de Redux. ¡Esto está perfecto!
     const { isAuthenticated, isLoading: authLoading, verify } = useAuth();
-
     const { loadingCurrency, currencyError } = useCurrency();
     const location = useLocation();
 
@@ -55,9 +57,7 @@ function App() {
         }, 250);
     };
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-    };
+    const handleCloseModal = () => setIsModalOpen(false);
     
     const handleOpenForgotPasswordModal = () => {
         setIsModalOpen(false); // Cierra el modal de acceso
@@ -94,7 +94,7 @@ function App() {
                 setLegalContent({ title, markdown });
             } catch (error) {
                 console.error("Error fetching legal content:", error);
-                setLegalContent({ title, markdown: 'Error al cargar el contenido. Por favor, inténtalo de nuevo más tarde.' });
+                setLegalContent({ title, markdown: 'Error al cargar el contenido.' });
             } finally {
                 setIsLegalLoading(false);
             }
@@ -165,7 +165,20 @@ function App() {
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                         {/* Grupo de rutas protegidas: El ProtectedRoute envuelve el DashboardLayout */}
-                        <Route path="/dashboard/*" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                        <Route 
+                            path="/dashboard/*" 
+                            element={
+                                <ProtectedRoute>
+                                    <DashboardLayout 
+                                        isSidebarExpanded={isSidebarExpanded}
+                                        isSidebarPinned={isSidebarPinned}
+                                        onToggleSidebarPin={() => setSidebarPinned(!isSidebarPinned)}
+                                        onSidebarEnter={() => setSidebarHovered(true)}
+                                        onSidebarLeave={() => setSidebarHovered(false)}
+                                    />
+                                </ProtectedRoute>
+                            }
+                        >
                             {/* Estas son las rutas anidadas que se renderizarán dentro del <Outlet /> de DashboardLayout */}
                             <Route index element={<DashboardHome />} /> {/* Ruta por defecto para /dashboard */}
                             <Route path="inventario" element={<InventoryPage />} />
