@@ -161,8 +161,8 @@ function App() {
 
                         {/* Nueva ruta para manejar el callback de OAuth */}
                         <Route path="/auth/callback" element={<AuthCallbackPage />} />
-                        {/* Nueva ruta para la página de reseteo de contraseña */}
-                        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+                        {/* Ruta para la página de reseteo de contraseña (ya no necesita token en la URL) */}
+                        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                         {/* Grupo de rutas protegidas: El ProtectedRoute envuelve el DashboardLayout */}
                         <Route path="/dashboard/*" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

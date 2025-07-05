@@ -7,8 +7,10 @@ import {
   logoutUser,
   refreshAccessToken,
   forgotPassword,
-  resetPassword,
+  verifyResetCode,
+  resetPassword
 } from '../controllers/authController.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -16,7 +18,9 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/logout', logoutUser);
 router.post('/forgot-password', forgotPassword);
-router.post('/reset-password/:token', resetPassword);
+router.post('/verify-reset-code', verifyResetCode);
+// Esta ruta ahora debe estar protegida para que solo se pueda acceder con el token temporal
+router.post('/reset-password', protect, resetPassword);
 
 // --- Rutas de Autenticación Social ---
 

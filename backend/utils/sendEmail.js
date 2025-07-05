@@ -19,7 +19,7 @@ const sendEmail = async (options) => {
     to: options.email,
     subject: options.subject,
     text: options.message,
-    // html: options.html // Puedes añadir una versión HTML más rica si quieres
+    html: options.html, // Añadimos la opción para enviar correos con formato HTML
   };
 
   // 3. Enviar el correo

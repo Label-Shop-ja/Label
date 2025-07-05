@@ -21,11 +21,17 @@ const forgotPassword = async (email) => {
   return response.data;
 };
 
-const resetPassword = async (resetData) => {
-  const { token, password, confirmPassword } = resetData;
-  // Llama a la nueva ruta del backend con el token y las contraseñas
-  const response = await axiosInstance.post(API_URL + `reset-password/${token}`, { password, confirmPassword });
+const verifyResetCode = async (verificationData) => {
+  const { email, code } = verificationData;
+  const response = await axiosInstance.post(API_URL + 'verify-reset-code', { email, code });
   return response.data;
 };
 
-export const authService = { login, register, verifyToken, forgotPassword, resetPassword };
+const resetPassword = async (resetData) => {
+  const { password, confirmPassword } = resetData;
+  // El token temporal se envía automáticamente en el header por el interceptor de axios
+  const response = await axiosInstance.post(API_URL + 'reset-password', { password, confirmPassword });
+  return response.data;
+};
+
+export const authService = { login, register, verifyToken, forgotPassword, verifyResetCode, resetPassword };

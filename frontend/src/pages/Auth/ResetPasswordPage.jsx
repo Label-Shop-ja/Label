@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -14,7 +14,6 @@ const resetPasswordSchema = yup.object().shape({
 });
 
 const ResetPasswordPage = () => {
-  const { token } = useParams();
   const navigate = useNavigate();
   const { resetPassword, isLoading, resetPasswordStatus, message, isError, reset } = useAuth();
   const { showNotification } = useNotification();
@@ -39,7 +38,7 @@ const ResetPasswordPage = () => {
   }, [isError, resetPasswordStatus, message, showNotification, reset]);
 
   const onSubmit = (data) => {
-    resetPassword({ token, password: data.password, confirmPassword: data.confirmPassword });
+    resetPassword({ password: data.password, confirmPassword: data.confirmPassword });
   };
   
   const isSuccess = resetPasswordStatus === 'succeeded';

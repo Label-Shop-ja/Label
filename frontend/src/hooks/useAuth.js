@@ -8,6 +8,7 @@ import {
   verifyAuth,
   reset,
   forgotPassword,
+  verifyResetCode,
   resetPassword,
 } from '../redux/authSlice';
 
@@ -28,6 +29,7 @@ export const useAuth = () => {
     message,
     forgotPasswordStatus, // 2. Seleccionamos el nuevo estado
     resetPasswordStatus,
+    verifyCodeStatus,
   } = useSelector(
     (state) => state.auth,
   );
@@ -45,6 +47,7 @@ export const useAuth = () => {
           verify: verifyAuth,
           reset,
           forgotPassword, // 3. Añadimos la nueva acción para que se vincule
+          verifyResetCode,
           resetPassword,
         },
         dispatch
@@ -62,6 +65,7 @@ export const useAuth = () => {
     message,
     forgotPasswordStatus, // 4. Exponemos el nuevo estado
     resetPasswordStatus,
+    verifyCodeStatus,
     ...actions,
   };
 };

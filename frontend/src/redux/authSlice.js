@@ -15,6 +15,7 @@ const initialState = {
   message: '',
   forgotPasswordStatus: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
   resetPasswordStatus: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
+  verifyCodeStatus: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
 };
 
 // --- Async Thunks ---
@@ -96,6 +97,24 @@ export const forgotPassword = createAsyncThunk(
   }
 );
 
+// Async thunk para verificar el código de reseteo
+export const verifyResetCode = createAsyncThunk(
+  'auth/verifyResetCode',
+  async (verificationData, thunkAPI) => {
+    try {
+      return await authService.verifyResetCode(verificationData);
+    } catch (error) {
+      const message =
+        (error.response &&
+          error.response.data &&
+          error.response.data.message) ||
+        error.message ||
+        error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 // Async thunk para restablecer la contraseña
 export const resetPassword = createAsyncThunk(
   'auth/resetPassword',
@@ -125,6 +144,7 @@ export const authSlice = createSlice({
       state.message = '';
       state.forgotPasswordStatus = 'idle';
       state.resetPasswordStatus = 'idle';
+      state.verifyCodeStatus = 'idle';
     },
     setAccessToken: (state, action) => {
       state.accessToken = action.payload;
@@ -210,6 +230,24 @@ export const authSlice = createSlice({
         state.forgotPasswordStatus = 'failed';
         state.message = action.payload;
       })
+      // Casos para la verificación del código
+      .addCase(verifyResetCode.pending, (state) => {
+        state.isLoading = true;
+        state.verifyCodeStatus = 'loading';
+      })
+      .addCase(verifyResetCode.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.verifyCodeStatus = 'succeeded';
+        // Guardamos el token temporal en el accessToken para autorizar el siguiente paso
+        state.accessToken = action.payload.resetToken;
+        state.message = action.payload.message;
+      })
+      .addCase(verifyResetCode.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.verifyCodeStatus = 'failed';
+        state.message = action.payload;
+      })
       // Casos para el restablecimiento de contraseña
       .addCase(resetPassword.pending, (state) => {
         state.isLoading = true;
@@ -219,6 +257,8 @@ export const authSlice = createSlice({
         state.isLoading = false;
         state.resetPasswordStatus = 'succeeded';
         state.message = action.payload.message; // Mensaje de éxito del backend
+        // Limpiamos el token temporal después de usarlo
+        state.accessToken = null;
       })
       .addCase(resetPassword.rejected, (state, action) => {
         state.isLoading = false;
