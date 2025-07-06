@@ -2,6 +2,8 @@
 import React, { lazy, Suspense } from 'react';
 import { Edit, Trash2, Package, PackageCheck, PackageX } from 'lucide-react';
 import { useCurrency } from '../../context/CurrencyContext';
+import { Menu, Transition } from '@headlessui/react';
+import { MoreVertical } from 'lucide-react';
 
 const SortableHeader = lazy(() => import('./SortableHeader'));
 
@@ -25,7 +27,7 @@ function ProductTable({ products, handleEditClick, confirmDeleteProduct, sortBy,
     const isSomeVisibleSelected = selectedVisibleCount > 0 && !isAllVisibleSelected;
 
     return (
-        <div className="overflow-x-auto bg-surface rounded-lg shadow-lg border border-surface-secondary">
+        <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-surface-secondary">
                 <thead className="bg-surface-secondary">
                     <Suspense fallback={<tr><th className="py-3.5 pl-4 pr-3 sm:pl-6">Cargando cabeceras...</th></tr>}>
@@ -109,12 +111,50 @@ function ProductTable({ products, handleEditClick, confirmDeleteProduct, sortBy,
                                 </td>
                                 <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                     <div className="flex items-center justify-end gap-4">
-                                        <button onClick={() => handleEditClick(product)} className="text-primary hover:text-primary-dark" title="Editar Producto">
-                                            <Edit size={18} />
-                                        </button>
-                                        <button onClick={() => confirmDeleteProduct(product._id)} className="text-red-500 hover:text-red-400" title="Eliminar Producto">
-                                            <Trash2 size={18} />
-                                        </button>
+                                        {/* Menú de acciones para editar y eliminar */}
+                                        <Menu as="div" className="relative inline-block text-left">
+                                            <Menu.Button className="p-2 rounded-full hover:bg-surface-secondary focus:outline-none focus:ring-2 focus:ring-primary transition">
+                                                <MoreVertical size={20} />
+                                            </Menu.Button>
+                                            <Transition
+                                                as={React.Fragment}
+                                                enter="transition ease-out duration-100"
+                                                enterFrom="transform opacity-0 scale-95"
+                                                enterTo="transform opacity-100 scale-100"
+                                                leave="transition ease-in duration-75"
+                                                leaveFrom="transform opacity-100 scale-100"
+                                                leaveTo="transform opacity-0 scale-95"
+                                            >
+                                                <Menu.Items className="absolute right-0 z-10 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                    <div className="py-1">
+                                                        <Menu.Item>
+                                                          {({ active }) => (
+                                                            <button
+                                                              onClick={() => handleEditClick(product)}
+                                                              className={`${
+                                                                active ? 'bg-primary/10 text-primary' : 'text-text-base'
+                                                              } flex items-center w-full px-4 py-2 text-sm gap-2`}
+                                                            >
+                                                              <Edit size={16} /> Editar
+                                                            </button>
+                                                          )}
+                                                        </Menu.Item>
+                                                        <Menu.Item>
+                                                          {({ active }) => (
+                                                            <button
+                                                              onClick={() => confirmDeleteProduct(product._id)}
+                                                              className={`${
+                                                                active ? 'bg-red-100 text-red-600' : 'text-red-600'
+                                                              } flex items-center w-full px-4 py-2 text-sm gap-2`}
+                                                            >
+                                                              <Trash2 size={16} /> Eliminar
+                                                            </button>
+                                                          )}
+                                                        </Menu.Item>
+                                                    </div>
+                                                </Menu.Items>
+                                            </Transition>
+                                        </Menu>
                                     </div>
                                 </td>
                             </tr>

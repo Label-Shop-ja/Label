@@ -1,7 +1,8 @@
 // src/components/Inventory/ProductCard.jsx
 import React from 'react';
-import { Edit, Trash2, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { Edit, Trash2, ChevronDown, ChevronUp, Info, MoreVertical } from 'lucide-react';
 import { useCurrency } from '../../context/CurrencyContext'; // <-- ¡NUEVA LÍNEA!
+import { Menu, Transition } from '@headlessui/react';
 
 const ProductCard = ({ product, handleEditClick, confirmDeleteProduct, isExpanded, toggleProductExpansion }) => {
     const { exchangeRate, convertPrice, formatPrice } = useCurrency(); // <-- ¡NUEVA LÍNEA!
@@ -10,7 +11,7 @@ const ProductCard = ({ product, handleEditClick, confirmDeleteProduct, isExpande
     const secondaryCurrency = exchangeRate?.toCurrency || 'VES';
 
     return (
-        <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-action-blue-light flex flex-col justify-between transform transition duration-300 hover:scale-[1.02] hover:shadow-2xl">
+        <div className="rounded-xl shadow-md bg-white p-4 transition-transform duration-200 hover:scale-[1.02] hover:shadow-lg">
             <div>
                 {/* Imagen del Producto (primero la imagen principal del producto, luego la primera variante, luego el fallback) */}
                 <div className="w-full h-48 mb-4 bg-neutral-gray-800 rounded-md overflow-hidden flex items-center justify-center">
@@ -125,18 +126,50 @@ const ProductCard = ({ product, handleEditClick, confirmDeleteProduct, isExpande
             </div>
             {/* Botones de Acción */}
             <div className="flex justify-end gap-2 mt-4">
-                <button
-                    onClick={() => handleEditClick(product)}
-                    className="bg-neutral-gray-700 text-neutral-light px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-gray-600 transition duration-200 flex items-center shadow-md focus:outline-none focus:ring-2 focus:ring-neutral-gray-500"
-                >
-                    <Edit size={16} className="mr-1"/> Editar
-                </button>
-                <button
-                    onClick={() => confirmDeleteProduct(product._id)}
-                    className="bg-red-600 text-neutral-light px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition duration-200 flex items-center shadow-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                    <Trash2 size={16} className="mr-1"/> Eliminar
-                </button>
+                {/* Menú de acciones con Headless UI */}
+                <Menu as="div" className="relative inline-block text-left">
+                    <Menu.Button className="p-2 rounded-full hover:bg-surface-secondary focus:outline-none focus:ring-2 focus:ring-primary transition">
+                        <MoreVertical size={20} />
+                    </Menu.Button>
+                    <Transition
+                        as={React.Fragment}
+                        enter="transition ease-out duration-100"
+                        enterFrom="transform opacity-0 scale-95"
+                        enterTo="transform opacity-100 scale-100"
+                        leave="transition ease-in duration-75"
+                        leaveFrom="transform opacity-100 scale-100"
+                        leaveTo="transform opacity-0 scale-95"
+                    >
+                        <Menu.Items className="absolute right-0 z-10 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                            <div className="py-1">
+                                <Menu.Item>
+                                    {({ active }) => (
+                                        <button
+                                            onClick={() => handleEditClick(product)}
+                                            className={`${
+                                                active ? 'bg-primary/10 text-primary' : 'text-text-base'
+                                            } flex items-center w-full px-4 py-2 text-sm gap-2`}
+                                        >
+                                            <Edit size={16} /> Editar
+                                        </button>
+                                    )}
+                                </Menu.Item>
+                                <Menu.Item>
+                                    {({ active }) => (
+                                        <button
+                                            onClick={() => confirmDeleteProduct(product._id)}
+                                            className={`${
+                                                active ? 'bg-red-100 text-red-600' : 'text-red-600'
+                                            } flex items-center w-full px-4 py-2 text-sm gap-2`}
+                                        >
+                                            <Trash2 size={16} /> Eliminar
+                                        </button>
+                                    )}
+                                </Menu.Item>
+                            </div>
+                        </Menu.Items>
+                    </Transition>
+                </Menu>
             </div>
         </div>
     );

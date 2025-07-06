@@ -18,7 +18,6 @@ const MessageDisplay = lazy(() => import('../Common/MessageDisplay'));
 
 // Importa el nuevo componente lógico del formulario
 const AddEditProductFormLogic = lazy(() => import('./AddEditProductFormLogic'));
-const InventoryPageHeader = lazy(() => import('./InventoryPageHeader')); // <-- ¡NUEVA LÍNEA!
 const ViewSwitcher = lazy(() => import('./ViewSwitcher'));
 const ProductTable = lazy(() => import('./ProductTable')); // <-- ¡NUEVA LÍNEA!
 const BulkActionsBar = lazy(() => import('./BulkActionsBar'));
@@ -26,11 +25,12 @@ const BulkEditCategoryModal = lazy(() => import('./BulkEditCategoryModal'));
 
 // NUEVAS IMPORTACIONES
 import { useCurrency } from '../../context/CurrencyContext'; // <-- ¡NUEVA LÍNEA!
-const ExchangeRateDisplay = lazy(() => import('../Currency/ExchangeRateDisplay')); // <-- ¡NUEVA LÍNEA!
 const ExchangeRateModal = lazy(() => import('../Currency/ExchangeRateModal'));   // <-- ¡NUEVA LÍNEA!
 
 // Íconos de Lucide React, si se usan directamente en este componente principal
 import { Loader2, Upload } from 'lucide-react';
+import Breadcrumbs from '../Common/Breadcrumbs';
+import ExchangeRateDisplay from '../Currency/ExchangeRateDisplay';
 
 // --- FUNCIÓN UTILITARIA (MEJORA DE CALIDAD) ---
 // Al mover esta función fuera del componente, se define una sola vez
@@ -605,22 +605,7 @@ function InventoryPage() {
                         {reduxError || localError}
                     </div>
                 )}
-
-                {/* RECOMENDACIÓN 1: Cabecera de Página Unificada */}
-                <Suspense fallback={<div>Cargando cabecera...</div>}>
-                    <InventoryPageHeader
-                        onAddProductClick={openAddModal}
-                        onShowReportClick={() => {
-                            if (!showVariantReport) fetchVariantInventoryReport();
-                            else setShowVariantReport(false);
-                        }}
-                        isReportVisible={showVariantReport}
-                        canExport={showVariantReport && variantReport.length > 0}
-                        onExportClick={() => exportVariantReportToCSV(variantReport)}
-                        onSuggestPricesClick={() => displayMessage('La lógica de actualización inteligente de precios se implementará aquí.', 'info')}
-                    />
-                </Suspense>
-
+                
                 {/* Modal de Confirmación para Eliminación MÚLTIPLE */}
                 <Suspense fallback={<div>Cargando confirmación...</div>}>
                     <ConfirmDeleteModal
@@ -642,18 +627,6 @@ function InventoryPage() {
                         onSave={handleBulkUpdateCategory}
                         availableCategories={availableCategories}
                         selectedCount={selectedProducts.size}
-                    />
-                </Suspense>
-
-
-                <Suspense fallback={<div>Cargando tasa...</div>}>
-                    <ExchangeRateDisplay
-                        exchangeRate={exchangeRate}
-                        loading={loadingCurrency}
-                        error={currencyError}
-                        formatPrice={formatPrice}
-                        primaryCurrency={exchangeRate?.fromCurrency || 'USD'}
-                        secondaryCurrency={exchangeRate?.toCurrency || 'VES'}
                     />
                 </Suspense>
 
@@ -856,7 +829,6 @@ function InventoryPage() {
                         </Suspense>
                     )}
                 </AnimatePresence>
-
             </div>
         </ErrorBoundary>
     );
