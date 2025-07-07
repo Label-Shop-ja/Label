@@ -9,7 +9,7 @@ import axiosInstance from "../../api/axiosInstance";
 // Importación perezosa del componente ProductCard
 const ProductCard = lazy(() => import('./ProductCard'));
 
-const ProductList = ({ products, handleEditClick, confirmDeleteProduct, expandedProducts, toggleProductExpansion, loading, error, onEdit, onDelete }) => {
+const ProductList = ({ products, handleEditClick, confirmDeleteProduct, expandedProducts, toggleProductExpansion, loading, error, onEdit, onDelete, onViewDetails }) => {
     const { exchangeRate, convertPrice, formatPrice } = useCurrency();
     const { showNotification } = useNotification();
     const { t } = useTranslation();
@@ -56,7 +56,7 @@ const ProductList = ({ products, handleEditClick, confirmDeleteProduct, expanded
                     products.length === 0 ? (
                         <p className="text-neutral-gray-300 text-lg text-center mt-10">{t('NO_PRODUCTS') || 'No hay productos para mostrar.'}</p>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
                             {products.map((product) => (
                                 <Suspense key={product._id} fallback={
                                     <div className="bg-deep-night-blue p-6 rounded-lg shadow-lg border border-action-blue-light flex flex-col justify-between transform transition duration-300 hover:scale-[1.02] hover:shadow-2xl animate-pulse">
@@ -76,10 +76,7 @@ const ProductList = ({ products, handleEditClick, confirmDeleteProduct, expanded
                                         confirmDeleteProduct={confirmDeleteProduct}
                                         isExpanded={expandedProducts.has(product._id)}
                                         toggleProductExpansion={toggleProductExpansion}
-                                        // <-- ¡NUEVAS PROPS!
-                                        formatPrice={formatPrice}
-                                        convertPrice={convertPrice}
-                                        exchangeRate={exchangeRate}
+                                        onViewDetails={onViewDetails}
                                     />
                                 </Suspense>
                             ))}
