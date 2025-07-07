@@ -744,43 +744,37 @@ function InventoryPage() {
 
                 {/* Modal para Añadir Producto */}
                 <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"><Loader2 size={48} className="animate-spin text-action-blue" /></div>}>
-                    {showAddModal && (
-                        <ProductModal
-                            isOpen={showAddModal}
-                            onClose={closeModal}
-                            title="Añadir Nuevo Producto"
-                        >
-                            {/* Ahora renderizamos AddEditProductFormLogic */}
-                            <AddEditProductFormLogic
-                                isNewProduct={true}
-                                initialProductData={newProductInitialData} // Pasa el estado inicial para el nuevo producto
-                                onProductSave={handleAddProduct} // Callback para guardar
-                                loading={isLoading}
-                                displayMessage={displayMessage}
-                                unitOfMeasureOptions={unitOfMeasureOptions}
-                                debounceTimeoutRef={debounceTimeoutRef}
-                                currencyContext={useCurrency()} // Pasamos el contexto completo
-                            />
-                        </ProductModal>
-                    )}
+                    <AddEditProductFormLogic
+                        isOpen={showAddModal}
+                        onClose={closeModal}
+                        title="Añadir Nuevo Producto"
+                        isNewProduct={true}
+                        initialProductData={newProductInitialData}
+                        onProductSave={handleAddProduct}
+                        loading={isLoading}
+                        displayMessage={displayMessage}
+                        unitOfMeasureOptions={unitOfMeasureOptions}
+                        debounceTimeoutRef={debounceTimeoutRef}
+                        currencyContext={useCurrency()}
+                    />
                 </Suspense>
 
                 {/* Modal para Editar Producto */}
                 <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"><Loader2 size={48} className="animate-spin text-action-blue" /></div>}>
-                    {showEditModal && editingProduct && (
-                        <ProductModal
-                            isOpen={showEditModal}
-                            onClose={closeModal}
-                            title={`Editar Producto: ${editingProduct?.name || ''}`}
-                        >
-                            {/* Ahora renderizamos AddEditProductFormLogic */}
-                            <AddEditProductFormLogic
-                                isNewProduct={false}
-                                initialProductData={editingProduct} // Pasa el producto a editar
-                                onProductSave={handleUpdateProduct} // Callback para actualizar
-                                loading={isLoading}
-                                displayMessage={displayMessage}
-                                unitOfMeasureOptions={unitOfMeasureOptions}
+                    <AddEditProductFormLogic
+                        isOpen={showEditModal}
+                        onClose={closeModal}
+                        title={`Editar Producto: ${editingProduct?.name || ''}`}
+                        isNewProduct={false}
+                        initialProductData={editingProduct}
+                        onProductSave={handleUpdateProduct}
+                        loading={isLoading}
+                        displayMessage={displayMessage}
+                        unitOfMeasureOptions={unitOfMeasureOptions}
+                        debounceTimeoutRef={debounceTimeoutRef}
+                        currencyContext={useCurrency()}
+                    />
+                </Suspense>
                                 debounceTimeoutRef={debounceTimeoutRef}
                                 currencyContext={useCurrency()} // Pasamos el contexto completo
                             />

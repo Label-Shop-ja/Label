@@ -1,10 +1,14 @@
 // src/components/Inventory/AddEditProductForm.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Upload, Loader2, Save, Settings, Package, DollarSign, AlertTriangle, X, Trash2 } from 'lucide-react';
+import { Plus, Upload, Loader2, Save, Settings, Package, DollarSign, AlertTriangle, X, Trash2, XCircle } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import VariantForm from './VariantForm';
+import ErrorBoundary from '../Common/ErrorBoundary';
 
 const AddEditProductForm = ({
+    isOpen,
+    onClose,
+    title,
     isNewProduct,
     productData,
     formErrors,
@@ -27,6 +31,8 @@ const AddEditProductForm = ({
     calculatedVariantPricePlaceholder,
     formatPrice,
 }) => {
+    // Si el modal no está abierto, no renderiza nada
+    if (!isOpen) return null;
     const { theme } = useTheme();
     const [activeSection, setActiveSection] = useState('basic');
     const [expandedVariants, setExpandedVariants] = useState(new Set());
@@ -131,10 +137,47 @@ const AddEditProductForm = ({
         setShowVariantDeleteConfirm(false);
     };
 
+    // Efecto para manejar tecla Escape
+    useEffect(() => {
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+        
+        if (isOpen) {
+            document.addEventListener('keydown', handleEscape);
+        }
+        
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [isOpen, onClose]);
+
     return (
-        <div className={`flex h-[80vh] overflow-hidden relative ${
-            theme === 'light' ? 'bg-surface-primary' : 'bg-gray-900'
-        }`}>
+        <div
+            className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 transition-opacity duration-300 p-4 sm:p-6 overflow-y-auto"
+            onClick={onClose}
+        >
+            <div
+                className="bg-deep-night-blue p-6 sm:p-8 rounded-lg shadow-2xl text-neutral-light w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto my-auto relative border border-neutral-gray-700 transform transition-transform duration-300 scale-100 flex flex-col max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <button
+                    onClick={onClose}
+                    className="absolute top-3 right-3 text-neutral-gray-400 hover:text-red-500 transition-colors duration-200 z-10"
+                    title="Cerrar"
+                >
+                    <XCircle size={28} />
+                </button>
+                <h3 className="text-2xl sm:text-3xl font-bold text-copper-rose-accent mb-4 sm:mb-6 text-center border-b-2 border-action-blue pb-3">
+                    {title}
+                </h3>
+                <div className="overflow-y-auto flex-grow pr-2 -mr-2">
+                    <ErrorBoundary>
+                        <div className={`flex h-full relative ${
+                            theme === 'light' ? 'bg-surface-primary' : 'bg-gray-900'
+                        }`}>
             {/* Sidebar */}
             <div className={`w-64 flex-shrink-0 p-6 border-r ${
                 theme === 'light' ? 'border-border-subtle bg-surface-secondary' : 'border-gray-700 bg-gray-800'

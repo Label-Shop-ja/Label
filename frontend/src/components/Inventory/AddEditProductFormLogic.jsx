@@ -32,6 +32,9 @@ const defaultNewProductState = {
 };
 
 const AddEditProductFormLogic = ({
+    isOpen,
+    onClose,
+    title,
     isNewProduct,
     initialProductData,
     onProductSave,
@@ -726,6 +729,9 @@ const AddEditProductFormLogic = ({
         <ErrorBoundary>
             <Suspense fallback={<div>Cargando formulario...</div>}>
                 <AddEditProductFormUI
+                    isOpen={isOpen}
+                    onClose={onClose}
+                    title={title}
                     isNewProduct={isNewProduct}
                     productData={productData}
                     onProductDataChange={setProductData}
@@ -770,8 +776,7 @@ const AddEditProductFormLogic = ({
                     formatPrice={formatPrice}
                     convertPrice={convertPrice}
                     exchangeRate={exchangeRate}
-                    // ¡NUEVA PROP! Pasamos la lista de monedas disponibles a la UI
-                    availableCurrencies={availableCurrencies} 
+                    availableCurrencies={availableCurrencies}
                 />
             </Suspense>
         </ErrorBoundary>
