@@ -62,7 +62,7 @@ const ProductFilterAndSearch = ({
 
     // Aquí está la magia pa' que los selects se vean brutal en ambos temas
     const selectClasses = `
-        rounded-full border py-1.5 pl-1 pr-1 text-center duration-300 ease-in-out
+        rounded-full border py-1.5 pl-2 pr-5 text-center duration-300 ease-in-out
         focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer
         appearance-none bg-no-repeat bg-right bg-[length:16px_16px] pr-8
         ${theme === 'light'

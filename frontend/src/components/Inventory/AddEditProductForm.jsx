@@ -1,6 +1,6 @@
 // src/components/Inventory/AddEditProductForm.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Upload, Loader2, Save, Settings, Package, DollarSign } from 'lucide-react';
+import { Plus, Upload, Loader2, Save, Settings, Package, DollarSign, AlertTriangle, X, Trash2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import VariantForm from './VariantForm';
 
@@ -30,6 +30,7 @@ const AddEditProductForm = ({
     const { theme } = useTheme();
     const [activeSection, setActiveSection] = useState('basic');
     const [expandedVariants, setExpandedVariants] = useState(new Set());
+    const [showVariantDeleteConfirm, setShowVariantDeleteConfirm] = useState(false);
     const sectionRefs = useRef({});
     
     const currencies = availableCurrencies && availableCurrencies.length > 0 
@@ -104,8 +105,34 @@ const AddEditProductForm = ({
         return sectionErrors[sectionName] ? '⚠️' : null;
     };
 
+    const getFormProgress = () => {
+        const totalFields = ['name', 'category', 'costPrice', 'stock'];
+        const completedFields = totalFields.filter(field => productData[field]);
+        return Math.round((completedFields.length / totalFields.length) * 100);
+    };
+
+    const hasVariantContent = () => {
+        return productData.variants?.some(variant => 
+            variant.name || variant.costPrice || variant.stock || variant.sku || 
+            variant.color || variant.size || variant.material || variant.imageUrl
+        );
+    };
+
+    const handleProductTypeChange = (hasVariants) => {
+        if (!hasVariants && productData.variants?.length > 0 && hasVariantContent()) {
+            setShowVariantDeleteConfirm(true);
+        } else {
+            handleProductInputChange({ target: { name: 'variants', value: hasVariants ? [{}] : [] } });
+        }
+    };
+
+    const confirmDeleteVariants = () => {
+        handleProductInputChange({ target: { name: 'variants', value: [] } });
+        setShowVariantDeleteConfirm(false);
+    };
+
     return (
-        <div className={`flex h-full max-h-[80vh] relative ${
+        <div className={`flex h-[80vh] overflow-hidden relative ${
             theme === 'light' ? 'bg-surface-primary' : 'bg-gray-900'
         }`}>
             {/* Sidebar */}
@@ -155,9 +182,16 @@ const AddEditProductForm = ({
                 <div className={`rounded-lg p-3 ${
                     theme === 'light' ? 'bg-surface-primary' : 'bg-gray-700'
                 }`}>
-                    <h4 className={`text-sm font-bold mb-3 ${
-                        theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                    }`}>ÍNDICE</h4>
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className={`text-sm font-bold ${
+                            theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
+                        }`}>ÍNDICE</h4>
+                        <div className={`text-xs px-2 py-1 rounded-full ${
+                            theme === 'light' ? 'bg-blue-100 text-blue-800' : 'bg-blue-900/50 text-blue-200'
+                        }`}>
+                            {getFormProgress()}%
+                        </div>
+                    </div>
                     
                     <div className="space-y-1">
                         {/* Básico */}
@@ -198,64 +232,6 @@ const AddEditProductForm = ({
                             {getSectionStatus('pricing') && <span className="ml-auto animate-pulse">{getSectionStatus('pricing')}</span>}
                         </button>
 
-                        {/* Variantes */}
-                        <button
-                            type="button"
-                            onClick={() => scrollToSection('variants')}
-                            className={`w-full text-left px-2 py-1 rounded text-sm transition-colors flex items-center gap-2 ${
-                                activeSection === 'variants'
-                                    ? theme === 'light' 
-                                        ? 'bg-purple-100 text-purple-800' 
-                                        : 'bg-purple-900/50 text-purple-200'
-                                    : theme === 'light'
-                                        ? 'hover:bg-gray-100 text-text-base'
-                                        : 'hover:bg-gray-600 text-gray-300'
-                            }`}
-                        >
-                            <Package size={12} />
-                            Variantes ({productData.variants ? productData.variants.length : 0})
-                            {getSectionStatus('variants') && <span className="ml-auto animate-pulse">{getSectionStatus('variants')}</span>}
-                        </button>
-                        
-                        {/* Lista de variantes */}
-                        {productData.variants && productData.variants.length > 0 && (
-                            <div className="ml-4 space-y-1">
-                                {productData.variants.map((variant, index) => (
-                                    <button
-                                        key={index}
-                                        type="button"
-                                        onClick={() => scrollToSection(`variant-${index}`)}
-                                        className={`w-full text-left px-2 py-1 rounded text-xs transition-colors flex items-center gap-2 ${
-                                            activeSection === `variant-${index}`
-                                                ? theme === 'light' 
-                                                    ? 'bg-purple-50 text-purple-700' 
-                                                    : 'bg-purple-900/30 text-purple-300'
-                                                : theme === 'light'
-                                                    ? 'hover:bg-gray-50 text-text-muted'
-                                                    : 'hover:bg-gray-600 text-gray-400'
-                                        }`}
-                                    >
-                                        <span className="text-xs">{getVariantStatus(variant, index)}</span>
-                                        <span className="truncate">{variant.name || `Variante ${index + 1}`}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Botón añadir variante */}
-                        <button
-                            type="button"
-                            onClick={handleAddVariant}
-                            className={`w-full text-left px-2 py-1 rounded text-sm transition-colors flex items-center gap-2 ${
-                                theme === 'light' 
-                                    ? 'hover:bg-green-50 text-green-600 hover:text-green-700' 
-                                    : 'hover:bg-green-900/20 text-green-400 hover:text-green-300'
-                            }`}
-                        >
-                            <Plus size={12} />
-                            Nueva
-                        </button>
-
                         {/* Avanzado */}
                         <button
                             type="button"
@@ -274,6 +250,78 @@ const AddEditProductForm = ({
                             Avanzado
                             {getSectionStatus('advanced') && <span className="ml-auto animate-pulse">{getSectionStatus('advanced')}</span>}
                         </button>
+
+                        {/* Variantes */}
+                        <button
+                            type="button"
+                            onClick={() => scrollToSection('variants')}
+                            className={`w-full text-left px-2 py-1 rounded text-sm transition-colors flex items-center gap-2 ${
+                                activeSection === 'variants'
+                                    ? theme === 'light' 
+                                        ? 'bg-purple-100 text-purple-800' 
+                                        : 'bg-purple-900/50 text-purple-200'
+                                    : theme === 'light'
+                                        ? 'hover:bg-gray-100 text-text-base'
+                                        : 'hover:bg-gray-600 text-gray-300'
+                            }`}
+                        >
+                            <Package size={12} />
+                            Variantes ({productData.variants ? productData.variants.length : 0})
+                            {getSectionStatus('variants') && <span className="ml-auto animate-pulse">{getSectionStatus('variants')}</span>}
+                        </button>
+
+                        {/* Botón añadir variante */}
+                        <button
+                            type="button"
+                            onClick={handleAddVariant}
+                            className={`w-full text-left px-2 py-1 rounded text-sm transition-colors flex items-center gap-2 ${
+                                theme === 'light' 
+                                    ? 'hover:bg-green-50 text-green-600 hover:text-green-700' 
+                                    : 'hover:bg-green-900/20 text-green-400 hover:text-green-300'
+                            }`}
+                        >
+                            <Plus size={12} />
+                            Nueva
+                        </button>
+                        
+                        {/* Lista de variantes */}
+                        {productData.variants && productData.variants.length > 0 && (
+                            <div className="ml-4 space-y-1">
+                                {productData.variants.map((variant, index) => (
+                                    <div key={index} className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                                        activeSection === `variant-${index}`
+                                            ? theme === 'light' 
+                                                ? 'bg-purple-50 text-purple-700' 
+                                                : 'bg-purple-900/30 text-purple-300'
+                                            : theme === 'light'
+                                                ? 'hover:bg-gray-50 text-text-muted'
+                                                : 'hover:bg-gray-600 text-gray-400'
+                                    }`}>
+                                        <button
+                                            type="button"
+                                            onClick={() => scrollToSection(`variant-${index}`)}
+                                            className="flex-1 flex items-center gap-2 text-left"
+                                        >
+                                            <span className="text-xs">{getVariantStatus(variant, index)}</span>
+                                            <span className="truncate">{variant.name || `Variante ${index + 1}`}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRemoveVariant(index);
+                                            }}
+                                            className={`p-1 rounded hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors ${
+                                                theme === 'dark' ? 'hover:bg-red-900/20' : ''
+                                            }`}
+                                            title="Eliminar variante"
+                                        >
+                                            <Trash2 size={10} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -416,7 +464,7 @@ const AddEditProductForm = ({
                                         type="radio"
                                         name="hasVariants"
                                         checked={!productData.variants || productData.variants.length === 0}
-                                        onChange={() => handleProductInputChange({ target: { name: 'variants', value: [] } })}
+                                        onChange={() => handleProductTypeChange(false)}
                                         className="mr-2 text-blue-600"
                                     />
                                     <span className={theme === 'light' ? 'text-text-base' : 'text-gray-200'}>
@@ -604,48 +652,6 @@ const AddEditProductForm = ({
                             </div>
                         </div>
                     </section>
-
-                    {/* Sección de Variantes */}
-                    {productData.variants && productData.variants.length > 0 && (
-                        <section 
-                            ref={el => sectionRefs.current['variants'] = el}
-                            data-section="variants"
-                            className="space-y-6"
-                        >
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                    theme === 'light' ? 'bg-purple-100 text-purple-800' : 'bg-purple-900/50 text-purple-200'
-                                }`}>
-                                    🎨
-                                </div>
-                                <h3 className={`text-xl font-bold ${
-                                    theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                }`}>Variantes del Producto</h3>
-                            </div>
-                            <div className="space-y-4">
-                                {productData.variants.map((variant, index) => (
-                                    <div key={index} ref={el => sectionRefs.current[`variant-${index}`] = el}>
-                                        <VariantForm
-                                            variant={variant}
-                                            index={index}
-                                            handleVariantInputChange={handleVariantInputChange}
-                                            handleRemoveVariant={handleRemoveVariant}
-                                            handleVariantImageFileChange={handleVariantImageFileChange}
-                                            variantImageUploading={variantImageUploading}
-                                            formErrors={formErrors}
-                                            calculatedVariantProfitPercentage={calculatedVariantProfitPercentage[index]}
-                                            calculatedVariantPricePlaceholder={calculatedVariantPricePlaceholder[index]}
-                                            formatPrice={formatPrice}
-                                            availableCurrencies={availableCurrencies}
-                                            unitOfMeasureOptions={unitOfMeasureOptions}
-                                            isExpanded={expandedVariants.has(index)}
-                                            onToggleExpand={() => toggleVariantExpansion(index)}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    )}
 
                     {/* Sección Avanzada */}
                     <section 
@@ -850,6 +856,63 @@ const AddEditProductForm = ({
                         </div>
                     </section>
 
+                    {/* Sección de Variantes */}
+                    {productData.variants && productData.variants.length > 0 && (
+                        <section 
+                            ref={el => sectionRefs.current['variants'] = el}
+                            data-section="variants"
+                            className="space-y-6"
+                        >
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                    theme === 'light' ? 'bg-purple-100 text-purple-800' : 'bg-purple-900/50 text-purple-200'
+                                }`}>
+                                    🎨
+                                </div>
+                                <h3 className={`text-xl font-bold ${
+                                    theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
+                                }`}>Variantes del Producto</h3>
+                            </div>
+                            <div className="space-y-4">
+                                {productData.variants.map((variant, index) => (
+                                    <div key={index} ref={el => sectionRefs.current[`variant-${index}`] = el}>
+                                        <VariantForm
+                                            variant={variant}
+                                            index={index}
+                                            handleVariantInputChange={handleVariantInputChange}
+                                            handleRemoveVariant={handleRemoveVariant}
+                                            handleVariantImageFileChange={handleVariantImageFileChange}
+                                            variantImageUploading={variantImageUploading}
+                                            formErrors={formErrors}
+                                            calculatedVariantProfitPercentage={calculatedVariantProfitPercentage[index]}
+                                            calculatedVariantPricePlaceholder={calculatedVariantPricePlaceholder[index]}
+                                            formatPrice={formatPrice}
+                                            availableCurrencies={availableCurrencies}
+                                            unitOfMeasureOptions={unitOfMeasureOptions}
+                                            isExpanded={expandedVariants.has(index)}
+                                            onToggleExpand={() => toggleVariantExpansion(index)}
+                                            onDuplicateVariant={(variantIndex) => {
+                                                const variantToDuplicate = productData.variants[variantIndex];
+                                                const duplicatedVariant = {
+                                                    ...variantToDuplicate,
+                                                    name: `${variantToDuplicate.name} (Copia)`,
+                                                    sku: '',
+                                                    autoGeneratedVariantSku: ''
+                                                };
+                                                handleProductInputChange({
+                                                    target: {
+                                                        name: 'variants',
+                                                        value: [...productData.variants, duplicatedVariant]
+                                                    }
+                                                });
+                                            }}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
                     {/* Botón de envío */}
                     <div className="flex justify-end pt-6 border-t border-gray-200">
                         <button
@@ -867,6 +930,51 @@ const AddEditProductForm = ({
                     </div>
                 </form>
             </div>
+
+            {/* Modal de confirmación para eliminar variantes */}
+            {showVariantDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                    <div className={`rounded-lg shadow-2xl p-6 w-full max-w-md border ${
+                        theme === 'light' ? 'bg-surface-primary border-border-subtle' : 'bg-gray-800 border-gray-600'
+                    }`}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                                <AlertTriangle size={20} className="text-orange-600" />
+                            </div>
+                            <h3 className={`text-lg font-bold ${
+                                theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
+                            }`}>¿Eliminar Variantes?</h3>
+                        </div>
+                        
+                        <p className={`text-sm mb-6 ${
+                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                        }`}>
+                            Tienes <span className="font-bold text-orange-600">{productData.variants?.length} variante(s)</span> con información. 
+                            Al cambiar a "Producto Simple" se eliminarán permanentemente.
+                        </p>
+                        
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowVariantDeleteConfirm(false)}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                                    theme === 'light' 
+                                        ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
+                                        : 'bg-gray-600 hover:bg-gray-500 text-gray-200'
+                                }`}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmDeleteVariants}
+                                className="px-4 py-2 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white transition-colors flex items-center gap-2"
+                            >
+                                <AlertTriangle size={16} />
+                                Sí, Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

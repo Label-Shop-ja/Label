@@ -1,6 +1,6 @@
 // src/components/Inventory/VariantForm.jsx
 import React from 'react';
-import { X, Upload, Loader2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { X, Upload, Loader2, ChevronDown, ChevronUp, Trash2, Copy, GripVertical } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 const VariantForm = ({
@@ -18,6 +18,7 @@ const VariantForm = ({
     unitOfMeasureOptions,
     isExpanded = false,
     onToggleExpand,
+    onDuplicateVariant,
 }) => {
     const { theme } = useTheme();
     const [showAdvanced, setShowAdvanced] = React.useState(false);
@@ -37,11 +38,19 @@ const VariantForm = ({
 
     const getVariantSummary = () => {
         const parts = [];
-        if (variant.costPrice) parts.push(`Costo: $${variant.costPrice} ${variant.costCurrency || 'USD'}`);
-        if (variant.stock) parts.push(`Stock: ${variant.stock}`);
-        if (calculatedVariantPricePlaceholder) parts.push(`Precio: $${parseFloat(calculatedVariantPricePlaceholder).toFixed(2)} ${variant.saleCurrency || 'USD'}`);
-        if (calculatedVariantProfitPercentage) parts.push(`${parseFloat(calculatedVariantProfitPercentage).toFixed(0)}% ganancia`);
+        if (variant.costPrice) parts.push(`💰 $${variant.costPrice} ${variant.costCurrency || 'USD'}`);
+        if (variant.stock) parts.push(`📦 ${variant.stock} uds`);
+        if (calculatedVariantPricePlaceholder) parts.push(`💵 $${parseFloat(calculatedVariantPricePlaceholder).toFixed(2)}`);
+        if (calculatedVariantProfitPercentage) parts.push(`📈 ${parseFloat(calculatedVariantProfitPercentage).toFixed(0)}%`);
+        if (variant.color) parts.push(`🎨 ${variant.color}`);
+        if (variant.size) parts.push(`📏 ${variant.size}`);
         return parts.join(' • ');
+    };
+
+    const getCompletionPercentage = () => {
+        const requiredFields = ['name', 'costPrice', 'stock', 'unitOfMeasure'];
+        const completedFields = requiredFields.filter(field => variant[field]);
+        return Math.round((completedFields.length / requiredFields.length) * 100);
     };
 
     return (
@@ -64,7 +73,45 @@ const VariantForm = ({
                                     {variant.name || 'Nueva Variante'}
                                 </span>
                             </h5>
-                            <div className="flex items-center gap-2 ml-auto">
+                            <div className="flex items-center gap-1 ml-auto">
+                                {/* Imagen miniatura si existe */}
+                                {variant.imageUrl && (
+                                    <div className="w-8 h-8 rounded overflow-hidden mr-2">
+                                        <img
+                                            src={variant.imageUrl}
+                                            alt={variant.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                )}
+                                
+                                {/* Drag handle */}
+                                <button
+                                    type="button"
+                                    className={`p-1 rounded transition-colors cursor-grab active:cursor-grabbing ${
+                                        theme === 'light' ? 'hover:bg-gray-200 text-gray-400' : 'hover:bg-gray-600 text-gray-500'
+                                    }`}
+                                    title="Arrastrar para reordenar"
+                                >
+                                    <GripVertical size={14} />
+                                </button>
+                                
+                                {/* Duplicar */}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDuplicateVariant && onDuplicateVariant(index);
+                                    }}
+                                    className={`p-1 rounded transition-colors ${
+                                        theme === 'light' ? 'hover:bg-blue-100 text-blue-600' : 'hover:bg-blue-900/20 text-blue-400'
+                                    }`}
+                                    title="Duplicar variante"
+                                >
+                                    <Copy size={14} />
+                                </button>
+                                
+                                {/* Expandir/Colapsar */}
                                 <button
                                     type="button"
                                     onClick={(e) => {
@@ -77,6 +124,8 @@ const VariantForm = ({
                                 >
                                     {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                 </button>
+                                
+                                {/* Eliminar */}
                                 <button
                                     type="button"
                                     onClick={(e) => {
@@ -86,15 +135,24 @@ const VariantForm = ({
                                     className="p-1 rounded text-red-500 hover:text-red-400 hover:bg-red-50 transition-colors"
                                     aria-label={`Eliminar variante ${index + 1}`}
                                 >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={14} />
                                 </button>
                             </div>
                         </div>
-                        <p className={`text-sm ${
-                            theme === 'light' ? 'text-text-muted' : 'text-gray-400'
-                        }`}>
-                            {getVariantSummary() || 'Campos incompletos'}
-                        </p>
+                        <div className="flex items-center justify-between">
+                            <p className={`text-sm flex-1 ${
+                                theme === 'light' ? 'text-text-muted' : 'text-gray-400'
+                            }`}>
+                                {getVariantSummary() || '⚠️ Campos incompletos'}
+                            </p>
+                            <div className={`text-xs px-2 py-1 rounded-full ml-2 ${
+                                getCompletionPercentage() === 100
+                                    ? theme === 'light' ? 'bg-green-100 text-green-800' : 'bg-green-900/50 text-green-200'
+                                    : theme === 'light' ? 'bg-orange-100 text-orange-800' : 'bg-orange-900/50 text-orange-200'
+                            }`}>
+                                {getCompletionPercentage()}%
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
