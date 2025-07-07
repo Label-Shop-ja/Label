@@ -775,12 +775,6 @@ function InventoryPage() {
                         currencyContext={useCurrency()}
                     />
                 </Suspense>
-                                debounceTimeoutRef={debounceTimeoutRef}
-                                currencyContext={useCurrency()} // Pasamos el contexto completo
-                            />
-                        </ProductModal>
-                    )}
-                </Suspense>
 
 
                 {/* Reporte de Inventario por Variante */}
