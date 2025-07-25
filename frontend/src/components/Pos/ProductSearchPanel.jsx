@@ -18,7 +18,7 @@ const ProductSearchPanel = ({
                     placeholder="Buscar producto por nombre, categoría o SKU..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full py-3 px-4 pl-10 bg-dark-charcoal text-neutral-light leading-tight border border-neutral-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-action-blue text-lg placeholder-neutral-gray-500"
+                    className="w-full py-3 px-4 pl-10 bg-dark-charcoal text-gray-900 leading-tight border border-neutral-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-action-blue text-lg placeholder-neutral-gray-500"
                 />
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-gray-300" size={20} />
             </div>

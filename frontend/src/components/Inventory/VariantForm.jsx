@@ -340,7 +340,7 @@ const VariantForm = ({
                                     type="number"
                                     name="profitPercentage"
                                     value={variant.profitPercentage || ''}
-                                    placeholder="20"
+                                    placeholder="30"
                                     onChange={(e) => handleVariantInputChange(index, e)}
                                     step="0.1"
                                     min="0"
@@ -517,7 +517,7 @@ const VariantForm = ({
                                     }`}>🖼️ Imagen de Variante</h6>
                                     <div className="space-y-3">
                                         {/* Subir archivo */}
-                                        <label className={`w-full py-2 px-3 rounded-lg text-center cursor-pointer transition-colors text-sm flex items-center justify-center gap-2 ${
+                                        <label htmlFor={`variant-image-upload-${index}`} className={`w-full py-2 px-3 rounded-lg text-center cursor-pointer transition-colors text-sm flex items-center justify-center gap-2 ${
                                             theme === 'light' 
                                                 ? 'bg-blue-600 hover:bg-blue-700 text-white' 
                                                 : 'bg-blue-500 hover:bg-blue-600 text-white'
@@ -529,8 +529,9 @@ const VariantForm = ({
                                             Subir Imagen
                                         </label>
                                         <input
+                                            id={`variant-image-upload-${index}`}
                                             type="file"
-                                            accept="image/*"
+                                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                                             onChange={(e) => handleVariantImageFileChange(index, e)}
                                             className="hidden"
                                         />

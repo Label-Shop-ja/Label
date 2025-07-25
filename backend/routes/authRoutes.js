@@ -25,7 +25,16 @@ router.post('/reset-password', protect, resetPassword);
 // --- Rutas de Autenticación Social ---
 
 // Ruta para iniciar la autenticación con Google
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google', (req, res, next) => {
+  const options = { scope: ['profile', 'email'] };
+  
+  // Si se pasa prompt=select_account, forzar selección de cuenta
+  if (req.query.prompt === 'select_account') {
+    options.prompt = 'select_account';
+  }
+  
+  passport.authenticate('google', options)(req, res, next);
+});
 
 // Ruta de callback de Google
 router.get(

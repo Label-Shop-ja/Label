@@ -102,9 +102,11 @@ function App() {
     };
 
     useEffect(() => {
-        // Despachamos la acción correcta para verificar el estado de autenticación al cargar la app.
-        verify();
-    }, [verify]);
+        // Solo verificar si no está autenticado y no se deslogueo intencionalmente
+        if (!isAuthenticated && localStorage.getItem('wasLoggedOut') !== 'true') {
+            verify();
+        }
+    }, [verify, isAuthenticated]);
 
     // Efecto para actualizar el título de la página dinámicamente
     useEffect(() => {

@@ -6,7 +6,6 @@ import ErrorBoundary from "../Common/ErrorBoundary";
 
 // Importaciones desde nuestra calculadora criminal que ahora está en el frontend/utils
 import {
-    calculateSalePrice,
     calculateProfitAndPriceForDisplay,
 } from '../../utils/currencyCalculator';
 
@@ -105,7 +104,10 @@ const AddEditProductFormLogic = ({
         }
 
         try {
+            console.log('Iniciando subida de imagen...', typeof fileOrUrl);
+            
             if (typeof fileOrUrl === 'string') {
+                console.log('Procesando URL:', fileOrUrl);
                 if (fileOrUrl.includes('res.cloudinary.com')) {
                     uploadedUrl = fileOrUrl;
                 } else {
@@ -118,13 +120,16 @@ const AddEditProductFormLogic = ({
                     uploadedUrl = response.data.url;
                 }
             } else {
+                console.log('Procesando archivo:', fileOrUrl.name, fileOrUrl.type, fileOrUrl.size);
                 formData.append('image', fileOrUrl);
                 const response = await axiosInstance.post('/upload', formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
+                    timeout: 30000, // 30 segundos timeout
                 });
-                uploadedUrl = response.data.url;
+                console.log('Respuesta del servidor:', response.data);
+                uploadedUrl = response.data.imageUrl || response.data.url;
             }
 
             if (isVariant) {
@@ -193,7 +198,7 @@ const AddEditProductFormLogic = ({
                 error = 'El costo unitario debe ser un número no negativo.';
             } else if (name === 'stock' && (value === '' || isNaN(Number(value)) || Number(value) < 0)) {
                 error = 'El stock debe ser un número no negativo.';
-            } else if (name === 'profitPercentage' && (value === '' || isNaN(Number(value)) || Number(value) < 0 || Number(value) > 500)) {
+            } else if (name === 'profitPercentage' && value !== '' && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 500)) {
                 error = 'El porcentaje de ganancia debe ser un número entre 0 y 500.';
             }
         }
@@ -234,8 +239,8 @@ const AddEditProductFormLogic = ({
                 }
             });
 
-            if (dataToSet.profitPercentage === null || dataToSet.profitPercentage === undefined || isNaN(Number(dataToSet.profitPercentage))) {
-                dataToSet.profitPercentage = exchangeRate.defaultProfitPercentage || 20;
+            if (dataToSet.profitPercentage === null || dataToSet.profitPercentage === undefined || dataToSet.profitPercentage === '' || isNaN(Number(dataToSet.profitPercentage))) {
+                dataToSet.profitPercentage = '';
             } else {
                 dataToSet.profitPercentage = Number(dataToSet.profitPercentage);
             }
@@ -247,8 +252,8 @@ const AddEditProductFormLogic = ({
             dataToSet.displayCurrency = dataToSet.displayCurrency || dataToSet.saleCurrency;
 
             dataToSet.variants = dataToSet.variants ? dataToSet.variants.map(v => {
-                if (v.profitPercentage === null || v.profitPercentage === undefined || isNaN(Number(v.profitPercentage))) {
-                    v.profitPercentage = dataToSet.profitPercentage;
+                if (v.profitPercentage === null || v.profitPercentage === undefined || v.profitPercentage === '' || isNaN(Number(v.profitPercentage))) {
+                    v.profitPercentage = '';
                 } else {
                     v.profitPercentage = Number(v.profitPercentage);
                 }
@@ -292,13 +297,19 @@ const AddEditProductFormLogic = ({
         }
 
         if (productData.variants.length === 0) {
+            // Usar 30 como valor por defecto si el campo está vacío o es 0
+            const effectiveProfitPercentage = productData.profitPercentage === '' || productData.profitPercentage === null || productData.profitPercentage === undefined || productData.profitPercentage === 0
+                ? 30 
+                : Number(productData.profitPercentage);
+                
             const { salePrice, profitPercentage: actualProfit } = calculateProfitAndPriceForDisplay(
                 Number(productData.costPrice),
                 productData.costCurrency || 'USD',
-                Number(productData.profitPercentage),
+                effectiveProfitPercentage,
                 exchangeRate,
                 productData.saleCurrency || 'USD'
             );
+            
             setCalculatedProductPricePlaceholder(salePrice);
             setCalculatedProductProfitPercentage(actualProfit);
         } else {
@@ -309,13 +320,19 @@ const AddEditProductFormLogic = ({
         const newVariantPrices = {};
         const newVariantPercentages = {};
         productData.variants.forEach((v, idx) => {
+            // Usar 30 como valor por defecto si el campo está vacío o es 0
+            const effectiveVariantProfitPercentage = v.profitPercentage === '' || v.profitPercentage === null || v.profitPercentage === undefined || v.profitPercentage === 0
+                ? 30 
+                : Number(v.profitPercentage);
+                
             const { salePrice, profitPercentage: actualProfit } = calculateProfitAndPriceForDisplay(
                 Number(v.costPrice),
                 v.costCurrency || 'USD',
-                Number(v.profitPercentage),
+                effectiveVariantProfitPercentage,
                 exchangeRate,
                 v.saleCurrency || 'USD'
             );
+            
             newVariantPrices[idx] = salePrice;
             newVariantPercentages[idx] = actualProfit;
         });
@@ -445,15 +462,38 @@ const AddEditProductFormLogic = ({
     const handleMainImageFileChange = useCallback(async (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Validar formato
+            const validFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validFormats.includes(file.type)) {
+                displayMessage('Formato de imagen no válido. Use JPG, PNG, GIF o WebP.', 'error');
+                return;
+            }
+            
+            // Validar tamaño (máximo 5MB)
+            const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+            if (file.size > maxSize) {
+                displayMessage('La imagen es muy grande. Máximo 5MB permitido.', 'error');
+                return;
+            }
+            
+            const localPreviewUrl = URL.createObjectURL(file);
             setImageFile(file);
-            setImagePreviewUrl(URL.createObjectURL(file));
-            setProductData(prev => ({ ...prev, imageUrl: '' }));
+            setImagePreviewUrl(localPreviewUrl);
             setFormErrors(prev => ({ ...prev, imageUrl: '' }));
-            await uploadImageToCloud(file, false, null);
+            
+            console.log('Subiendo imagen:', file.name, 'Tamaño:', (file.size / 1024 / 1024).toFixed(2) + 'MB');
+            
+            // Subir imagen y mantener preview
+            const uploadedUrl = await uploadImageToCloud(file, false, null);
+            if (uploadedUrl) {
+                console.log('Imagen subida exitosamente:', uploadedUrl);
+                setImagePreviewUrl(uploadedUrl);
+            } else {
+                console.log('Error en subida, manteniendo preview local');
+            }
         } else {
             setImageFile(null);
             setImagePreviewUrl(productData.imageUrl || '');
-            setProductData(prev => ({ ...prev, imageUrl: productData.imageUrl || '' }));
         }
         displayMessage('', '');
     }, [productData.imageUrl, displayMessage, uploadImageToCloud, setFormErrors]);
@@ -474,10 +514,18 @@ const AddEditProductFormLogic = ({
         }
     }, [uploadImageToCloud]);
 
+    // Función para eliminar imagen principal
+    const handleRemoveMainImage = useCallback(() => {
+        setImageFile(null);
+        setImagePreviewUrl('');
+        setProductData(prev => ({ ...prev, imageUrl: '' }));
+        displayMessage('Imagen eliminada.', 'success');
+    }, [displayMessage]);
+
     // Añade una nueva variante al producto actual
     const handleAddVariant = useCallback(() => {
         const defaultProfitForNewVariant = productData.profitPercentage !== undefined && productData.profitPercentage !== null && !isNaN(Number(productData.profitPercentage))
-            ? Number(productData.profitPercentage) : (exchangeRate ? exchangeRate.defaultProfitPercentage || 20 : 20);
+            ? Number(productData.profitPercentage) : (exchangeRate ? exchangeRate.defaultProfitPercentage || 30 : 30);
 
         const newVariant = {
             name: '', sku: '', costPrice: '', stock: '', // <-- ¡AQUÍ ESTÁ LA MAGIA!
@@ -570,7 +618,8 @@ const AddEditProductFormLogic = ({
             if (fieldName === 'sku') value = finalMainSku;
 
             if (fieldName === 'profitPercentage' && currentProductData.variants.length === 0) {
-                value = calculatedProductProfitPercentage;
+                value = currentProductData.profitPercentage === '' || currentProductData.profitPercentage === null || currentProductData.profitPercentage === undefined 
+                    ? 30 : Number(currentProductData.profitPercentage);
             } else if (fieldName === 'price' && currentProductData.variants.length === 0) {
                  value = calculatedProductPricePlaceholder;
             }
@@ -596,7 +645,8 @@ const AddEditProductFormLogic = ({
                 if (fieldName === 'sku') value = finalVariantSku;
 
                 if (fieldName === 'profitPercentage') {
-                    value = calculatedVariantProfitPercentage[index];
+                    value = variant.profitPercentage === '' || variant.profitPercentage === null || variant.profitPercentage === undefined 
+                        ? 30 : Number(variant.profitPercentage);
                 } else if (fieldName === 'price') {
                     value = calculatedVariantPricePlaceholder[index];
                 }
@@ -628,8 +678,9 @@ const AddEditProductFormLogic = ({
         productDataForSubmission.reorderThreshold = Number(productData.reorderThreshold) || 0;
         productDataForSubmission.optimalMaxStock = Number(productData.optimalMaxStock) || 0;
         productDataForSubmission.shelfLifeDays = Number(productData.shelfLifeDays) || 0;
-        // Para profitPercentage, si está vacío, debe ser null, no 0.
-        productDataForSubmission.profitPercentage = productData.profitPercentage === '' ? null : Number(productData.profitPercentage);
+        // Para profitPercentage, si está vacío, usar 30 como valor por defecto
+        productDataForSubmission.profitPercentage = productData.profitPercentage === '' || productData.profitPercentage === null || productData.profitPercentage === undefined 
+            ? 30 : Number(productData.profitPercentage);
 
         if (productDataForSubmission.variants.length === 0) {
             // No es necesario asignar el precio aquí, el backend lo calcula.
@@ -644,7 +695,8 @@ const AddEditProductFormLogic = ({
             updatedVariant.reorderThreshold = Number(v.reorderThreshold) || 0;
             updatedVariant.optimalMaxStock = Number(v.optimalMaxStock) || 0;
             updatedVariant.shelfLifeDays = Number(v.shelfLifeDays) || 0;
-            updatedVariant.profitPercentage = v.profitPercentage === '' ? null : Number(v.profitPercentage);
+            updatedVariant.profitPercentage = v.profitPercentage === '' || v.profitPercentage === null || v.profitPercentage === undefined 
+                ? 30 : Number(v.profitPercentage);
             return updatedVariant;
         });
 
@@ -703,7 +755,7 @@ const AddEditProductFormLogic = ({
                 saleCurrency: suggestedProduct.saleCurrency || 'USD',
                 displayCurrency: suggestedProduct.displayCurrency || suggestedProduct.saleCurrency || 'USD',
                 profitPercentage: suggestedProduct.profitPercentage !== undefined && suggestedProduct.profitPercentage !== null && !isNaN(Number(suggestedProduct.profitPercentage))
-                    ? Number(suggestedProduct.profitPercentage) : (exchangeRate ? exchangeRate.defaultProfitPercentage || 20 : 20),
+                    ? Number(suggestedProduct.profitPercentage) : (exchangeRate ? exchangeRate.defaultProfitPercentage || 30 : 30),
 
                 price: suggestedProduct.price || 0,
                 costPrice: suggestedProduct.costPrice || 0,
@@ -719,7 +771,7 @@ const AddEditProductFormLogic = ({
                     saleCurrency: v.saleCurrency || v.costCurrency || 'USD',
                     profitPercentage: v.profitPercentage !== undefined && v.profitPercentage !== null && !isNaN(Number(v.profitPercentage))
                         ? Number(v.profitPercentage) : (suggestedProduct.profitPercentage !== undefined && suggestedProduct.profitPercentage !== null && !isNaN(Number(suggestedProduct.profitPercentage))
-                            ? Number(suggestedProduct.profitPercentage) : (exchangeRate ? exchangeRate.defaultProfitPercentage || 20 : 20)),
+                            ? Number(suggestedProduct.profitPercentage) : (exchangeRate ? exchangeRate.defaultProfitPercentage || 30 : 30)),
                     price: v.price || 0,
                     costPrice: v.costPrice || 0,
                 })) : [],
@@ -820,6 +872,7 @@ const AddEditProductFormLogic = ({
                     convertPrice={convertPrice}
                     exchangeRate={exchangeRate}
                     availableCurrencies={availableCurrencies}
+                    handleRemoveMainImage={handleRemoveMainImage}
                 />
         </ErrorBoundary>
     );

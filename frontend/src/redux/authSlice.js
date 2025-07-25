@@ -1,14 +1,35 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from './authService';
+import AccountManager from '../services/AccountManager';
 
 // Cargar el estado inicial desde localStorage para persistencia básica
-const userFromStorage = JSON.parse(localStorage.getItem('user'));
-const tokenFromStorage = localStorage.getItem('accessToken');
+const getInitialAuthState = () => {
+  const wasLoggedOut = localStorage.getItem('wasLoggedOut') === 'true';
+  
+  if (wasLoggedOut) {
+    return {
+      user: null,
+      accessToken: null,
+      isAuthenticated: false
+    };
+  }
+  
+  const userFromStorage = JSON.parse(localStorage.getItem('user'));
+  const tokenFromStorage = localStorage.getItem('accessToken');
+  
+  return {
+    user: userFromStorage || null,
+    accessToken: tokenFromStorage || null,
+    isAuthenticated: !!tokenFromStorage
+  };
+};
+
+const { user: initialUser, accessToken: initialToken, isAuthenticated: initialAuth } = getInitialAuthState();
 
 const initialState = {
-  user: userFromStorage || null,
-  accessToken: tokenFromStorage || null,
-  isAuthenticated: !!tokenFromStorage,
+  user: initialUser,
+  accessToken: initialToken,
+  isAuthenticated: initialAuth,
   isLoading: false,
   isError: false,
   isSuccess: false, // Nuevo estado para manejar el éxito de acciones como el registro
@@ -156,6 +177,7 @@ export const authSlice = createSlice({
       state.isAuthenticated = false;
       localStorage.removeItem('user');
       localStorage.removeItem('accessToken');
+      localStorage.setItem('wasLoggedOut', 'true');
     },
     // Acción para establecer las credenciales manualmente (útil para el callback de OAuth)
     setCredentials: (state, action) => {
@@ -166,6 +188,10 @@ export const authSlice = createSlice({
       state.isError = false;
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('accessToken', accessToken);
+      localStorage.removeItem('wasLoggedOut');
+      
+      // Guardar cuenta de Google en AccountManager
+      AccountManager.saveAccount(user, accessToken, 'google');
     },
   },
   extraReducers: (builder) => {
@@ -179,6 +205,10 @@ export const authSlice = createSlice({
       state.accessToken = action.payload.accessToken;
       localStorage.setItem('user', JSON.stringify(action.payload.user));
       localStorage.setItem('accessToken', action.payload.accessToken);
+      localStorage.removeItem('wasLoggedOut');
+      
+      // Guardar cuenta en AccountManager
+      AccountManager.saveAccount(action.payload.user, action.payload.accessToken, 'local');
     };
     const handleRejected = (state, action) => {
       state.isLoading = false;
@@ -210,6 +240,7 @@ export const authSlice = createSlice({
         state.isAuthenticated = true;
         state.user = action.payload;
         localStorage.setItem('user', JSON.stringify(action.payload));
+        localStorage.removeItem('wasLoggedOut');
       })
       .addCase(verifyAuth.rejected, (state) => {
         state.isLoading = false;

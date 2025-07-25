@@ -38,10 +38,24 @@ app.use(passport.initialize());
 app.use(passport.session());
 // Configuración de CORS
 // Permite que el frontend se comunique con el backend
-// Opciones de CORS para mayor seguridad en producción
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Solo permite peticiones desde tu frontend
-  credentials: true, // Permite que el frontend envíe cookies
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      /^http:\/\/192\.168\..+:5173$/,
+      /^http:\/\/10\..+:5173$/,
+      /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\..+:5173$/
+    ];
+    
+    if (!origin || allowedOrigins.some(allowed => 
+      typeof allowed === 'string' ? allowed === origin : allowed.test(origin)
+    )) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true,
 };
 
 app.use(cors(corsOptions));

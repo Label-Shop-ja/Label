@@ -36,6 +36,7 @@ const AddEditProductForm = ({
     globalProductSuggestions,
     showGlobalSuggestions,
     handleSelectGlobalProduct,
+    handleRemoveMainImage,
 }) => {
     if (!isOpen) return null;
     
@@ -197,7 +198,7 @@ const AddEditProductForm = ({
                                 <div className={`w-full h-32 rounded-xl overflow-hidden mb-3 relative ${
                                     theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'
                                 }`}>
-                                    {imagePreviewUrl || productData.imageUrl ? (
+                                    {(imagePreviewUrl || productData.imageUrl) && !isUploadingMainImage ? (
                                         <>
                                             <img
                                                 src={imagePreviewUrl || productData.imageUrl}
@@ -215,6 +216,15 @@ const AddEditProductForm = ({
                                             }`}>
                                                 ❌
                                             </div>
+                                            {/* Botón eliminar imagen */}
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveMainImage}
+                                                className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold transition-colors shadow-lg"
+                                                title="Eliminar imagen"
+                                            >
+                                                ×
+                                            </button>
                                         </>
                                     ) : (
                                         <div className={`w-full h-full flex items-center justify-center text-4xl font-bold ${
@@ -234,7 +244,7 @@ const AddEditProductForm = ({
 
                                 {/* Botón subir imagen */}
                                 <div className="mb-4">
-                                    <label className={`w-full py-1.5 px-2 rounded-lg text-center cursor-pointer transition-colors text-xs flex items-center justify-center gap-1 ${
+                                    <label htmlFor="main-image-upload" className={`w-full py-1.5 px-2 rounded-lg text-center cursor-pointer transition-colors text-xs flex items-center justify-center gap-1 ${
                                         theme === 'light' 
                                             ? 'bg-blue-600 hover:bg-blue-700 text-white' 
                                             : 'bg-blue-500 hover:bg-blue-600 text-white'
@@ -243,8 +253,9 @@ const AddEditProductForm = ({
                                         Subir
                                     </label>
                                     <input
+                                        id="main-image-upload"
                                         type="file"
-                                        accept="image/*"
+                                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                                         onChange={handleMainImageFileChange}
                                         className="hidden"
                                     />
@@ -666,174 +677,287 @@ const AddEditProductForm = ({
                                             </div>
                                             <h3 className={`text-lg font-bold ${
                                                 theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                            }`}>Precios y Costos</h3>
+                                            }`}>Costos y Precios</h3>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            {/* Precio de Venta */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    Precio de Venta * 
-                                                    <span className={`text-xs ml-1 ${
-                                                        theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                                                    }`}>(Calculado automáticamente)</span>
-                                                </label>
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
+                                        <div className="flex gap-4">
+                                            {/* Columna principal con campos */}
+                                            <div className="flex-1">
+                                                {/* Fila 1: Costo + Moneda + Stock */}
+                                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4">
+                                                    {/* Costo Unitario */}
+                                                    <div className="md:col-span-5">
+                                                        <label className={`block text-sm font-medium mb-2 ${
+                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                                        }`}>
+                                                            Costo Unitario *
+                                                        </label>
                                                         <input
                                                             type="number"
-                                                            value={calculatedProductPricePlaceholder !== null ? parseFloat(calculatedProductPricePlaceholder).toFixed(2) : ''}
-                                                            readOnly
-                                                            className={`w-full px-3 py-2 border rounded-lg ${
-                                                                theme === 'light' ? 'border-border-subtle bg-gray-50 text-text-base' : 'border-gray-600 bg-gray-600 text-gray-100'
+                                                            name="costPrice"
+                                                            value={productData.costPrice || ''}
+                                                            onChange={handleProductInputChange}
+                                                            step="0.01"
+                                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                                                formErrors.costPrice ? 'border-red-500' : 
+                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
+                                                            }`}
+                                                            placeholder="15.00"
+                                                            required={!productData.variants || productData.variants.length === 0}
+                                                            disabled={productData.variants && productData.variants.length > 0}
+                                                        />
+                                                        {formErrors.costPrice && <p className="text-red-500 text-xs mt-1">{formErrors.costPrice}</p>}
+                                                    </div>
+
+                                                    {/* Selector de Moneda */}
+                                                    <div className="md:col-span-2">
+                                                        <label className={`block text-sm font-medium mb-2 ${
+                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                                        }`}>
+                                                            Moneda
+                                                        </label>
+                                                        <select
+                                                            name="costCurrency"
+                                                            value={productData.costCurrency || 'USD'}
+                                                            onChange={handleProductInputChange}
+                                                            className={`w-center px-1 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
                                                             }`}
                                                             disabled={productData.variants && productData.variants.length > 0}
-                                                            placeholder="Se calcula automáticamente"
+                                                        >
+                                                            {currencies.map(currency => (
+                                                                <option key={currency} value={currency}>{currency}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+
+                                                    {/* Stock */}
+                                                    <div className="md:col-span-5">
+                                                        <label className={`block text-sm font-medium mb-2 ${
+                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                                        }`}>
+                                                            Stock *
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            name="stock"
+                                                            value={productData.stock || ''}
+                                                            onChange={handleProductInputChange}
+                                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                                                formErrors.stock ? 'border-red-500' : 
+                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
+                                                            }`}
+                                                            placeholder="100"
+                                                            required={!productData.variants || productData.variants.length === 0}
+                                                            disabled={productData.variants && productData.variants.length > 0}
                                                         />
-                                                        {calculatedProductPricePlaceholder !== null && (
-                                                            <div className={`absolute right-2 top-2 text-xs ${
-                                                                theme === 'light' ? 'text-green-600' : 'text-green-400'
+                                                        {formErrors.stock && <p className="text-red-500 text-xs mt-1">{formErrors.stock}</p>}
+                                                        {/* Total de inversión */}
+                                                        {productData.costPrice && productData.stock && (
+                                                            <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${
+                                                                theme === 'light' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-orange-900/30 text-orange-300 border border-orange-700'
                                                             }`}>
-                                                                🔄
+                                                                📊 Total Inversión: {productData.costCurrency || 'USD'} {(Number(productData.costPrice) * Number(productData.stock)).toFixed(2)}
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <select
-                                                        name="saleCurrency"
-                                                        value={productData.saleCurrency || 'USD'}
-                                                        onChange={handleProductInputChange}
-                                                        className={`w-20 px-2 py-2 border rounded-lg ${
-                                                            theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                        }`}
-                                                        disabled={productData.variants && productData.variants.length > 0}
-                                                    >
-                                                        {currencies.map(currency => (
-                                                            <option key={currency} value={currency}>{currency}</option>
-                                                        ))}
-                                                    </select>
+                                                </div>
+
+                                                {/* Fila 2: Unidad + % Ganancia + Precio */}
+                                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                                    {/* Unidad de Medida */}
+                                                    <div className="md:col-span-4">
+                                                        <label className={`block text-sm font-medium mb-2 ${
+                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                                        }`}>
+                                                            Unidad *
+                                                        </label>
+                                                        <select
+                                                            name="unitOfMeasure"
+                                                            value={productData.unitOfMeasure || 'unidad'}
+                                                            onChange={handleProductInputChange}
+                                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                                                formErrors.unitOfMeasure ? 'border-red-500' : 
+                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
+                                                            }`}
+                                                            required={!productData.variants || productData.variants.length === 0}
+                                                            disabled={productData.variants && productData.variants.length > 0}
+                                                        >
+                                                            {unitOfMeasureOptions.map(unit => (
+                                                                <option key={unit} value={unit}>{unit}</option>
+                                                            ))}
+                                                        </select>
+                                                        {formErrors.unitOfMeasure && <p className="text-red-500 text-xs mt-1">{formErrors.unitOfMeasure}</p>}
+                                                    </div>
+
+                                                    {/* % Ganancia */}
+                                                    <div className="md:col-span-2">
+                                                        <label className={`block text-sm font-medium mb-2 ${
+                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                                        }`}>
+                                                            %
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            name="profitPercentage"
+                                                            value={productData.profitPercentage || ''}
+                                                            onChange={handleProductInputChange}
+                                                            step="0.1"
+                                                            min="0"
+                                                            max="999"
+                                                            className={`w-full px-2 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center ${
+                                                                formErrors.profitPercentage ? 'border-red-500' : 
+                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
+                                                            }`}
+                                                            placeholder="30"
+                                                            disabled={productData.variants && productData.variants.length > 0}
+                                                        />
+                                                        {formErrors.profitPercentage && <p className="text-red-500 text-xs mt-1">{formErrors.profitPercentage}</p>}
+                                                        {calculatedProductProfitPercentage !== null && (
+                                                            <p className={`text-xs mt-1 text-center ${
+                                                                theme === 'light' ? 'text-blue-600' : 'text-blue-400'
+                                                            }`}>
+                                                                {parseFloat(calculatedProductProfitPercentage).toFixed(1)}%
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Precio de Venta */}
+                                                    <div className="md:col-span-6">
+                                                        <label className={`block text-sm font-medium mb-2 ${
+                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                                        }`}>
+                                                            Precio de Venta
+                                                            <span className={`text-xs ml-1 ${
+                                                                theme === 'light' ? 'text-blue-600' : 'text-blue-400'
+                                                            }`}>(Auto)</span>
+                                                        </label>
+                                                        <div className="flex gap-1">
+                                                            <div className="relative flex-1">
+                                                                <input
+                                                                    type="number"
+                                                                    value={calculatedProductPricePlaceholder !== null ? parseFloat(calculatedProductPricePlaceholder).toFixed(2) : ''}
+                                                                    readOnly
+                                                                    className={`w-full px-3 py-2 border rounded-lg ${
+                                                                        theme === 'light' ? 'border-border-subtle bg-gray-50 text-text-base' : 'border-gray-600 bg-gray-600 text-gray-100'
+                                                                    }`}
+                                                                    disabled={productData.variants && productData.variants.length > 0}
+                                                                    placeholder="Calculado"
+                                                                />
+                                                                {calculatedProductPricePlaceholder !== null && (
+                                                                    <div className={`absolute right-8 top-2 text-xs ${
+                                                                        theme === 'light' ? 'text-green-600' : 'text-green-400'
+                                                                    }`}>
+                                                                        🔄
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <select
+                                                                name="saleCurrency"
+                                                                value={productData.saleCurrency || 'USD'}
+                                                                onChange={handleProductInputChange}
+                                                                className={`w-16 px-1 py-2 border rounded-lg text-xs ${
+                                                                    theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
+                                                                }`}
+                                                                disabled={productData.variants && productData.variants.length > 0}
+                                                            >
+                                                                {currencies.map(currency => (
+                                                                    <option key={currency} value={currency}>{currency}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* Costo */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                            {/* Sidebar: Ganancia Neta (siempre visible) */}
+                                            <div className={`w-64 p-3 rounded-lg border ${
+                                                theme === 'light' ? 'bg-green-50 border-green-200' : 'bg-green-900/20 border-green-700'
+                                            }`}>
+                                                <h4 className={`text-lg font-bold mb-2 text-center ${
+                                                    theme === 'light' ? 'text-green-800' : 'text-green-300'
                                                 }`}>
-                                                    Costo Unitario *
-                                                </label>
-                                                <div className="flex gap-2">
-                                                    <input
-                                                        type="number"
-                                                        name="costPrice"
-                                                        value={productData.costPrice || ''}
-                                                        onChange={handleProductInputChange}
-                                                        step="0.01"
-                                                        className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                            formErrors.costPrice ? 'border-red-500' : 
-                                                            theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                        }`}
-                                                        placeholder="15.00"
-                                                        required={!productData.variants || productData.variants.length === 0}
-                                                        disabled={productData.variants && productData.variants.length > 0}
-                                                    />
-                                                    <select
-                                                        name="costCurrency"
-                                                        value={productData.costCurrency || 'USD'}
-                                                        onChange={handleProductInputChange}
-                                                        className={`w-20 px-2 py-2 border rounded-lg ${
-                                                            theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                        }`}
-                                                        disabled={productData.variants && productData.variants.length > 0}
-                                                    >
-                                                        {currencies.map(currency => (
-                                                            <option key={currency} value={currency}>{currency}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                {formErrors.costPrice && <p className="text-red-500 text-xs mt-1">{formErrors.costPrice}</p>}
-                                            </div>
-
-                                            {/* Ganancia */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    % Ganancia *
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    name="profitPercentage"
-                                                    value={productData.profitPercentage || ''}
-                                                    onChange={handleProductInputChange}
-                                                    step="0.1"
-                                                    min="0"
-                                                    max="500"
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        formErrors.profitPercentage ? 'border-red-500' : 
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    placeholder="20"
-                                                    required={!productData.variants || productData.variants.length === 0}
-                                                    disabled={productData.variants && productData.variants.length > 0}
-                                                />
-                                                {formErrors.profitPercentage && <p className="text-red-500 text-xs mt-1">{formErrors.profitPercentage}</p>}
-                                                {calculatedProductProfitPercentage !== null && (
-                                                    <p className={`text-xs mt-1 ${
-                                                        theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                                                    }`}>
-                                                        Ganancia real: {parseFloat(calculatedProductProfitPercentage).toFixed(1)}%
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            {/* Stock */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    Stock *
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    name="stock"
-                                                    value={productData.stock || ''}
-                                                    onChange={handleProductInputChange}
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        formErrors.stock ? 'border-red-500' : 
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    placeholder="100"
-                                                    required={!productData.variants || productData.variants.length === 0}
-                                                    disabled={productData.variants && productData.variants.length > 0}
-                                                />
-                                                {formErrors.stock && <p className="text-red-500 text-xs mt-1">{formErrors.stock}</p>}
-                                            </div>
-
-                                            {/* Unidad de Medida */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    Unidad de Medida *
-                                                </label>
-                                                <select
-                                                    name="unitOfMeasure"
-                                                    value={productData.unitOfMeasure || 'unidad'}
-                                                    onChange={handleProductInputChange}
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        formErrors.unitOfMeasure ? 'border-red-500' : 
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    required={!productData.variants || productData.variants.length === 0}
-                                                    disabled={productData.variants && productData.variants.length > 0}
-                                                >
-                                                    {unitOfMeasureOptions.map(unit => (
-                                                        <option key={unit} value={unit}>{unit}</option>
-                                                    ))}
-                                                </select>
-                                                {formErrors.unitOfMeasure && <p className="text-red-500 text-xs mt-1">{formErrors.unitOfMeasure}</p>}
+                                                    Ganancia Neta
+                                                </h4>
+                                                
+                                                {(() => {
+                                                    const costo = Number(productData.costPrice) || 0;
+                                                    const stock = Number(productData.stock) || 0;
+                                                    const precio = calculatedProductPricePlaceholder ? Number(calculatedProductPricePlaceholder) : 0;
+                                                    
+                                                    const totalVenta = precio * stock;
+                                                    const totalCosto = costo * stock;
+                                                    const gananciaNeta = totalVenta - totalCosto;
+                                                    
+                                                    const hasData = costo > 0 && stock > 0 && precio > 0;
+                                                    
+                                                    return (
+                                                        <div className="space-y-2 text-sm">
+                                                            <div className={`text-center text-2xl font-bold mb-3 ${
+                                                                hasData 
+                                                                    ? theme === 'light' ? 'text-green-700' : 'text-green-200'
+                                                                    : theme === 'light' ? 'text-gray-400' : 'text-gray-500'
+                                                            }`}>
+                                                                {hasData 
+                                                                    ? `${productData.saleCurrency || 'USD'} ${gananciaNeta.toFixed(2)}`
+                                                                    : '-- --'
+                                                                }
+                                                            </div>
+                                                            
+                                                            <div className={`p-2 rounded border-l-4 ${
+                                                                theme === 'light' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-blue-900/30 border-blue-500 text-blue-300'
+                                                            }`}>
+                                                                <div className="flex justify-between">
+                                                                    <span>📈 Total Venta:</span>
+                                                                    <span className="font-semibold">
+                                                                        {hasData 
+                                                                            ? `${productData.saleCurrency || 'USD'} ${totalVenta.toFixed(2)}`
+                                                                            : '--'
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className={`p-2 rounded border-l-4 ${
+                                                                theme === 'light' ? 'bg-orange-50 border-orange-400 text-orange-700' : 'bg-orange-900/30 border-orange-500 text-orange-300'
+                                                            }`}>
+                                                                <div className="flex justify-between">
+                                                                    <span>💰 Total Costo:</span>
+                                                                    <span className="font-semibold">
+                                                                        {hasData 
+                                                                            ? `${productData.costCurrency || 'USD'} ${totalCosto.toFixed(2)}`
+                                                                            : '--'
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className={`p-2 rounded border-l-4 ${
+                                                                theme === 'light' ? 'bg-green-50 border-green-400 text-green-700' : 'bg-green-900/30 border-green-500 text-green-300'
+                                                            }`}>
+                                                                <div className="flex justify-between">
+                                                                    <span>🎯 Ganancia:</span>
+                                                                    <span className="font-bold">
+                                                                        {hasData 
+                                                                            ? `${productData.saleCurrency || 'USD'} ${gananciaNeta.toFixed(2)}`
+                                                                            : '--'
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className={`text-center text-xs mt-3 ${
+                                                                theme === 'light' ? 'text-green-600' : 'text-green-400'
+                                                            }`}>
+                                                                {hasData && totalVenta > 0
+                                                                    ? `Margen: ${((gananciaNeta / totalVenta) * 100).toFixed(1)}%`
+                                                                    : 'Ingresa costo y stock'
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()
+                                                }
                                             </div>
                                         </div>
                                     </section>
@@ -1054,7 +1178,7 @@ const AddEditProductForm = ({
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {/* Subir archivo */}
                                                 <div>
-                                                    <label className={`w-full py-3 px-4 rounded-lg text-center cursor-pointer transition-colors font-medium flex items-center justify-center gap-2 ${
+                                                    <label htmlFor="main-image-upload-advanced" className={`w-full py-3 px-4 rounded-lg text-center cursor-pointer transition-colors font-medium flex items-center justify-center gap-2 ${
                                                         theme === 'light' 
                                                             ? 'bg-blue-600 hover:bg-blue-700 text-white' 
                                                             : 'bg-blue-500 hover:bg-blue-600 text-white'
@@ -1063,8 +1187,9 @@ const AddEditProductForm = ({
                                                         {isUploadingMainImage ? 'Subiendo...' : 'Subir desde Dispositivo'}
                                                     </label>
                                                     <input
+                                                        id="main-image-upload-advanced"
                                                         type="file"
-                                                        accept="image/*"
+                                                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                                                         onChange={handleMainImageFileChange}
                                                         className="hidden"
                                                     />
@@ -1073,7 +1198,7 @@ const AddEditProductForm = ({
                                                 {/* Preview mejorado */}
                                                 <div>
                                                     {imagePreviewUrl || productData.imageUrl ? (
-                                                        <div className={`p-3 rounded-lg border text-center ${
+                                                        <div className={`p-3 rounded-lg border text-center relative ${
                                                             theme === 'light' ? 'border-border-subtle bg-surface-primary' : 'border-gray-600 bg-gray-800'
                                                         }`}>
                                                             <p className={`text-xs mb-2 ${
@@ -1088,6 +1213,14 @@ const AddEditProductForm = ({
                                                                     e.target.src = 'https://placehold.co/200x150/gray/white?text=Error+al+cargar';
                                                                 }}
                                                             />
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleRemoveMainImage}
+                                                                className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold transition-colors shadow-lg"
+                                                                title="Eliminar imagen"
+                                                            >
+                                                                ×
+                                                            </button>
                                                         </div>
                                                     ) : (
                                                         <div className={`p-3 rounded-lg border text-center ${

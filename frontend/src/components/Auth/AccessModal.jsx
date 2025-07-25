@@ -9,14 +9,19 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { loginSchema, registerSchema } from '../../schemas/authSchemas';
 import useAuth from "../../hooks/useAuth";
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../../redux/authSlice';
 import { Lock, Mail, User, Eye, EyeOff } from 'lucide-react';
-import { FaGoogle, FaFacebook } from 'react-icons/fa';
+import { FaGoogle } from 'react-icons/fa';
+import AccountManager from '../../services/AccountManager';
+import GoogleAccountSelector from './GoogleAccountSelector';
 
-function AccessModal({ onClose, onOpenLegalModal, onOpenForgotPasswordModal }) {
+function AccessModal({ onClose, onOpenLegalModal, onOpenForgotPasswordModal, isAddingAccount = false }) {
     const [isLogin, setIsLogin] = useState(true);
+    const [showGoogleAccountSelector, setShowGoogleAccountSelector] = useState(false);
     const { login, register, isLoading, isError, message, reset, isAuthenticated } = useAuth();
-    // Ahora, gracias a useCallback en el contexto, esta función `showNotification` es estable.
     const { showNotification } = useNotification();
+    const dispatch = useDispatch();
 
     // Este useEffect ahora es seguro y no causará bucles infinitos.
     useEffect(() => {
@@ -32,14 +37,14 @@ function AccessModal({ onClose, onOpenLegalModal, onOpenForgotPasswordModal }) {
 
     // Este efecto maneja el caso de éxito.
     useEffect(() => {
-        if (isAuthenticated) {
-            onClose(); // Cierra el modal al autenticarse.
+        if (isAuthenticated && !isAddingAccount) {
+            onClose(); // Cierra el modal al autenticarse (solo si no es añadir cuenta)
         }
         // La función de limpieza es ideal para resetear el estado si el usuario cierra el modal manualmente.
         return () => {
             reset();
         };
-    }, [isAuthenticated, onClose, reset]);
+    }, [isAuthenticated, onClose, reset, isAddingAccount]);
 
     const [showLoginPassword, setShowLoginPassword] = useState(false);
     const [showRegPassword, setShowRegPassword] = useState(false);
@@ -75,6 +80,52 @@ function AccessModal({ onClose, onOpenLegalModal, onOpenForgotPasswordModal }) {
             password: data.password,
             // El campo 'terms' es validado por el schema pero no se envía al backend
         });
+    };
+
+    const handleGoogleLogin = () => {
+        const savedAccounts = AccountManager.getSavedAccounts();
+        const googleAccounts = savedAccounts.accounts.filter(acc => acc.provider === 'google');
+        
+        if (googleAccounts.length > 0) {
+            // Mostrar selector de cuenta
+            setShowGoogleAccountSelector(true);
+        } else {
+            // Ir directamente a Google OAuth
+            window.location.href = `${import.meta.env.VITE_BACKEND_URL.replace('/api', '')}/api/auth/google`;
+        }
+    };
+
+    const handleUseGoogleAccount = async (account) => {
+        setShowGoogleAccountSelector(false);
+        
+        try {
+            // Simular login exitoso con la cuenta seleccionada
+            showNotification(`Iniciando sesión con ${account.email}`, 'success');
+            
+            // Simular datos de usuario para login
+            const userData = {
+                user: {
+                    id: account.id,
+                    email: account.email,
+                    fullName: account.fullName,
+                    avatar: account.avatar
+                },
+                accessToken: 'temp_token_' + Date.now()
+            };
+            
+            // Usar setCredentials para login inmediato
+            dispatch(setCredentials(userData));
+            
+        } catch (error) {
+            console.error('Error al usar cuenta Google:', error);
+            showNotification('Error al iniciar sesión. Intenta de nuevo.', 'error');
+        }
+    };
+
+    const handleUseDifferentGoogleAccount = () => {
+        setShowGoogleAccountSelector(false);
+        // Redirigir en la misma ventana con prompt para forzar selección de cuenta
+        window.location.href = `${import.meta.env.VITE_BACKEND_URL.replace('/api', '')}/api/auth/google?prompt=select_account&hd=*`;
     };
 
     const overlayVariants = {
@@ -243,24 +294,25 @@ function AccessModal({ onClose, onOpenLegalModal, onOpenForgotPasswordModal }) {
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4">
-                            {/* El enlace apunta a la ruta del backend que iniciará el flujo de Google */}
-                            <a
-                                href={`${import.meta.env.VITE_API_BASE_URL}/auth/google`}
+                            <button
+                                onClick={handleGoogleLogin}
                                 className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-[#4285F4] hover:bg-[#357ae8] text-white font-semibold transition-colors duration-300"
                             >
                                 <FaGoogle /> Google
-                            </a>
-                            {/* El botón de Facebook se aplaza temporalmente
-                            <a
-                                href={`${import.meta.env.VITE_API_BASE_URL}/auth/facebook`}
-                                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-[#1877F2] hover:bg-[#166fe5] text-white font-semibold transition-colors duration-300"
-                            >
-                                <FaFacebook /> Facebook
-                            </a> */}
+                            </button>
                         </div>
 
                     </div>
             </motion.div>
+            
+            {/* Selector de cuenta Google */}
+            {showGoogleAccountSelector && (
+                <GoogleAccountSelector
+                    onUseAccount={handleUseGoogleAccount}
+                    onUseDifferent={handleUseDifferentGoogleAccount}
+                    onClose={() => setShowGoogleAccountSelector(false)}
+                />
+            )}
         </motion.div>
     );
 }
@@ -269,6 +321,7 @@ AccessModal.propTypes = {
     onClose: PropTypes.func.isRequired,
     onOpenLegalModal: PropTypes.func.isRequired,
     onOpenForgotPasswordModal: PropTypes.func.isRequired,
+    isAddingAccount: PropTypes.bool,
 };
 
 export default AccessModal;
