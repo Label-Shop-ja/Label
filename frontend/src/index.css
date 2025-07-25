@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- DEFINICIÓN DE TEMAS CON VARIABLES CSS --- */
+
+/* Tema por defecto (Oscuro) */
+:root {
+  --color-background: 225 29% 9%; /* #111827 */
+  --color-surface: 221 28% 17%; /* #1f2937 */
+  --color-surface-secondary: 220 15% 26%; /* #374151 */
+  --color-primary: 217 91% 60%; /* #3b82f6 */
+  --color-secondary: 0 72% 66%; /* #e57373 */
+  --color-success: 145 63% 59%; /* #4ade80 */
+  --color-error: 0 91% 71%; /* #f87171 */
+  --color-text-base: 210 40% 98%; /* #f9fafb */
+  --color-text-muted: 214 19% 65%; /* #9ca3af */
+}
+
+/* Tema Claro */
+.light {
+  --color-background: 220 14% 96%; /* light-bg: #F9FAFB */
+  --color-surface: 0 0% 100%; /* light-surface: #FFFFFF */
+  --color-surface-secondary: 220 13% 91%; /* #E5E7EB */
+  --color-primary: 221 83% 53%; /* light-action: #3B82F6 */
+  --color-secondary: 0 84% 60%; /* light-accent: #EF4444 */
+  --color-success: 145 78% 35%; /* #16A34A */
+  --color-error: 0 72% 51%; /* #DC2626 */
+  --color-text-base: 221 28% 17%; /* light-text: #1F2937 */
+  --color-text-muted: 220 9% 46%; /* light-text-secondary: #6B7280 */
+}
+
+/* Definiciones de Keyframes para animaciones personalizadas */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%); /* Empieza fuera de la pantalla a la derecha */
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0); /* Termina en su posición normal */
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%); /* Empieza fuera de la pantalla a la izquierda */
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0); /* Termina en su posición normal */
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-20px); /* Empieza un poco arriba */
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0); /* Termina en su posición normal */
+    opacity: 1;
+  }
+}
+
+
+/* Clases de utilidad de Tailwind para usar las animaciones */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards; /* 0.3s de duración, se queda al final */
+}
+
+.animate-slideInFromRight {
+  animation: slideInFromRight 0.4s ease-out forwards; /* 0.4s para el deslizamiento */
+}
+
+.animate-slideInFromLeft {
+  animation: slideInFromLeft 0.4s ease-out forwards; /* 0.4s para el deslizamiento */
+}
+
+.animate-slideInFromTop {
+  animation: slideInFromTop 0.3s ease-out forwards;
+}
+
+/* Clase de utilidad para ocultar la barra de desplazamiento del navegador */
+.hide-scrollbar {
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE and Edge */
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
+}
+
+/* Estilos para el spinner */
+.spinner-border {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  vertical-align: -0.125em;
+  border: 0.25em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  -webkit-animation: spinner-border .75s linear infinite;
+  animation: spinner-border .75s linear infinite;
+}
+
+@keyframes spinner-border {
+  to { transform: rotate(360deg); }
+}
+
+/* Estilos para el contenido renderizado desde Markdown */
+.markdown-content h1, .markdown-content h2, .markdown-content h3 {
+  @apply text-text-base font-bold mb-4;
+}
+.markdown-content h1 { @apply text-2xl; }
+.markdown-content h2 { @apply text-xl mt-6; }
+.markdown-content h3 { @apply text-lg mt-4; }
+
+.markdown-content p {
+  @apply mb-4 leading-relaxed;
+}
+
+.markdown-content ul {
+  @apply list-disc list-inside mb-4 pl-4 space-y-2;
+}
+
+.markdown-content a {
+  @apply text-primary hover:underline;
+}
+
+/* Estilos base para el body, usando las variables */
+body {
+  background-color: hsl(var(--color-background));
+  color: hsl(var(--color-text-base));
+  transition: background-color 0.3s ease, color 0.3s ease;
+}

@@ -1,0 +1,12 @@
+{
+  "LOGIN_ERROR": "Usuario o contraseña incorrectos.",
+  "LOGIN_SUCCESS": "¡Bienvenido!",
+  "REGISTER_SUCCESS": "¡Registro exitoso! Por favor, inicia sesión.",
+  "PRODUCT_SAVE_SUCCESS": "Producto guardado correctamente.",
+  "PRODUCT_SAVE_ERROR": "Error al guardar producto.",
+  "PRODUCT_DELETE_SUCCESS": "Producto eliminado correctamente.",
+  "PRODUCT_DELETE_ERROR": "No se pudo eliminar el producto.",
+  "CLIENT_ADD_SUCCESS": "Cliente agregado exitosamente.",
+  "CLIENT_ADD_ERROR": "Error al agregar cliente.",
+  "CLIENT_NAME_REQUIRED": "El nombre del cliente es obligatorio."
+}
