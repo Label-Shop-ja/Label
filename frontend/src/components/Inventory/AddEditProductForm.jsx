@@ -1,6 +1,6 @@
 // src/components/Inventory/AddEditProductForm.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Upload, Loader2, Save, Settings, Package, DollarSign, AlertTriangle, X, Trash2, XCircle } from 'lucide-react';
+import { Plus, Upload, Loader2, Save, Settings, Package, DollarSign, AlertTriangle, X, Trash2, XCircle, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import VariantForm from './VariantForm';
 import ErrorBoundary from '../Common/ErrorBoundary';
@@ -41,162 +41,1070 @@ const AddEditProductForm = ({
     if (!isOpen) return null;
     
     const { theme } = useTheme();
-    const [activeSection, setActiveSection] = useState('basic');
+    const [currentPage, setCurrentPage] = useState(0);
     const [expandedVariants, setExpandedVariants] = useState(new Set());
     const [showVariantDeleteConfirm, setShowVariantDeleteConfirm] = useState(false);
+    const [expandedSections, setExpandedSections] = useState(new Set(['attributes'])); // Atributos expandido por defecto
     const sectionRefs = useRef({});
     
-    const currencies = availableCurrencies && availableCurrencies.length > 0 
-        ? availableCurrencies 
-        : ['USD', 'VES', 'EUR'];
-
-    const scrollToSection = (sectionId) => {
-        setActiveSection(sectionId);
-        if (sectionRefs.current[sectionId]) {
-            sectionRefs.current[sectionId].scrollIntoView({ 
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-    };
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        const sectionId = entry.target.getAttribute('data-section');
-                        if (sectionId) {
-                            setActiveSection(sectionId);
-                        }
-                    }
-                });
-            },
-            { threshold: 0.5 }
-        );
-
-        Object.values(sectionRefs.current).forEach((ref) => {
-            if (ref) observer.observe(ref);
-        });
-
-        return () => observer.disconnect();
-    }, [productData.variants]);
-
-    const toggleVariantExpansion = (variantIndex) => {
-        setExpandedVariants(prev => {
+    // Función para toggle de secciones
+    const toggleSection = (sectionId) => {
+        setExpandedSections(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(variantIndex)) {
-                newSet.delete(variantIndex);
+            if (newSet.has(sectionId)) {
+                newSet.delete(sectionId);
             } else {
-                newSet.add(variantIndex);
+                newSet.add(sectionId);
             }
             return newSet;
         });
-        setTimeout(() => scrollToSection(`variant-${variantIndex}`), 100);
     };
-
-    const getVariantStatus = (variant, index) => {
-        const hasErrors = Object.keys(formErrors).some(key => key.startsWith(`variant-${index}-`));
-        const isComplete = variant.name && variant.costPrice && variant.stock;
+    
+    // Definir las páginas del formulario
+    const getPages = () => {
+        const basePages = [
+            { id: 'basic', title: 'Información Básica', icon: '📝', color: 'blue' },
+            { id: 'pricing', title: 'Costos y Precios', icon: '💰', color: 'green' },
+            { id: 'advanced', title: 'Opciones Avanzadas', icon: '⚙️', color: 'orange' }
+        ];
         
-        if (hasErrors) return '⚠️';
-        if (isComplete) return '✅';
-        return index + 1;
+        if (productData.variants && productData.variants.length > 0) {
+            basePages.push({ id: 'variants', title: 'Variantes', icon: '🎨', color: 'purple' });
+            productData.variants.forEach((variant, index) => {
+                basePages.push({
+                    id: `variant-${index}`,
+                    title: variant.name || `Variante ${index + 1}`,
+                    icon: '🎯',
+                    color: 'purple',
+                    isVariant: true
+                });
+            });
+        }
+        
+        return basePages;
     };
-
-    const getSectionStatus = (sectionName) => {
-        const sectionErrors = {
-            basic: ['name', 'category'].some(field => formErrors[field]),
-            pricing: ['costPrice', 'stock', 'unitOfMeasure'].some(field => formErrors[field]),
-            variants: productData.variants?.some((_, index) => 
-                Object.keys(formErrors).some(key => key.startsWith(`variant-${index}-`))
-            ),
-            advanced: ['reorderThreshold', 'optimalMaxStock', 'shelfLifeDays'].some(field => formErrors[field])
-        };
-        return sectionErrors[sectionName] ? '⚠️' : null;
+    
+    const pages = getPages();
+    const totalPages = pages.length;
+    
+    const goToPage = (pageIndex) => {
+        if (pageIndex >= 0 && pageIndex < totalPages) {
+            setCurrentPage(pageIndex);
+        }
     };
-
-    const getFormProgress = () => {
-        const totalFields = ['name', 'category', 'costPrice', 'stock'];
-        const completedFields = totalFields.filter(field => productData[field]);
-        return Math.round((completedFields.length / totalFields.length) * 100);
+    
+    const nextPage = () => {
+        if (currentPage < totalPages - 1) {
+            setCurrentPage(currentPage + 1);
+        }
     };
-
-    const hasVariantContent = () => {
-        return productData.variants?.some(variant => 
-            variant.name || variant.costPrice || variant.stock || variant.sku || 
-            variant.color || variant.size || variant.material || variant.imageUrl
-        );
-    };
-
-    const handleProductTypeChange = (hasVariants) => {
-        if (!hasVariants && productData.variants?.length > 0 && hasVariantContent()) {
-            setShowVariantDeleteConfirm(true);
-        } else {
-            handleProductInputChange({ target: { name: 'variants', value: hasVariants ? [{}] : [] } });
+    
+    const prevPage = () => {
+        if (currentPage > 0) {
+            setCurrentPage(currentPage - 1);
         }
     };
 
-    const confirmDeleteVariants = () => {
-        handleProductInputChange({ target: { name: 'variants', value: [] } });
-        setShowVariantDeleteConfirm(false);
-    };
-
+    // Atajos de teclado para navegación
     useEffect(() => {
-        const handleEscape = (event) => {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-        };
-        
-        const handleClickOutside = (event) => {
-            if (showGlobalSuggestions && !event.target.closest('.suggestions-dropdown')) {
-                // Cerrar sugerencias si se hace clic fuera
+        const handleKeyDown = (event) => {
+            if (event.key === 'ArrowLeft' && !event.target.matches('input, textarea, select')) {
+                event.preventDefault();
+                prevPage();
+            } else if (event.key === 'ArrowRight' && !event.target.matches('input, textarea, select')) {
+                event.preventDefault();
+                nextPage();
             }
         };
         
         if (isOpen) {
-            document.addEventListener('keydown', handleEscape);
-            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('keydown', handleKeyDown);
         }
         
         return () => {
-            document.removeEventListener('keydown', handleEscape);
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isOpen, onClose, showGlobalSuggestions]);
+    }, [isOpen, currentPage, totalPages]);
+
+    // Resetear página al abrir modal
+    useEffect(() => {
+        if (isOpen) {
+            setCurrentPage(0);
+        }
+    }, [isOpen]);
+
+    // Función para renderizar contenido específico de cada página
+    const renderPageContent = (page) => {
+        switch (page.id) {
+            case 'basic':
+                return (
+                    <form onSubmit={onSubmit} className="space-y-6">
+                        {/* Tipo de Producto */}
+                        <div className={`p-4 rounded-xl border ${
+                            theme === 'light' ? 'border-blue-200 bg-blue-50/50' : 'border-blue-700/50 bg-blue-900/20'
+                        }`}>
+                            <h4 className={`text-sm font-semibold mb-3 ${
+                                theme === 'light' ? 'text-blue-800' : 'text-blue-200'
+                            }`}>Tipo de Producto</h4>
+                            <div className="flex gap-4">
+                                <label className="flex items-center">
+                                    <input
+                                        type="radio"
+                                        name="hasVariants"
+                                        checked={!productData.variants || productData.variants.length === 0}
+                                        onChange={() => handleProductInputChange({ target: { name: 'variants', value: [] } })}
+                                        className="mr-2 text-blue-600"
+                                    />
+                                    <span className={theme === 'light' ? 'text-blue-700' : 'text-blue-200'}>
+                                        📦 Producto Simple
+                                    </span>
+                                </label>
+                                <label className="flex items-center">
+                                    <input
+                                        type="radio"
+                                        name="hasVariants"
+                                        checked={productData.variants && productData.variants.length > 0}
+                                        onChange={() => handleAddVariant()}
+                                        className="mr-2 text-blue-600"
+                                    />
+                                    <span className={theme === 'light' ? 'text-blue-700' : 'text-blue-200'}>
+                                        🎨 Con Variantes
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Nombre */}
+                            <div className="relative">
+                                <label className={`block text-sm font-medium mb-2 ${
+                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                }`}>
+                                    Nombre del Producto *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={productData.name || ''}
+                                    onChange={handleProductInputChange}
+                                    className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                        formErrors.name ? 'border-red-500 bg-red-50/10' : 
+                                        theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                    }`}
+                                    placeholder="Ej. Camiseta Deportiva"
+                                    required
+                                />
+                                {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
+                                
+                                {/* Sugerencias globales */}
+                                {showGlobalSuggestions && globalProductSuggestions && globalProductSuggestions.length > 0 && (
+                                    <div className={`absolute z-10 w-full mt-1 rounded-lg border shadow-lg max-h-48 overflow-y-auto ${
+                                        theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-600'
+                                    }`}>
+                                        {globalProductSuggestions.map((suggestion, index) => (
+                                            <button
+                                                key={index}
+                                                type="button"
+                                                onClick={() => handleSelectGlobalProduct(suggestion)}
+                                                className={`w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors ${
+                                                    theme === 'light' ? 'hover:bg-blue-50 text-text-base' : 'hover:bg-blue-900/20 text-gray-200'
+                                                }`}
+                                            >
+                                                <div className="font-medium">{suggestion.name}</div>
+                                                <div className={`text-xs ${
+                                                    theme === 'light' ? 'text-text-muted' : 'text-gray-400'
+                                                }`}>{suggestion.category}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Categoría */}
+                            <div>
+                                <label className={`block text-sm font-medium mb-2 ${
+                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                }`}>
+                                    Categoría *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="category"
+                                    value={productData.category || ''}
+                                    onChange={handleProductInputChange}
+                                    className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                        formErrors.category ? 'border-red-500 bg-red-50/10' : 
+                                        theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                    }`}
+                                    placeholder="Ej. Ropa, Electrónica"
+                                    required
+                                />
+                                {formErrors.category && <p className="text-red-500 text-xs mt-1">{formErrors.category}</p>}
+                            </div>
+                        </div>
+
+                        {/* SKU */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className={`block text-sm font-medium mb-2 ${
+                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                }`}>
+                                    SKU {!isMainSkuManuallyEdited && <span className="text-xs text-blue-500">(Auto)</span>}
+                                </label>
+                                <input
+                                    type="text"
+                                    name="sku"
+                                    value={productData.sku || autoGeneratedSku || ''}
+                                    onChange={handleProductInputChange}
+                                    className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                        theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                    }`}
+                                    placeholder="Ej. CAM-DEP-001"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className={`block text-sm font-medium mb-2 ${
+                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                }`}>
+                                    Unidad de Medida *
+                                </label>
+                                <select
+                                    name="unitOfMeasure"
+                                    value={productData.unitOfMeasure || 'unidad'}
+                                    onChange={handleProductInputChange}
+                                    className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                        formErrors.unitOfMeasure ? 'border-red-500 bg-red-50/10' : 
+                                        theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                    }`}
+                                    required
+                                >
+                                    {unitOfMeasureOptions?.map(unit => (
+                                        <option key={unit} value={unit}>{unit}</option>
+                                    )) || [
+                                        <option key="unidad" value="unidad">unidad</option>,
+                                        <option key="kg" value="kg">kg</option>,
+                                        <option key="litro" value="litro">litro</option>,
+                                        <option key="metro" value="metro">metro</option>
+                                    ]}
+                                </select>
+                                {formErrors.unitOfMeasure && <p className="text-red-500 text-xs mt-1">{formErrors.unitOfMeasure}</p>}
+                            </div>
+                        </div>
+                        
+                        {/* Descripción */}
+                        <div>
+                            <label className={`block text-sm font-medium mb-2 ${
+                                theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                            }`}>
+                                Descripción
+                            </label>
+                            <textarea
+                                name="description"
+                                value={productData.description || ''}
+                                onChange={handleProductInputChange}
+                                rows={4}
+                                className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                    theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                }`}
+                                placeholder="Descripción detallada del producto..."
+                            />
+                        </div>
+                    </form>
+                );
+                
+            case 'pricing':
+                return (
+                    <form onSubmit={onSubmit} className="space-y-6">
+                        <div className="flex gap-6">
+                            {/* Columna principal con campos */}
+                            <div className="flex-1">
+                                {/* Fila 1: Costo + Moneda + Stock */}
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4">
+                                    {/* Costo Unitario */}
+                                    <div className="md:col-span-5">
+                                        <label className={`block text-sm font-medium mb-2 ${
+                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                        }`}>
+                                            Costo Unitario *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="costPrice"
+                                            value={productData.costPrice || ''}
+                                            onChange={handleProductInputChange}
+                                            step="0.01"
+                                            className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                                formErrors.costPrice ? 'border-red-500 bg-red-50/10' : 
+                                                theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                            }`}
+                                            placeholder="15.00"
+                                            required={!productData.variants || productData.variants.length === 0}
+                                            disabled={productData.variants && productData.variants.length > 0}
+                                        />
+                                        {formErrors.costPrice && <p className="text-red-500 text-xs mt-1">{formErrors.costPrice}</p>}
+                                    </div>
+
+                                    {/* Selector de Moneda */}
+                                    <div className="md:col-span-2">
+                                        <label className={`block text-sm font-medium mb-2 ${
+                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                        }`}>
+                                            Moneda
+                                        </label>
+                                        <select
+                                            name="costCurrency"
+                                            value={productData.costCurrency || 'USD'}
+                                            onChange={handleProductInputChange}
+                                            className={`w-full px-2 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                                theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                            }`}
+                                            disabled={productData.variants && productData.variants.length > 0}
+                                        >
+                                            {availableCurrencies?.map(currency => (
+                                                <option key={currency} value={currency}>{currency}</option>
+                                            )) || [
+                                                <option key="USD" value="USD">USD</option>,
+                                                <option key="VES" value="VES">VES</option>,
+                                                <option key="EUR" value="EUR">EUR</option>
+                                            ]}
+                                        </select>
+                                    </div>
+
+                                    {/* Stock */}
+                                    <div className="md:col-span-5">
+                                        <label className={`block text-sm font-medium mb-2 ${
+                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                        }`}>
+                                            Stock *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="stock"
+                                            value={productData.stock || ''}
+                                            onChange={handleProductInputChange}
+                                            className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                                formErrors.stock ? 'border-red-500 bg-red-50/10' : 
+                                                theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                            }`}
+                                            placeholder="100"
+                                            required={!productData.variants || productData.variants.length === 0}
+                                            disabled={productData.variants && productData.variants.length > 0}
+                                        />
+                                        {formErrors.stock && <p className="text-red-500 text-xs mt-1">{formErrors.stock}</p>}
+                                        {/* Total de inversión */}
+                                        {productData.costPrice && productData.stock && (
+                                            <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${
+                                                theme === 'light' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-orange-900/30 text-orange-300 border border-orange-700'
+                                            }`}>
+                                                📊 Total Inversión: {productData.costCurrency || 'USD'} {(Number(productData.costPrice) * Number(productData.stock)).toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Fila 2: % Ganancia + Precio */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* % Ganancia */}
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${
+                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                        }`}>
+                                            % Ganancia
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="profitPercentage"
+                                            value={productData.profitPercentage || ''}
+                                            onChange={handleProductInputChange}
+                                            step="0.1"
+                                            min="0"
+                                            max="999"
+                                            className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm text-center ${
+                                                formErrors.profitPercentage ? 'border-red-500 bg-red-50/10' : 
+                                                theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                            }`}
+                                            placeholder="30"
+                                            disabled={productData.variants && productData.variants.length > 0}
+                                        />
+                                        {formErrors.profitPercentage && <p className="text-red-500 text-xs mt-1">{formErrors.profitPercentage}</p>}
+                                        {calculatedProductProfitPercentage !== null && (
+                                            <p className={`text-xs mt-1 text-center ${
+                                                theme === 'light' ? 'text-blue-600' : 'text-blue-400'
+                                            }`}>
+                                                {parseFloat(calculatedProductProfitPercentage).toFixed(1)}%
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Precio de Venta */}
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${
+                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                        }`}>
+                                            Precio de Venta
+                                            <span className={`text-xs ml-1 ${
+                                                theme === 'light' ? 'text-blue-600' : 'text-blue-400'
+                                            }`}>(Auto)</span>
+                                        </label>
+                                        <div className="flex gap-1">
+                                            <div className="relative flex-1">
+                                                <input
+                                                    type="number"
+                                                    value={calculatedProductPricePlaceholder !== null ? parseFloat(calculatedProductPricePlaceholder).toFixed(2) : ''}
+                                                    readOnly
+                                                    className={`w-full px-3 py-2.5 border rounded-xl ${
+                                                        theme === 'light' ? 'border-gray-200 bg-gray-50 text-text-base' : 'border-gray-600 bg-gray-600 text-gray-100'
+                                                    }`}
+                                                    disabled={productData.variants && productData.variants.length > 0}
+                                                    placeholder="Calculado"
+                                                />
+                                                {calculatedProductPricePlaceholder !== null && (
+                                                    <div className={`absolute right-8 top-2.5 text-xs ${
+                                                        theme === 'light' ? 'text-green-600' : 'text-green-400'
+                                                    }`}>
+                                                        🔄
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <select
+                                                name="saleCurrency"
+                                                value={productData.saleCurrency || 'USD'}
+                                                onChange={handleProductInputChange}
+                                                className={`w-16 px-1 py-2.5 border rounded-xl text-xs ${
+                                                    theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
+                                                }`}
+                                                disabled={productData.variants && productData.variants.length > 0}
+                                            >
+                                                {availableCurrencies?.map(currency => (
+                                                    <option key={currency} value={currency}>{currency}</option>
+                                                )) || [
+                                                    <option key="USD" value="USD">USD</option>,
+                                                    <option key="VES" value="VES">VES</option>,
+                                                    <option key="EUR" value="EUR">EUR</option>
+                                                ]}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sidebar: Ganancia Neta */}
+                            <div className={`w-64 p-4 rounded-xl border ${
+                                theme === 'light' ? 'bg-green-50 border-green-200' : 'bg-green-900/20 border-green-700'
+                            }`}>
+                                <h4 className={`text-lg font-bold mb-3 text-center ${
+                                    theme === 'light' ? 'text-green-800' : 'text-green-300'
+                                }`}>
+                                    💰 Ganancia Neta
+                                </h4>
+                                
+                                {(() => {
+                                    const costo = Number(productData.costPrice) || 0;
+                                    const stock = Number(productData.stock) || 0;
+                                    const precio = calculatedProductPricePlaceholder ? Number(calculatedProductPricePlaceholder) : 0;
+                                    
+                                    const totalVenta = precio * stock;
+                                    const totalCosto = costo * stock;
+                                    const gananciaNeta = totalVenta - totalCosto;
+                                    
+                                    const hasData = costo > 0 && stock > 0 && precio > 0;
+                                    
+                                    return (
+                                        <div className="space-y-3 text-sm">
+                                            <div className={`text-center text-2xl font-bold mb-4 ${
+                                                hasData 
+                                                    ? theme === 'light' ? 'text-green-700' : 'text-green-200'
+                                                    : theme === 'light' ? 'text-gray-400' : 'text-gray-500'
+                                            }`}>
+                                                {hasData 
+                                                    ? `${productData.saleCurrency || 'USD'} ${gananciaNeta.toFixed(2)}`
+                                                    : '-- --'
+                                                }
+                                            </div>
+                                            
+                                            <div className={`p-2 rounded border-l-4 ${
+                                                theme === 'light' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-blue-900/30 border-blue-500 text-blue-300'
+                                            }`}>
+                                                <div className="flex justify-between">
+                                                    <span>📈 Total Venta:</span>
+                                                    <span className="font-semibold">
+                                                        {hasData 
+                                                            ? `${productData.saleCurrency || 'USD'} ${totalVenta.toFixed(2)}`
+                                                            : '--'
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className={`p-2 rounded border-l-4 ${
+                                                theme === 'light' ? 'bg-orange-50 border-orange-400 text-orange-700' : 'bg-orange-900/30 border-orange-500 text-orange-300'
+                                            }`}>
+                                                <div className="flex justify-between">
+                                                    <span>💰 Total Costo:</span>
+                                                    <span className="font-semibold">
+                                                        {hasData 
+                                                            ? `${productData.costCurrency || 'USD'} ${totalCosto.toFixed(2)}`
+                                                            : '--'
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className={`p-2 rounded border-l-4 ${
+                                                theme === 'light' ? 'bg-green-50 border-green-400 text-green-700' : 'bg-green-900/30 border-green-500 text-green-300'
+                                            }`}>
+                                                <div className="flex justify-between">
+                                                    <span>🎯 Ganancia:</span>
+                                                    <span className="font-bold">
+                                                        {hasData 
+                                                            ? `${productData.saleCurrency || 'USD'} ${gananciaNeta.toFixed(2)}`
+                                                            : '--'
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className={`text-center text-xs mt-3 ${
+                                                theme === 'light' ? 'text-green-600' : 'text-green-400'
+                                            }`}>
+                                                {hasData && totalVenta > 0
+                                                    ? `Margen: ${((gananciaNeta / totalVenta) * 100).toFixed(1)}%`
+                                                    : 'Ingresa costo y stock'
+                                                }
+                                            </div>
+                                        </div>
+                                    );
+                                })()
+                                }
+                            </div>
+                        </div>
+                    </form>
+                );
+                
+            case 'advanced':
+                return (
+                    <form onSubmit={onSubmit} className="space-y-4 h-full overflow-hidden">
+                        <div className="h-full overflow-y-auto pr-2" style={{
+                            scrollbarWidth: 'thin',
+                            scrollbarColor: '#9ca3af #374151'
+                        }}>
+                            {/* Atributos del Producto */}
+                            <div className={`rounded-xl border transition-all duration-200 ${
+                                theme === 'light' ? 'border-gray-200 bg-gray-50/50' : 'border-gray-600/50 bg-gray-700/20'
+                            }`}>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleSection('attributes')}
+                                    className={`w-full p-4 flex items-center justify-between hover:bg-opacity-80 transition-all duration-200 ${
+                                        theme === 'light' ? 'hover:bg-gray-100/50' : 'hover:bg-gray-600/20'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-lg">🏷️</span>
+                                        <h4 className={`text-sm font-semibold ${
+                                            theme === 'light' ? 'text-gray-800' : 'text-gray-200'
+                                        }`}>Atributos del Producto</h4>
+                                    </div>
+                                    <ChevronDown 
+                                        size={16} 
+                                        className={`transition-transform duration-200 ${
+                                            expandedSections.has('attributes') ? 'rotate-180' : ''
+                                        } ${
+                                            theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                                        }`}
+                                    />
+                                </button>
+                                
+                                {expandedSections.has('attributes') && (
+                                    <div className="px-4 pb-4 max-h-64 overflow-y-auto" style={{
+                                        scrollbarWidth: 'thin',
+                                        scrollbarColor: '#9ca3af #374151'
+                                    }}>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Marca */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>Marca</label>
+                                    <input
+                                        type="text"
+                                        name="brand"
+                                        value={productData.brand || ''}
+                                        onChange={handleProductInputChange}
+                                        className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                        }`}
+                                        placeholder="Ej. Nike, Samsung, Apple"
+                                    />
+                                </div>
+                                
+                                {/* Proveedor */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>Proveedor</label>
+                                    <input
+                                        type="text"
+                                        name="supplier"
+                                        value={productData.supplier || ''}
+                                        onChange={handleProductInputChange}
+                                        className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                        }`}
+                                        placeholder="Ej. Distribuciones ABC"
+                                    />
+                                </div>
+                                
+                                {/* Código de Barras */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>Código de Barras</label>
+                                    <input
+                                        type="text"
+                                        name="barcode"
+                                        value={productData.barcode || ''}
+                                        onChange={handleProductInputChange}
+                                        className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                        }`}
+                                        placeholder="Ej. 1234567890123"
+                                    />
+                                </div>
+                                
+                                {/* Peso */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>Peso (kg)</label>
+                                    <input
+                                        type="number"
+                                        name="weight"
+                                        value={productData.weight || ''}
+                                        onChange={handleProductInputChange}
+                                        step="0.01"
+                                        className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                        }`}
+                                        placeholder="Ej. 0.5"
+                                    />
+                                </div>
+                                
+                                {/* Color */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>Color</label>
+                                    <input
+                                        type="text"
+                                        name="color"
+                                        value={productData.color || ''}
+                                        onChange={handleProductInputChange}
+                                        className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                        }`}
+                                        placeholder="Ej. Azul, Negro"
+                                        disabled={productData.variants && productData.variants.length > 0}
+                                    />
+                                </div>
+                                
+                                {/* Talla */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>Talla/Tamaño</label>
+                                    <input
+                                        type="text"
+                                        name="size"
+                                        value={productData.size || ''}
+                                        onChange={handleProductInputChange}
+                                        className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                        }`}
+                                        placeholder="Ej. S, M, L, XL"
+                                        disabled={productData.variants && productData.variants.length > 0}
+                                    />
+                                </div>
+                                
+                                {/* Material */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>Material</label>
+                                    <input
+                                        type="text"
+                                        name="material"
+                                        value={productData.material || ''}
+                                        onChange={handleProductInputChange}
+                                        className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                        }`}
+                                        placeholder="Ej. Algodón, Plástico"
+                                        disabled={productData.variants && productData.variants.length > 0}
+                                    />
+                                </div>
+                                
+                                {/* Modelo */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>Modelo</label>
+                                    <input
+                                        type="text"
+                                        name="model"
+                                        value={productData.model || ''}
+                                        onChange={handleProductInputChange}
+                                        className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                        }`}
+                                        placeholder="Ej. iPhone 15, Galaxy S24"
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Dimensiones */}
+                            <div className={`mt-4 p-3 rounded-lg border ${
+                                theme === 'light' ? 'border-gray-200 bg-gray-50/30' : 'border-gray-600/30 bg-gray-700/20'
+                            }`}>
+                                <h5 className={`text-sm font-medium mb-3 ${
+                                    theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+                                }`}>📏 Dimensiones (cm)</h5>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label className={`block text-xs font-medium mb-1 ${
+                                            theme === 'light' ? 'text-text-muted' : 'text-gray-400'
+                                        }`}>Largo</label>
+                                        <input
+                                            type="number"
+                                            name="length"
+                                            value={productData.length || ''}
+                                            onChange={handleProductInputChange}
+                                            step="0.1"
+                                            className={`w-full px-2 py-1.5 border rounded-lg text-sm focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 ${
+                                                theme === 'light' ? 'border-gray-200 bg-white text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
+                                            }`}
+                                            placeholder="10.5"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={`block text-xs font-medium mb-1 ${
+                                            theme === 'light' ? 'text-text-muted' : 'text-gray-400'
+                                        }`}>Ancho</label>
+                                        <input
+                                            type="number"
+                                            name="width"
+                                            value={productData.width || ''}
+                                            onChange={handleProductInputChange}
+                                            step="0.1"
+                                            className={`w-full px-2 py-1.5 border rounded-lg text-sm focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 ${
+                                                theme === 'light' ? 'border-gray-200 bg-white text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
+                                            }`}
+                                            placeholder="5.2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={`block text-xs font-medium mb-1 ${
+                                            theme === 'light' ? 'text-text-muted' : 'text-gray-400'
+                                        }`}>Alto</label>
+                                        <input
+                                            type="number"
+                                            name="height"
+                                            value={productData.height || ''}
+                                            onChange={handleProductInputChange}
+                                            step="0.1"
+                                            className={`w-full px-2 py-1.5 border rounded-lg text-sm focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 ${
+                                                theme === 'light' ? 'border-gray-200 bg-white text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
+                                            }`}
+                                            placeholder="1.5"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Gestión de Stock Avanzada */}
+                            <div className={`rounded-xl border transition-all duration-200 ${
+                                theme === 'light' ? 'border-green-200 bg-green-50/50' : 'border-green-700/50 bg-green-900/20'
+                            }`}>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleSection('stock')}
+                                    className={`w-full p-4 flex items-center justify-between hover:bg-opacity-80 transition-all duration-200 ${
+                                        theme === 'light' ? 'hover:bg-green-100/50' : 'hover:bg-green-800/20'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-lg">📊</span>
+                                        <h4 className={`text-sm font-semibold ${
+                                            theme === 'light' ? 'text-green-800' : 'text-green-200'
+                                        }`}>Gestión de Stock</h4>
+                                    </div>
+                                    <ChevronDown 
+                                        size={16} 
+                                        className={`transition-transform duration-200 ${
+                                            expandedSections.has('stock') ? 'rotate-180' : ''
+                                        } ${
+                                            theme === 'light' ? 'text-green-600' : 'text-green-400'
+                                        }`}
+                                    />
+                                </button>
+                                
+                                {expandedSections.has('stock') && (
+                                    <div className="px-4 pb-4 max-h-48 overflow-y-auto" style={{
+                                        scrollbarWidth: 'thin',
+                                        scrollbarColor: '#9ca3af #374151'
+                                    }}>
+                            
+                            <div className="space-y-4">
+                                <label className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        name="isPerishable"
+                                        checked={productData.isPerishable || false}
+                                        onChange={handleProductInputChange}
+                                        className="mr-2 text-blue-600"
+                                        disabled={productData.variants && productData.variants.length > 0}
+                                    />
+                                    <span className={theme === 'light' ? 'text-green-700' : 'text-green-200'}>
+                                        🍎 ¿Es Perecedero?
+                                    </span>
+                                </label>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${
+                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                        }`}>
+                                            Umbral de Reaprovisionamiento
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="reorderThreshold"
+                                            value={productData.reorderThreshold || ''}
+                                            onChange={handleProductInputChange}
+                                            className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                                theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                            }`}
+                                            placeholder="10"
+                                            disabled={productData.variants && productData.variants.length > 0}
+                                        />
+                                    </div>
+
+                                    {productData.isPerishable && (
+                                        <>
+                                            <div>
+                                                <label className={`block text-sm font-medium mb-2 ${
+                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                                }`}>
+                                                    Stock Óptimo Máximo
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    name="optimalMaxStock"
+                                                    value={productData.optimalMaxStock || ''}
+                                                    onChange={handleProductInputChange}
+                                                    className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                                        theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                                    }`}
+                                                    placeholder="50"
+                                                    disabled={productData.variants && productData.variants.length > 0}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={`block text-sm font-medium mb-2 ${
+                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                                }`}>
+                                                    Vida Útil (días)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    name="shelfLifeDays"
+                                                    value={productData.shelfLifeDays || ''}
+                                                    onChange={handleProductInputChange}
+                                                    className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                                        theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                                    }`}
+                                                    placeholder="30"
+                                                    disabled={productData.variants && productData.variants.length > 0}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Gestión de Imagen Principal */}
+                            <div className={`rounded-xl border transition-all duration-200 ${
+                                theme === 'light' ? 'border-purple-200 bg-purple-50/50' : 'border-purple-700/50 bg-purple-900/20'
+                            }`}>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleSection('image')}
+                                    className={`w-full p-4 flex items-center justify-between hover:bg-opacity-80 transition-all duration-200 ${
+                                        theme === 'light' ? 'hover:bg-purple-100/50' : 'hover:bg-purple-800/20'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-lg">🖼️</span>
+                                        <h4 className={`text-sm font-semibold ${
+                                            theme === 'light' ? 'text-purple-800' : 'text-purple-200'
+                                        }`}>Imagen Principal</h4>
+                                    </div>
+                                    <ChevronDown 
+                                        size={16} 
+                                        className={`transition-transform duration-200 ${
+                                            expandedSections.has('image') ? 'rotate-180' : ''
+                                        } ${
+                                            theme === 'light' ? 'text-purple-600' : 'text-purple-400'
+                                        }`}
+                                    />
+                                </button>
+                                
+                                {expandedSections.has('image') && (
+                                    <div className="px-4 pb-4 max-h-64 overflow-y-auto" style={{
+                                        scrollbarWidth: 'thin',
+                                        scrollbarColor: '#9ca3af #374151'
+                                    }}>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* URL de Imagen */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>
+                                        URL de Imagen
+                                    </label>
+                                    <input
+                                        type="url"
+                                        name="imageUrl"
+                                        value={productData.imageUrl || ''}
+                                        onChange={handleProductInputChange}
+                                        onBlur={handleMainImageUrlBlur}
+                                        className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            formErrors.imageUrl ? 'border-red-500 bg-red-50/10' : 
+                                            theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                        }`}
+                                        placeholder="https://ejemplo.com/imagen.jpg"
+                                    />
+                                    {formErrors.imageUrl && <p className="text-red-500 text-xs mt-1">{formErrors.imageUrl}</p>}
+                                </div>
+                                
+                                {/* Subir archivo */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>
+                                        Subir desde Dispositivo
+                                    </label>
+                                    <label htmlFor="main-image-upload-advanced" className={`w-full py-2.5 px-4 rounded-xl text-center cursor-pointer transition-all duration-200 font-medium flex items-center justify-center gap-2 ${
+                                        theme === 'light' 
+                                            ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                            : 'bg-blue-500 hover:bg-blue-600 text-white'
+                                    }`}>
+                                        {isUploadingMainImage ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                                        {isUploadingMainImage ? 'Subiendo...' : 'Seleccionar Archivo'}
+                                    </label>
+                                    <input
+                                        id="main-image-upload-advanced"
+                                        type="file"
+                                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                                        onChange={handleMainImageFileChange}
+                                        className="hidden"
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Preview mejorado */}
+                            {(imagePreviewUrl || productData.imageUrl) && (
+                                <div className={`mt-4 p-3 rounded-lg border text-center relative ${
+                                    theme === 'light' ? 'border-gray-200 bg-white/50' : 'border-gray-600 bg-gray-800/50'
+                                }`}>
+                                    <p className={`text-xs mb-2 ${
+                                        theme === 'light' ? 'text-text-muted' : 'text-gray-400'
+                                    }`}>Vista previa:</p>
+                                    <img
+                                        src={imagePreviewUrl || productData.imageUrl}
+                                        alt="Imagen del producto"
+                                        className="max-w-full h-auto max-h-32 object-contain mx-auto rounded"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = 'https://placehold.co/200x150/gray/white?text=Error+al+cargar';
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveMainImage}
+                                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold transition-colors shadow-lg"
+                                        title="Eliminar imagen"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </form>
+                );
+                
+            default:
+                return (
+                    <div className="text-center py-8">
+                        <p className={`text-lg ${
+                            theme === 'light' ? 'text-text-base' : 'text-gray-300'
+                        }`}>Contenido de {page.title}</p>
+                        <p className={`text-sm mt-2 ${
+                            theme === 'light' ? 'text-text-muted' : 'text-gray-400'
+                        }`}>Esta página está en construcción</p>
+                    </div>
+                );
+        }
+    };
 
     return (
         <div
-            className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 transition-opacity duration-300 p-4 sm:p-6 overflow-y-auto"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-300 p-4 sm:p-6 overflow-y-auto animate-in fade-in-0"
             onClick={onClose}
         >
             <div
-                className="bg-deep-night-blue p-6 sm:p-8 rounded-lg shadow-2xl text-neutral-light w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto my-auto relative border border-neutral-gray-700 transform transition-transform duration-300 scale-100 flex flex-col max-h-[90vh]"
+                className="bg-deep-night-blue/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 text-neutral-light w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto my-auto relative transform transition-all duration-500 scale-100 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4"
                 onClick={(e) => e.stopPropagation()}
             >
-                <button
-                    onClick={onClose}
-                    className="absolute top-3 right-3 text-neutral-gray-400 hover:text-red-500 transition-colors duration-200 z-10"
-                    title="Cerrar"
-                >
-                    <XCircle size={28} />
-                </button>
-                <h3 className="text-2xl sm:text-3xl font-bold text-copper-rose-accent mb-4 sm:mb-6 text-center border-b-2 border-action-blue pb-3">
-                    {title}
-                </h3>
-                <div className="overflow-y-auto flex-grow pr-2 -mr-2">
+                <div className="relative bg-gradient-to-r from-gray-800 to-gray-700">
+                    <div className="p-4 ml-56">
+                        <button
+                            onClick={onClose}
+                            className="absolute top-3 right-3 text-neutral-gray-400 hover:text-red-500 transition-colors duration-200 z-10"
+                            title="Cerrar"
+                        >
+                            <XCircle size={28} />
+                        </button>
+                        <h3 className="text-2xl sm:text-3xl font-bold text-copper-rose-accent text-center pr-12">
+                            {title}
+                        </h3>
+                    </div>
+                </div>
+                
+                <div className="overflow-y-auto flex-grow">
                     <ErrorBoundary>
-                        <div className={`flex min-h-[70vh] relative ${
-                            theme === 'light' ? 'bg-surface-primary' : 'bg-gray-900'
+                        <div className={`flex h-[70vh] relative ${
+                            theme === 'light' ? 'bg-surface-primary' : 'bg-gradient-to-br from-gray-900 to-gray-800'
                         }`}>
                             {/* Sidebar */}
-                            <div className={`w-56 flex-shrink-0 p-4 border-r ${
-                                theme === 'light' ? 'border-border-subtle bg-surface-secondary' : 'border-gray-700 bg-gray-800'
+                            <div className={`w-56 flex-shrink-0 p-3 border-r border-opacity-30 overflow-y-auto backdrop-blur-sm ${
+                                theme === 'light' ? 'border-border-subtle bg-surface-secondary/80' : 'border-gray-600 bg-gray-800/90'
                             }`}>
                                 {/* Imagen del producto */}
-                                <div className={`w-full h-32 rounded-xl overflow-hidden mb-3 relative ${
-                                    theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'
+                                <div className={`w-full h-32 rounded-2xl overflow-hidden mb-3 relative shadow-lg ring-1 ring-white/10 ${
+                                    theme === 'light' ? 'bg-gradient-to-br from-gray-100 to-gray-200' : 'bg-gradient-to-br from-gray-700 to-gray-600'
                                 }`}>
                                     {(imagePreviewUrl || productData.imageUrl) && !isUploadingMainImage ? (
                                         <>
@@ -204,19 +1112,7 @@ const AddEditProductForm = ({
                                                 src={imagePreviewUrl || productData.imageUrl}
                                                 alt="Producto"
                                                 className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    e.target.style.display = 'none';
-                                                    e.target.nextSibling.style.display = 'flex';
-                                                }}
                                             />
-                                            <div className={`w-full h-full items-center justify-center text-4xl font-bold hidden ${
-                                                theme === 'light' 
-                                                    ? 'bg-gradient-to-br from-red-400 to-orange-500 text-white' 
-                                                    : 'bg-gradient-to-br from-red-500 to-orange-600 text-white'
-                                            }`}>
-                                                ❌
-                                            </div>
-                                            {/* Botón eliminar imagen */}
                                             <button
                                                 type="button"
                                                 onClick={handleRemoveMainImage}
@@ -244,10 +1140,10 @@ const AddEditProductForm = ({
 
                                 {/* Botón subir imagen */}
                                 <div className="mb-4">
-                                    <label htmlFor="main-image-upload" className={`w-full py-1.5 px-2 rounded-lg text-center cursor-pointer transition-colors text-xs flex items-center justify-center gap-1 ${
+                                    <label htmlFor="main-image-upload" className={`w-full py-2 px-3 rounded-xl text-center cursor-pointer transition-all duration-200 text-xs flex items-center justify-center gap-1.5 font-medium shadow-lg hover:shadow-xl hover:scale-105 ${
                                         theme === 'light' 
-                                            ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                            : 'bg-blue-500 hover:bg-blue-600 text-white'
+                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white' 
+                                            : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
                                     }`}>
                                         {isUploadingMainImage ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                                         Subir
@@ -262,1087 +1158,180 @@ const AddEditProductForm = ({
                                 </div>
 
                                 {/* Índice de navegación */}
-                                <div className={`rounded-lg p-2 ${
-                                    theme === 'light' ? 'bg-surface-primary' : 'bg-gray-700'
+                                <div className={`rounded-xl p-3 backdrop-blur-sm shadow-inner ring-1 ring-white/5 ${
+                                    theme === 'light' ? 'bg-surface-primary/80' : 'bg-gray-700/80'
                                 }`}>
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className={`text-xs font-bold ${
                                             theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                        }`}>ÍNDICE</h4>
-                                        <div className={`text-xs px-1.5 py-0.5 rounded-full ${
-                                            theme === 'light' ? 'bg-blue-100 text-blue-800' : 'bg-blue-900/50 text-blue-200'
+                                        }`}>PÁGINAS</h4>
+                                        <div className={`text-xs px-2 py-1 rounded-full font-semibold shadow-sm ring-1 ring-white/10 ${
+                                            theme === 'light' ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800' : 'bg-gradient-to-r from-blue-900/60 to-blue-800/60 text-blue-200'
                                         }`}>
-                                            {getFormProgress()}%
+                                            {currentPage + 1} / {totalPages}
                                         </div>
                                     </div>
                                     
-                                    <div className="space-y-0.5">
-                                        {/* Básico */}
-                                        <button
-                                            type="button"
-                                            onClick={() => scrollToSection('basic')}
-                                            className={`w-full text-left px-1.5 py-1 rounded text-xs transition-colors flex items-center gap-1.5 ${
-                                                activeSection === 'basic'
-                                                    ? theme === 'light' 
-                                                        ? 'bg-blue-100 text-blue-800' 
-                                                        : 'bg-blue-900/50 text-blue-200'
-                                                    : theme === 'light'
-                                                        ? 'hover:bg-gray-100 text-text-base'
-                                                        : 'hover:bg-gray-600 text-gray-300'
-                                            }`}
-                                        >
-                                            <span>{activeSection === 'basic' ? '●' : '○'}</span>
-                                            Básico
-                                            {getSectionStatus('basic') && <span className="ml-auto animate-pulse">{getSectionStatus('basic')}</span>}
-                                        </button>
-
-                                        {/* Precios */}
-                                        <button
-                                            type="button"
-                                            onClick={() => scrollToSection('pricing')}
-                                            className={`w-full text-left px-1.5 py-1 rounded text-xs transition-colors flex items-center gap-1.5 ${
-                                                activeSection === 'pricing'
-                                                    ? theme === 'light' 
-                                                        ? 'bg-blue-100 text-blue-800' 
-                                                        : 'bg-blue-900/50 text-blue-200'
-                                                    : theme === 'light'
-                                                        ? 'hover:bg-gray-100 text-text-base'
-                                                        : 'hover:bg-gray-600 text-gray-300'
-                                            }`}
-                                        >
-                                            <DollarSign size={10} />
-                                            Precios
-                                            {getSectionStatus('pricing') && <span className="ml-auto animate-pulse">{getSectionStatus('pricing')}</span>}
-                                        </button>
-
-                                        {/* Avanzado */}
-                                        <button
-                                            type="button"
-                                            onClick={() => scrollToSection('advanced')}
-                                            className={`w-full text-left px-1.5 py-1 rounded text-xs transition-colors flex items-center gap-1.5 ${
-                                                activeSection === 'advanced'
-                                                    ? theme === 'light' 
-                                                        ? 'bg-gray-100 text-gray-800' 
-                                                        : 'bg-gray-600 text-gray-200'
-                                                    : theme === 'light'
-                                                        ? 'hover:bg-gray-100 text-text-base'
-                                                        : 'hover:bg-gray-600 text-gray-300'
-                                            }`}
-                                        >
-                                            <Settings size={10} />
-                                            Avanzado
-                                            {getSectionStatus('advanced') && <span className="ml-auto animate-pulse">{getSectionStatus('advanced')}</span>}
-                                        </button>
-
-                                        {/* Variantes */}
-                                        <button
-                                            type="button"
-                                            onClick={() => scrollToSection('variants')}
-                                            className={`w-full text-left px-1.5 py-1 rounded text-xs transition-colors flex items-center gap-1.5 ${
-                                                activeSection === 'variants'
-                                                    ? theme === 'light' 
-                                                        ? 'bg-purple-100 text-purple-800' 
-                                                        : 'bg-purple-900/50 text-purple-200'
-                                                    : theme === 'light'
-                                                        ? 'hover:bg-gray-100 text-text-base'
-                                                        : 'hover:bg-gray-600 text-gray-300'
-                                            }`}
-                                        >
-                                            <Package size={10} />
-                                            Variantes ({productData.variants ? productData.variants.length : 0})
-                                            {getSectionStatus('variants') && <span className="ml-auto animate-pulse">{getSectionStatus('variants')}</span>}
-                                        </button>
-
-                                        {/* Botón añadir variante */}
-                                        <button
-                                            type="button"
-                                            onClick={handleAddVariant}
-                                            className={`w-full text-left px-1.5 py-1 rounded text-xs transition-colors flex items-center gap-1.5 ${
-                                                theme === 'light' 
-                                                    ? 'hover:bg-green-50 text-green-600 hover:text-green-700' 
-                                                    : 'hover:bg-green-900/20 text-green-400 hover:text-green-300'
-                                            }`}
-                                        >
-                                            <Plus size={10} />
-                                            Nueva
-                                        </button>
-                                        
-                                        {/* Lista de variantes */}
-                                        {productData.variants && productData.variants.length > 0 && (
-                                            <div className="ml-3 space-y-0.5 max-h-32 overflow-y-auto" style={{
-                                                scrollbarWidth: 'thin',
-                                                scrollbarColor: '#9ca3af #374151'
-                                            }}>
-                                                {productData.variants.map((variant, index) => (
-                                                    <div key={index} className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs transition-colors ${
-                                                        activeSection === `variant-${index}`
-                                                            ? theme === 'light' 
-                                                                ? 'bg-purple-50 text-purple-700' 
-                                                                : 'bg-purple-900/30 text-purple-300'
-                                                            : theme === 'light'
-                                                                ? 'hover:bg-gray-50 text-text-muted'
-                                                                : 'hover:bg-gray-600 text-gray-400'
-                                                    }`}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => scrollToSection(`variant-${index}`)}
-                                                            className="flex-1 flex items-center gap-1 text-left"
-                                                        >
-                                                            <span className="text-xs">{getVariantStatus(variant, index)}</span>
-                                                            <span className="truncate text-xs">{variant.name || `Variante ${index + 1}`}</span>
-                                                        </button>
+                                    <div className="space-y-1">
+                                        {pages.map((page, index) => {
+                                            const isActive = currentPage === index;
+                                            const colorClasses = {
+                                                blue: isActive 
+                                                    ? theme === 'light' ? 'bg-blue-100 text-blue-800 shadow-sm ring-1 ring-blue-200' : 'bg-blue-900/60 text-blue-200 shadow-sm ring-1 ring-blue-700/50'
+                                                    : theme === 'light' ? 'hover:bg-blue-50 text-text-base hover:shadow-sm' : 'hover:bg-blue-900/20 text-gray-300 hover:shadow-sm',
+                                                green: isActive 
+                                                    ? theme === 'light' ? 'bg-green-100 text-green-800 shadow-sm ring-1 ring-green-200' : 'bg-green-900/60 text-green-200 shadow-sm ring-1 ring-green-700/50'
+                                                    : theme === 'light' ? 'hover:bg-green-50 text-text-base hover:shadow-sm' : 'hover:bg-green-900/20 text-gray-300 hover:shadow-sm',
+                                                orange: isActive 
+                                                    ? theme === 'light' ? 'bg-orange-100 text-orange-800 shadow-sm ring-1 ring-orange-200' : 'bg-orange-900/60 text-orange-200 shadow-sm ring-1 ring-orange-700/50'
+                                                    : theme === 'light' ? 'hover:bg-orange-50 text-text-base hover:shadow-sm' : 'hover:bg-orange-900/20 text-gray-300 hover:shadow-sm',
+                                                purple: isActive 
+                                                    ? theme === 'light' ? 'bg-purple-100 text-purple-800 shadow-sm ring-1 ring-purple-200' : 'bg-purple-900/60 text-purple-200 shadow-sm ring-1 ring-purple-700/50'
+                                                    : theme === 'light' ? 'hover:bg-purple-50 text-text-base hover:shadow-sm' : 'hover:bg-purple-900/20 text-gray-300 hover:shadow-sm'
+                                            };
+                                            
+                                            return (
+                                                <div key={page.id} className={`flex items-center gap-1 ${
+                                                    page.isVariant ? 'ml-4' : ''
+                                                }`}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => goToPage(index)}
+                                                        className={`flex-1 text-left px-2 py-1.5 rounded-lg text-sm transition-all duration-200 flex items-center gap-1.5 ${
+                                                            colorClasses[page.color]
+                                                        }`}
+                                                    >
+                                                        <span className="text-sm">{page.icon}</span>
+                                                        <span className="truncate">{page.title}</span>
+                                                        {isActive && <span className="ml-auto text-xs">●</span>}
+                                                    </button>
+                                                    
+                                                    {page.isVariant && (
                                                         <button
                                                             type="button"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleRemoveVariant(index);
+                                                                const variantIndex = parseInt(page.id.split('-')[1]);
+                                                                handleRemoveVariant(variantIndex);
                                                             }}
-                                                            className={`p-0.5 rounded hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors ${
+                                                            className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors ${
                                                                 theme === 'dark' ? 'hover:bg-red-900/20' : ''
                                                             }`}
                                                             title="Eliminar variante"
                                                         >
-                                                            <Trash2 size={8} />
+                                                            ×
                                                         </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                        
+                                        {/* Botón añadir variante */}
+                                        <button
+                                            type="button"
+                                            onClick={handleAddVariant}
+                                            className={`w-full text-left px-2 py-1.5 rounded-lg text-sm transition-all duration-200 flex items-center gap-1.5 mt-2 border-t pt-2 ${
+                                                theme === 'light' 
+                                                    ? 'hover:bg-green-50 text-green-600 hover:text-green-700 hover:shadow-sm border-gray-200' 
+                                                    : 'hover:bg-green-900/20 text-green-400 hover:text-green-300 hover:shadow-sm border-gray-600'
+                                            }`}
+                                        >
+                                            <Plus size={12} />
+                                            Añadir Variante
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Contenido principal */}
-                            <div className="flex-1 overflow-y-auto" style={{
-                                scrollbarWidth: 'thin',
-                                scrollbarColor: '#9ca3af #374151'
-                            }}>
-                                <form onSubmit={onSubmit} className="p-4 space-y-6">
-                                    {/* Sección Básica */}
-                                    <section 
-                                        ref={el => sectionRefs.current['basic'] = el}
-                                        data-section="basic"
-                                        className="space-y-4"
-                                    >
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                                theme === 'light' ? 'bg-blue-100 text-blue-800' : 'bg-blue-900/50 text-blue-200'
-                                            }`}>
-                                                📝
-                                            </div>
-                                            <h3 className={`text-lg font-bold ${
-                                                theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                            }`}>Información Básica</h3>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {/* Nombre */}
-                                            <div className="relative">
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    Nombre del Producto *
-                                                    {isNewProduct && (
-                                                        <span className={`text-xs ml-1 ${
-                                                            theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                                                        }`}>(Busca en catálogo global)</span>
-                                                    )}
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="name"
-                                                    value={productData.name || ''}
-                                                    onChange={handleProductInputChange}
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        formErrors.name ? 'border-red-500' : 
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    placeholder="Ej. Camiseta Deportiva"
-                                                    required
-                                                />
-                                                {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
-                                                
-                                                {/* Dropdown de sugerencias */}
-                                                {isNewProduct && showGlobalSuggestions && globalProductSuggestions.length > 0 && (
-                                                    <div className={`absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border shadow-lg max-h-60 overflow-y-auto ${
-                                                        theme === 'light' ? 'bg-white border-border-subtle' : 'bg-gray-800 border-gray-600'
-                                                    }`}>
-                                                        <div className={`p-2 text-xs font-medium border-b ${
-                                                            theme === 'light' ? 'text-text-muted border-border-subtle' : 'text-gray-400 border-gray-600'
+                            <div className="flex-1 relative overflow-hidden">
+                                {/* Contenedor de páginas */}
+                                <div 
+                                    className="flex h-full transition-transform duration-500 ease-in-out"
+                                    style={{ transform: `translateX(-${currentPage * 100}%)` }}
+                                >
+                                    {pages.map((page, index) => (
+                                        <div key={page.id} className="w-full flex-shrink-0 overflow-y-auto">
+                                            <div className="p-4 h-full">
+                                                <div className="space-y-6">
+                                                    <div className="flex items-center gap-3 mb-6">
+                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+                                                            theme === 'light' ? 'bg-blue-100 text-blue-800' : 'bg-blue-900/50 text-blue-200'
                                                         }`}>
-                                                            🌍 Productos del catálogo global:
+                                                            {page.icon}
                                                         </div>
-                                                        {globalProductSuggestions.map((suggestion, index) => (
-                                                            <button
-                                                                key={index}
-                                                                type="button"
-                                                                onClick={() => handleSelectGlobalProduct(suggestion)}
-                                                                className={`w-full p-3 text-left hover:bg-opacity-80 transition-colors border-b last:border-b-0 ${
-                                                                    theme === 'light' 
-                                                                        ? 'hover:bg-blue-50 border-border-subtle' 
-                                                                        : 'hover:bg-gray-700 border-gray-600'
-                                                                }`}
-                                                            >
-                                                                <div className="flex items-center gap-3">
-                                                                    {suggestion.imageUrl ? (
-                                                                        <img
-                                                                            src={suggestion.imageUrl}
-                                                                            alt={suggestion.name}
-                                                                            className="w-10 h-10 object-cover rounded"
-                                                                            onError={(e) => {
-                                                                                e.target.style.display = 'none';
-                                                                            }}
-                                                                        />
-                                                                    ) : (
-                                                                        <div className={`w-10 h-10 rounded flex items-center justify-center text-xs font-bold ${
-                                                                            theme === 'light' ? 'bg-blue-100 text-blue-600' : 'bg-blue-900 text-blue-300'
-                                                                        }`}>
-                                                                            {suggestion.name.charAt(0).toUpperCase()}
-                                                                        </div>
-                                                                    )}
-                                                                    <div className="flex-1">
-                                                                        <p className={`font-medium text-sm ${
-                                                                            theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                                                        }`}>
-                                                                            {suggestion.name}
-                                                                        </p>
-                                                                        <p className={`text-xs ${
-                                                                            theme === 'light' ? 'text-text-muted' : 'text-gray-400'
-                                                                        }`}>
-                                                                            {suggestion.category} • SKU: {suggestion.sku}
-                                                                        </p>
-                                                                    </div>
-                                                                </div>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Categoría */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    Categoría *
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="category"
-                                                    value={productData.category || ''}
-                                                    onChange={handleProductInputChange}
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        formErrors.category ? 'border-red-500' : 
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    placeholder="Ej. Ropa, Electrónica"
-                                                    required
-                                                />
-                                                {formErrors.category && <p className="text-red-500 text-xs mt-1">{formErrors.category}</p>}
-                                            </div>
-
-                                            {/* Marca */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    Marca
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="brand"
-                                                    value={productData.brand || ''}
-                                                    onChange={handleProductInputChange}
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    placeholder="Ej. Nike, Samsung"
-                                                />
-                                            </div>
-
-                                            {/* SKU */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    SKU
-                                                    {isNewProduct && (
-                                                        <span className={`text-xs ml-1 ${
-                                                            theme === 'light' ? 'text-green-600' : 'text-green-400'
-                                                        }`}>(Auto-generado si se deja vacío)</span>
-                                                    )}
-                                                </label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="text"
-                                                        name="sku"
-                                                        value={productData.sku || ''}
-                                                        onChange={handleProductInputChange}
-                                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                            formErrors.sku ? 'border-red-500' : 
-                                                            theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                        }`}
-                                                        placeholder={isNewProduct && !isMainSkuManuallyEdited && autoGeneratedSku ? autoGeneratedSku : "Auto-generado basado en el nombre"}
-                                                        disabled={productData.variants && productData.variants.length > 0}
-                                                    />
-                                                    {isNewProduct && !productData.sku && autoGeneratedSku && (
-                                                        <div className={`absolute right-2 top-2 text-xs ${
-                                                            theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                                                        }`}>
-                                                            🏷️
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                {isNewProduct && !isMainSkuManuallyEdited && autoGeneratedSku && (
-                                                    <p className={`text-xs mt-1 ${
-                                                        theme === 'light' ? 'text-green-600' : 'text-green-400'
-                                                    }`}>
-                                                        SKU generado: {autoGeneratedSku}
-                                                    </p>
-                                                )}
-                                                {formErrors.sku && <p className="text-red-500 text-xs mt-1">{formErrors.sku}</p>}
-                                            </div>
-                                        </div>
-
-                                        {/* Descripción */}
-                                        <div>
-                                            <label className={`block text-sm font-medium mb-2 ${
-                                                theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                            }`}>
-                                                Descripción
-                                            </label>
-                                            <textarea
-                                                name="description"
-                                                value={productData.description || ''}
-                                                onChange={handleProductInputChange}
-                                                rows={3}
-                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                    theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                }`}
-                                                placeholder="Descripción detallada del producto..."
-                                            />
-                                        </div>
-
-                                        {/* Tipo de producto */}
-                                        <div>
-                                            <label className={`block text-sm font-medium mb-3 ${
-                                                theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                            }`}>
-                                                Tipo de Producto
-                                            </label>
-                                            <div className="flex gap-6">
-                                                <label className="flex items-center">
-                                                    <input
-                                                        type="radio"
-                                                        name="hasVariants"
-                                                        checked={!productData.variants || productData.variants.length === 0}
-                                                        onChange={() => handleProductTypeChange(false)}
-                                                        className="mr-2 text-blue-600"
-                                                    />
-                                                    <span className={theme === 'light' ? 'text-text-base' : 'text-gray-200'}>
-                                                        Producto Simple
-                                                    </span>
-                                                </label>
-                                                <label className="flex items-center">
-                                                    <input
-                                                        type="radio"
-                                                        name="hasVariants"
-                                                        checked={productData.variants && productData.variants.length > 0}
-                                                        onChange={() => {
-                                                            if (!productData.variants || productData.variants.length === 0) {
-                                                                handleAddVariant();
-                                                            }
-                                                        }}
-                                                        className="mr-2 text-blue-600"
-                                                    />
-                                                    <span className={theme === 'light' ? 'text-text-base' : 'text-gray-200'}>
-                                                        Con Variantes
-                                                    </span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    {/* Sección de Precios */}
-                                    <section 
-                                        ref={el => sectionRefs.current['pricing'] = el}
-                                        data-section="pricing"
-                                        className="space-y-4"
-                                    >
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                                theme === 'light' ? 'bg-green-100 text-green-800' : 'bg-green-900/50 text-green-200'
-                                            }`}>
-                                                💰
-                                            </div>
-                                            <h3 className={`text-lg font-bold ${
-                                                theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                            }`}>Costos y Precios</h3>
-                                        </div>
-
-                                        <div className="flex gap-4">
-                                            {/* Columna principal con campos */}
-                                            <div className="flex-1">
-                                                {/* Fila 1: Costo + Moneda + Stock */}
-                                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4">
-                                                    {/* Costo Unitario */}
-                                                    <div className="md:col-span-5">
-                                                        <label className={`block text-sm font-medium mb-2 ${
-                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                        }`}>
-                                                            Costo Unitario *
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            name="costPrice"
-                                                            value={productData.costPrice || ''}
-                                                            onChange={handleProductInputChange}
-                                                            step="0.01"
-                                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                                formErrors.costPrice ? 'border-red-500' : 
-                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                            }`}
-                                                            placeholder="15.00"
-                                                            required={!productData.variants || productData.variants.length === 0}
-                                                            disabled={productData.variants && productData.variants.length > 0}
-                                                        />
-                                                        {formErrors.costPrice && <p className="text-red-500 text-xs mt-1">{formErrors.costPrice}</p>}
-                                                    </div>
-
-                                                    {/* Selector de Moneda */}
-                                                    <div className="md:col-span-2">
-                                                        <label className={`block text-sm font-medium mb-2 ${
-                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                        }`}>
-                                                            Moneda
-                                                        </label>
-                                                        <select
-                                                            name="costCurrency"
-                                                            value={productData.costCurrency || 'USD'}
-                                                            onChange={handleProductInputChange}
-                                                            className={`w-center px-1 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                            }`}
-                                                            disabled={productData.variants && productData.variants.length > 0}
-                                                        >
-                                                            {currencies.map(currency => (
-                                                                <option key={currency} value={currency}>{currency}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-
-                                                    {/* Stock */}
-                                                    <div className="md:col-span-5">
-                                                        <label className={`block text-sm font-medium mb-2 ${
-                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                        }`}>
-                                                            Stock *
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            name="stock"
-                                                            value={productData.stock || ''}
-                                                            onChange={handleProductInputChange}
-                                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                                formErrors.stock ? 'border-red-500' : 
-                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                            }`}
-                                                            placeholder="100"
-                                                            required={!productData.variants || productData.variants.length === 0}
-                                                            disabled={productData.variants && productData.variants.length > 0}
-                                                        />
-                                                        {formErrors.stock && <p className="text-red-500 text-xs mt-1">{formErrors.stock}</p>}
-                                                        {/* Total de inversión */}
-                                                        {productData.costPrice && productData.stock && (
-                                                            <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${
-                                                                theme === 'light' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-orange-900/30 text-orange-300 border border-orange-700'
-                                                            }`}>
-                                                                📊 Total Inversión: {productData.costCurrency || 'USD'} {(Number(productData.costPrice) * Number(productData.stock)).toFixed(2)}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Fila 2: Unidad + % Ganancia + Precio */}
-                                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                                                    {/* Unidad de Medida */}
-                                                    <div className="md:col-span-4">
-                                                        <label className={`block text-sm font-medium mb-2 ${
-                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                        }`}>
-                                                            Unidad *
-                                                        </label>
-                                                        <select
-                                                            name="unitOfMeasure"
-                                                            value={productData.unitOfMeasure || 'unidad'}
-                                                            onChange={handleProductInputChange}
-                                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                                formErrors.unitOfMeasure ? 'border-red-500' : 
-                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                            }`}
-                                                            required={!productData.variants || productData.variants.length === 0}
-                                                            disabled={productData.variants && productData.variants.length > 0}
-                                                        >
-                                                            {unitOfMeasureOptions.map(unit => (
-                                                                <option key={unit} value={unit}>{unit}</option>
-                                                            ))}
-                                                        </select>
-                                                        {formErrors.unitOfMeasure && <p className="text-red-500 text-xs mt-1">{formErrors.unitOfMeasure}</p>}
-                                                    </div>
-
-                                                    {/* % Ganancia */}
-                                                    <div className="md:col-span-2">
-                                                        <label className={`block text-sm font-medium mb-2 ${
-                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                        }`}>
-                                                            %
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            name="profitPercentage"
-                                                            value={productData.profitPercentage || ''}
-                                                            onChange={handleProductInputChange}
-                                                            step="0.1"
-                                                            min="0"
-                                                            max="999"
-                                                            className={`w-full px-2 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center ${
-                                                                formErrors.profitPercentage ? 'border-red-500' : 
-                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                            }`}
-                                                            placeholder="30"
-                                                            disabled={productData.variants && productData.variants.length > 0}
-                                                        />
-                                                        {formErrors.profitPercentage && <p className="text-red-500 text-xs mt-1">{formErrors.profitPercentage}</p>}
-                                                        {calculatedProductProfitPercentage !== null && (
-                                                            <p className={`text-xs mt-1 text-center ${
-                                                                theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                                                            }`}>
-                                                                {parseFloat(calculatedProductProfitPercentage).toFixed(1)}%
-                                                            </p>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Precio de Venta */}
-                                                    <div className="md:col-span-6">
-                                                        <label className={`block text-sm font-medium mb-2 ${
-                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                        }`}>
-                                                            Precio de Venta
-                                                            <span className={`text-xs ml-1 ${
-                                                                theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                                                            }`}>(Auto)</span>
-                                                        </label>
-                                                        <div className="flex gap-1">
-                                                            <div className="relative flex-1">
-                                                                <input
-                                                                    type="number"
-                                                                    value={calculatedProductPricePlaceholder !== null ? parseFloat(calculatedProductPricePlaceholder).toFixed(2) : ''}
-                                                                    readOnly
-                                                                    className={`w-full px-3 py-2 border rounded-lg ${
-                                                                        theme === 'light' ? 'border-border-subtle bg-gray-50 text-text-base' : 'border-gray-600 bg-gray-600 text-gray-100'
-                                                                    }`}
-                                                                    disabled={productData.variants && productData.variants.length > 0}
-                                                                    placeholder="Calculado"
-                                                                />
-                                                                {calculatedProductPricePlaceholder !== null && (
-                                                                    <div className={`absolute right-8 top-2 text-xs ${
-                                                                        theme === 'light' ? 'text-green-600' : 'text-green-400'
-                                                                    }`}>
-                                                                        🔄
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <select
-                                                                name="saleCurrency"
-                                                                value={productData.saleCurrency || 'USD'}
-                                                                onChange={handleProductInputChange}
-                                                                className={`w-16 px-1 py-2 border rounded-lg text-xs ${
-                                                                    theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                                }`}
-                                                                disabled={productData.variants && productData.variants.length > 0}
-                                                            >
-                                                                {currencies.map(currency => (
-                                                                    <option key={currency} value={currency}>{currency}</option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Sidebar: Ganancia Neta (siempre visible) */}
-                                            <div className={`w-64 p-3 rounded-lg border ${
-                                                theme === 'light' ? 'bg-green-50 border-green-200' : 'bg-green-900/20 border-green-700'
-                                            }`}>
-                                                <h4 className={`text-lg font-bold mb-2 text-center ${
-                                                    theme === 'light' ? 'text-green-800' : 'text-green-300'
-                                                }`}>
-                                                    Ganancia Neta
-                                                </h4>
-                                                
-                                                {(() => {
-                                                    const costo = Number(productData.costPrice) || 0;
-                                                    const stock = Number(productData.stock) || 0;
-                                                    const precio = calculatedProductPricePlaceholder ? Number(calculatedProductPricePlaceholder) : 0;
-                                                    
-                                                    const totalVenta = precio * stock;
-                                                    const totalCosto = costo * stock;
-                                                    const gananciaNeta = totalVenta - totalCosto;
-                                                    
-                                                    const hasData = costo > 0 && stock > 0 && precio > 0;
-                                                    
-                                                    return (
-                                                        <div className="space-y-2 text-sm">
-                                                            <div className={`text-center text-2xl font-bold mb-3 ${
-                                                                hasData 
-                                                                    ? theme === 'light' ? 'text-green-700' : 'text-green-200'
-                                                                    : theme === 'light' ? 'text-gray-400' : 'text-gray-500'
-                                                            }`}>
-                                                                {hasData 
-                                                                    ? `${productData.saleCurrency || 'USD'} ${gananciaNeta.toFixed(2)}`
-                                                                    : '-- --'
-                                                                }
-                                                            </div>
-                                                            
-                                                            <div className={`p-2 rounded border-l-4 ${
-                                                                theme === 'light' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-blue-900/30 border-blue-500 text-blue-300'
-                                                            }`}>
-                                                                <div className="flex justify-between">
-                                                                    <span>📈 Total Venta:</span>
-                                                                    <span className="font-semibold">
-                                                                        {hasData 
-                                                                            ? `${productData.saleCurrency || 'USD'} ${totalVenta.toFixed(2)}`
-                                                                            : '--'
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div className={`p-2 rounded border-l-4 ${
-                                                                theme === 'light' ? 'bg-orange-50 border-orange-400 text-orange-700' : 'bg-orange-900/30 border-orange-500 text-orange-300'
-                                                            }`}>
-                                                                <div className="flex justify-between">
-                                                                    <span>💰 Total Costo:</span>
-                                                                    <span className="font-semibold">
-                                                                        {hasData 
-                                                                            ? `${productData.costCurrency || 'USD'} ${totalCosto.toFixed(2)}`
-                                                                            : '--'
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div className={`p-2 rounded border-l-4 ${
-                                                                theme === 'light' ? 'bg-green-50 border-green-400 text-green-700' : 'bg-green-900/30 border-green-500 text-green-300'
-                                                            }`}>
-                                                                <div className="flex justify-between">
-                                                                    <span>🎯 Ganancia:</span>
-                                                                    <span className="font-bold">
-                                                                        {hasData 
-                                                                            ? `${productData.saleCurrency || 'USD'} ${gananciaNeta.toFixed(2)}`
-                                                                            : '--'
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div className={`text-center text-xs mt-3 ${
-                                                                theme === 'light' ? 'text-green-600' : 'text-green-400'
-                                                            }`}>
-                                                                {hasData && totalVenta > 0
-                                                                    ? `Margen: ${((gananciaNeta / totalVenta) * 100).toFixed(1)}%`
-                                                                    : 'Ingresa costo y stock'
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()
-                                                }
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    {/* Sección Avanzada */}
-                                    <section 
-                                        ref={el => sectionRefs.current['advanced'] = el}
-                                        data-section="advanced"
-                                        className="space-y-4"
-                                    >
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                                theme === 'light' ? 'bg-gray-100 text-gray-800' : 'bg-gray-600 text-gray-200'
-                                            }`}>
-                                                ⚙️
-                                            </div>
-                                            <h3 className={`text-lg font-bold ${
-                                                theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                            }`}>Opciones Avanzadas</h3>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {/* Proveedor */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>Proveedor</label>
-                                                <input
-                                                    type="text"
-                                                    name="supplier"
-                                                    value={productData.supplier || ''}
-                                                    onChange={handleProductInputChange}
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    placeholder="Ej. Distribuciones ABC"
-                                                />
-                                            </div>
-
-                                            {/* URL de Imagen */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    URL de Imagen
-                                                </label>
-                                                <input
-                                                    type="url"
-                                                    name="imageUrl"
-                                                    value={productData.imageUrl || ''}
-                                                    onChange={handleProductInputChange}
-                                                    onBlur={handleMainImageUrlBlur}
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        formErrors.imageUrl ? 'border-red-500' : 
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    placeholder="https://ejemplo.com/imagen.jpg"
-                                                />
-                                                {formErrors.imageUrl && <p className="text-red-500 text-xs mt-1">{formErrors.imageUrl}</p>}
-                                            </div>
-
-                                            {/* Color (solo para productos simples) */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    Color
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="color"
-                                                    value={productData.color || ''}
-                                                    onChange={handleProductInputChange}
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    placeholder="Ej. Azul, Negro"
-                                                    disabled={productData.variants && productData.variants.length > 0}
-                                                />
-                                            </div>
-
-                                            {/* Talla/Tamaño (solo para productos simples) */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    Talla/Tamaño
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="size"
-                                                    value={productData.size || ''}
-                                                    onChange={handleProductInputChange}
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    placeholder="Ej. S, L, XL"
-                                                    disabled={productData.variants && productData.variants.length > 0}
-                                                />
-                                            </div>
-
-                                            {/* Material (solo para productos simples) */}
-                                            <div>
-                                                <label className={`block text-sm font-medium mb-2 ${
-                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                }`}>
-                                                    Material
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="material"
-                                                    value={productData.material || ''}
-                                                    onChange={handleProductInputChange}
-                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                    }`}
-                                                    placeholder="Ej. Algodón, Plástico"
-                                                    disabled={productData.variants && productData.variants.length > 0}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Gestión de Stock Avanzada */}
-                                        <div className={`p-4 rounded-lg border ${
-                                            theme === 'light' ? 'border-border-subtle bg-surface-secondary' : 'border-gray-600 bg-gray-700'
-                                        }`}>
-                                            <h4 className={`text-lg font-semibold mb-4 ${
-                                                theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                            }`}>Gestión de Stock</h4>
-                                            
-                                            <div className="space-y-4">
-                                                <label className="flex items-center">
-                                                    <input
-                                                        type="checkbox"
-                                                        name="isPerishable"
-                                                        checked={productData.isPerishable || false}
-                                                        onChange={handleProductInputChange}
-                                                        className="mr-2 text-blue-600"
-                                                        disabled={productData.variants && productData.variants.length > 0}
-                                                    />
-                                                    <span className={theme === 'light' ? 'text-text-base' : 'text-gray-200'}>
-                                                        ¿Es Perecedero?
-                                                    </span>
-                                                </label>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className={`block text-sm font-medium mb-2 ${
-                                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                        }`}>
-                                                            Umbral de Reaprovisionamiento
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            name="reorderThreshold"
-                                                            value={productData.reorderThreshold || ''}
-                                                            onChange={handleProductInputChange}
-                                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                                theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                            }`}
-                                                            placeholder="10"
-                                                            disabled={productData.variants && productData.variants.length > 0}
-                                                        />
-                                                    </div>
-
-                                                    {productData.isPerishable && (
-                                                        <>
-                                                            <div>
-                                                                <label className={`block text-sm font-medium mb-2 ${
-                                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                                }`}>
-                                                                    Stock Óptimo Máximo
-                                                                </label>
-                                                                <input
-                                                                    type="number"
-                                                                    name="optimalMaxStock"
-                                                                    value={productData.optimalMaxStock || ''}
-                                                                    onChange={handleProductInputChange}
-                                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                                    }`}
-                                                                    placeholder="50"
-                                                                    disabled={productData.variants && productData.variants.length > 0}
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <label className={`block text-sm font-medium mb-2 ${
-                                                                    theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                                                }`}>
-                                                                    Vida Útil (días)
-                                                                </label>
-                                                                <input
-                                                                    type="number"
-                                                                    name="shelfLifeDays"
-                                                                    value={productData.shelfLifeDays || ''}
-                                                                    onChange={handleProductInputChange}
-                                                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                                    }`}
-                                                                    placeholder="30"
-                                                                    disabled={productData.variants && productData.variants.length > 0}
-                                                                />
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Gestión de Imagen Principal */}
-                                        <div className={`p-4 rounded-lg border ${
-                                            theme === 'light' ? 'border-border-subtle bg-surface-secondary' : 'border-gray-600 bg-gray-700'
-                                        }`}>
-                                            <h4 className={`text-lg font-semibold mb-4 ${
-                                                theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                            }`}>🖼️ Imagen Principal</h4>
-                                            
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {/* Subir archivo */}
-                                                <div>
-                                                    <label htmlFor="main-image-upload-advanced" className={`w-full py-3 px-4 rounded-lg text-center cursor-pointer transition-colors font-medium flex items-center justify-center gap-2 ${
-                                                        theme === 'light' 
-                                                            ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                                            : 'bg-blue-500 hover:bg-blue-600 text-white'
-                                                    }`}>
-                                                        {isUploadingMainImage ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-                                                        {isUploadingMainImage ? 'Subiendo...' : 'Subir desde Dispositivo'}
-                                                    </label>
-                                                    <input
-                                                        id="main-image-upload-advanced"
-                                                        type="file"
-                                                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                                                        onChange={handleMainImageFileChange}
-                                                        className="hidden"
-                                                    />
-                                                </div>
-                                                
-                                                {/* Preview mejorado */}
-                                                <div>
-                                                    {imagePreviewUrl || productData.imageUrl ? (
-                                                        <div className={`p-3 rounded-lg border text-center relative ${
-                                                            theme === 'light' ? 'border-border-subtle bg-surface-primary' : 'border-gray-600 bg-gray-800'
-                                                        }`}>
-                                                            <p className={`text-xs mb-2 ${
-                                                                theme === 'light' ? 'text-text-muted' : 'text-gray-400'
-                                                            }`}>Imagen actual:</p>
-                                                            <img
-                                                                src={imagePreviewUrl || productData.imageUrl}
-                                                                alt="Imagen del producto"
-                                                                className="max-w-full h-auto max-h-32 object-contain mx-auto rounded"
-                                                                onError={(e) => {
-                                                                    e.target.onerror = null;
-                                                                    e.target.src = 'https://placehold.co/200x150/gray/white?text=Error+al+cargar';
-                                                                }}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleRemoveMainImage}
-                                                                className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold transition-colors shadow-lg"
-                                                                title="Eliminar imagen"
-                                                            >
-                                                                ×
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className={`p-3 rounded-lg border text-center ${
-                                                            theme === 'light' ? 'border-border-subtle bg-gray-50' : 'border-gray-600 bg-gray-800'
-                                                        }`}>
+                                                        <div>
+                                                            <h2 className={`text-xl font-bold ${
+                                                                theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
+                                                            }`}>{page.title}</h2>
                                                             <p className={`text-sm ${
                                                                 theme === 'light' ? 'text-text-muted' : 'text-gray-400'
-                                                            }`}>Sin imagen</p>
+                                                            }`}>Página {index + 1} de {totalPages}</p>
                                                         </div>
-                                                    )}
+                                                    </div>
+                                                    
+                                                    {renderPageContent(page)}
                                                 </div>
                                             </div>
                                         </div>
-                                    </section>
-
-                                    {/* Sección de Variantes */}
-                                    {productData.variants && productData.variants.length > 0 && (
-                                        <section 
-                                            ref={el => sectionRefs.current['variants'] = el}
-                                            data-section="variants"
-                                            className="space-y-4"
-                                        >
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                                    theme === 'light' ? 'bg-purple-100 text-purple-800' : 'bg-purple-900/50 text-purple-200'
-                                                }`}>
-                                                    🎨
-                                                </div>
-                                                <h3 className={`text-lg font-bold ${
-                                                    theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                                }`}>Variantes del Producto</h3>
-                                            </div>
-                                            <div className="space-y-4">
-                                                {productData.variants.map((variant, index) => (
-                                                    <div key={index} ref={el => sectionRefs.current[`variant-${index}`] = el}>
-                                                        <VariantForm
-                                                            variant={variant}
-                                                            index={index}
-                                                            handleVariantInputChange={handleVariantInputChange}
-                                                            handleRemoveVariant={handleRemoveVariant}
-                                                            handleVariantImageFileChange={handleVariantImageFileChange}
-                                                            variantImageUploading={variantImageUploading}
-                                                            formErrors={formErrors}
-                                                            calculatedVariantProfitPercentage={calculatedVariantProfitPercentage[index]}
-                                                            calculatedVariantPricePlaceholder={calculatedVariantPricePlaceholder[index]}
-                                                            formatPrice={formatPrice}
-                                                            availableCurrencies={availableCurrencies}
-                                                            unitOfMeasureOptions={unitOfMeasureOptions}
-                                                            isExpanded={expandedVariants.has(index)}
-                                                            onToggleExpand={() => toggleVariantExpansion(index)}
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </section>
-                                    )}
-
-                                    {/* Botón de envío */}
-                                    <div className="flex justify-end pt-4 border-t border-gray-200">
-                                        <button
-                                            type="submit"
-                                            disabled={loading}
-                                            className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 text-sm ${
-                                                loading 
-                                                    ? 'bg-gray-400 cursor-not-allowed' 
-                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                            }`}
-                                        >
-                                            {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                                            {isNewProduct ? 'Crear Producto' : 'Actualizar Producto'}
-                                        </button>
-                                    </div>
-                                </form>
+                                    ))}
+                                </div>
+                                
+                                {/* Controles de navegación */}
+                                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-black/20 backdrop-blur-sm rounded-full px-4 py-2">
+                                    <button
+                                        type="button"
+                                        onClick={prevPage}
+                                        disabled={currentPage === 0}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                                            currentPage === 0 
+                                                ? 'bg-gray-400/50 text-gray-600 cursor-not-allowed' 
+                                                : 'bg-white/20 hover:bg-white/30 text-white hover:scale-110'
+                                        }`}
+                                        title="Página anterior (←)"
+                                    >
+                                        ←
+                                    </button>
+                                    
+                                    <span className="text-white text-sm font-medium px-2">
+                                        {currentPage + 1} / {totalPages}
+                                    </span>
+                                    
+                                    <button
+                                        type="button"
+                                        onClick={nextPage}
+                                        disabled={currentPage === totalPages - 1}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                                            currentPage === totalPages - 1 
+                                                ? 'bg-gray-400/50 text-gray-600 cursor-not-allowed' 
+                                                : 'bg-white/20 hover:bg-white/30 text-white hover:scale-110'
+                                        }`}
+                                        title="Página siguiente (→)"
+                                    >
+                                        →
+                                    </button>
+                                </div>
+                                
+                                {/* Botón de envío flotante */}
+                                <div className="absolute top-4 right-4 z-10">
+                                    <button
+                                        type="button"
+                                        onClick={onSubmit}
+                                        disabled={loading}
+                                        className={`px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all duration-300 text-sm shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                                            loading 
+                                                ? 'bg-gray-400 cursor-not-allowed' 
+                                                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
+                                        }`}
+                                    >
+                                        {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                                        {isNewProduct ? 'Crear' : 'Actualizar'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </ErrorBoundary>
                 </div>
-                
-                {/* Modal de confirmación para eliminar variantes */}
-                {showVariantDeleteConfirm && (
-                    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-                        <div className={`rounded-lg shadow-2xl p-6 w-full max-w-md border ${
-                            theme === 'light' ? 'bg-surface-primary border-border-subtle' : 'bg-gray-800 border-gray-600'
-                        }`}>
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-                                    <AlertTriangle size={20} className="text-orange-600" />
-                                </div>
-                                <h3 className={`text-lg font-bold ${
-                                    theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
-                                }`}>¿Eliminar Variantes?</h3>
-                            </div>
-                            
-                            <p className={`text-sm mb-6 ${
-                                theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                            }`}>
-                                Tienes <span className="font-bold text-orange-600">{productData.variants?.length} variante(s)</span> con información. 
-                                Al cambiar a "Producto Simple" se eliminarán permanentemente.
-                            </p>
-                            
-                            <div className="flex gap-3 justify-end">
-                                <button
-                                    onClick={() => setShowVariantDeleteConfirm(false)}
-                                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                                        theme === 'light' 
-                                            ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
-                                            : 'bg-gray-600 hover:bg-gray-500 text-gray-200'
-                                    }`}
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={confirmDeleteVariants}
-                                    className="px-4 py-2 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white transition-colors flex items-center gap-2"
-                                >
-                                    <AlertTriangle size={16} />
-                                    Sí, Eliminar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
