@@ -47,16 +47,14 @@ const AddEditProductForm = ({
     const [expandedSections, setExpandedSections] = useState(new Set(['attributes'])); // Atributos expandido por defecto
     const sectionRefs = useRef({});
     
-    // Función para toggle de secciones
+    // Toggle para secciones colapsables (acordeón exclusivo)
     const toggleSection = (sectionId) => {
         setExpandedSections(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(sectionId)) {
-                newSet.delete(sectionId);
+            if (prev.has(sectionId)) {
+                return new Set(); // Solo colapsar
             } else {
-                newSet.add(sectionId);
+                return new Set([sectionId]); // Solo expandir esta
             }
-            return newSet;
         });
     };
     
@@ -132,13 +130,25 @@ const AddEditProductForm = ({
             setCurrentPage(0);
         }
     }, [isOpen]);
+    
+    // Animación de entrada para Atributos cuando se accede a Opciones Avanzadas
+    useEffect(() => {
+        if (currentPage === 2) { // Página de opciones avanzadas (index 2)
+            // Colapsar todo primero
+            setExpandedSections(new Set());
+            // Después de un pequeño delay, expandir Atributos con animación
+            setTimeout(() => {
+                setExpandedSections(new Set(['attributes']));
+            }, 300);
+        }
+    }, [currentPage]);
 
     // Función para renderizar contenido específico de cada página
     const renderPageContent = (page) => {
         switch (page.id) {
             case 'basic':
                 return (
-                    <form onSubmit={onSubmit} className="space-y-6">
+                    <div className="space-y-6">
                         {/* Tipo de Producto */}
                         <div className={`p-4 rounded-xl border ${
                             theme === 'light' ? 'border-blue-200 bg-blue-50/50' : 'border-blue-700/50 bg-blue-900/20'
@@ -310,12 +320,12 @@ const AddEditProductForm = ({
                                 placeholder="Descripción detallada del producto..."
                             />
                         </div>
-                    </form>
+                    </div>
                 );
                 
             case 'pricing':
                 return (
-                    <form onSubmit={onSubmit} className="space-y-6">
+                    <div className="space-y-6">
                         <div className="flex gap-6">
                             {/* Columna principal con campos */}
                             <div className="flex-1">
@@ -579,12 +589,12 @@ const AddEditProductForm = ({
                                 }
                             </div>
                         </div>
-                    </form>
+                    </div>
                 );
                 
             case 'advanced':
                 return (
-                    <form onSubmit={onSubmit} className="space-y-4 h-full overflow-hidden">
+                    <div className="space-y-4 h-full overflow-hidden">
                         <div className="h-full overflow-y-auto pr-2" style={{
                             scrollbarWidth: 'thin',
                             scrollbarColor: '#9ca3af #374151'
@@ -1052,7 +1062,7 @@ const AddEditProductForm = ({
                                 )}
                             </div>
                         </div>
-                    </form>
+                    </div>
                 );
                 
             default:
@@ -1270,7 +1280,9 @@ const AddEditProductForm = ({
                                                         </div>
                                                     </div>
                                                     
-                                                    {renderPageContent(page)}
+                                                    <form onSubmit={onSubmit}>
+                                                        {renderPageContent(page)}
+                                                    </form>
                                                 </div>
                                             </div>
                                         </div>
