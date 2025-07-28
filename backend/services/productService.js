@@ -105,30 +105,60 @@ const getProductById = async (productId, userId) => {
 };
 
 const createProduct = async (productData, userId) => {
-    const product = await Product.create({
-        ...productData,
-        user: userId, // ¡CRUCIAL! Asocia el producto con el usuario.
-    });
+    try {
+        // Generar SKU si no existe
+        if (!productData.sku) {
+            const timestamp = Date.now().toString(36);
+            const random = Math.random().toString(36).substring(2, 8);
+            productData.sku = `${productData.name?.substring(0, 3).toUpperCase() || 'PRD'}-${timestamp}-${random}`;
+        }
 
-    // Actualiza el catálogo global de productos.
-    await createGlobalProduct(product);
+        const product = await Product.create({
+            ...productData,
+            user: userId, // ¡CRUCIAL! Asocia el producto con el usuario.
+        });
 
-    return product;
+        // Actualiza el catálogo global de productos (manejo de errores)
+        try {
+            await createGlobalProduct(product);
+        } catch (globalError) {
+            console.warn('Error al crear producto global:', globalError.message);
+            // No fallar la creación del producto por esto
+        }
+
+        return product;
+    } catch (error) {
+        console.error('Error en createProduct:', error);
+        throw error;
+    }
 };
 
 const updateProduct = async (productId, productData, userId) => {
-    const product = await getProductById(productId, userId); // Reutilizamos para buscar y validar propiedad.
+    try {
+        const product = await getProductById(productId, userId);
 
-    // Actualiza los campos del producto con los nuevos datos.
-    Object.assign(product, productData);
+        // Limpiar y validar datos antes de asignar
+        const cleanData = {
+            ...productData,
+            stock: Number(productData.stock) || product.stock,
+            costPrice: Number(productData.costPrice) || product.costPrice,
+            price: Number(productData.price) || product.price,
+        };
 
-    // Guardamos para que se ejecuten los hooks de Mongoose (ej. pre-save para calcular precios).
-    const updatedProduct = await product.save();
+        Object.assign(product, cleanData);
+        const updatedProduct = await product.save();
 
-    // Actualiza el catálogo global también.
-    await createGlobalProduct(updatedProduct);
+        try {
+            await createGlobalProduct(updatedProduct);
+        } catch (globalError) {
+            console.warn('Error al actualizar producto global:', globalError.message);
+        }
 
-    return updatedProduct;
+        return updatedProduct;
+    } catch (error) {
+        console.error('Error en updateProduct:', error);
+        throw error;
+    }
 };
 
 const deleteProduct = async (productId, userId) => {
@@ -229,6 +259,23 @@ const getVariantInventoryReport = async (userId) => {
     return report;
 };
 
+const updateMultipleProducts = async (ids, updates, userId) => {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const result = await Product.updateMany(
+        { _id: { $in: ids }, user: userObjectId },
+        { $set: updates }
+    );
+    return result;
+};
+
+const deleteMultipleProducts = async (ids, userId) => {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const result = await Product.deleteMany(
+        { _id: { $in: ids }, user: userObjectId }
+    );
+    return result;
+};
+
 export const productService = {
     getProducts,
     getFilterOptions,
@@ -236,6 +283,8 @@ export const productService = {
     createProduct,
     updateProduct,
     deleteProduct,
+    updateMultipleProducts,
+    deleteMultipleProducts,
     getLowStockProducts,
     getHighStockProducts,
     getVariantInventoryReport,

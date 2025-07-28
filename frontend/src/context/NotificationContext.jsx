@@ -20,9 +20,20 @@ export function NotificationProvider({ children }) {
      * los componentes que la usan como dependencia en un `useEffect`, como AccessModal.
      */
     const showNotification = useCallback((message, type = 'info') => {
+        // Limpiar cualquier timeout anterior
+        if (showNotification.timeoutId) {
+            clearTimeout(showNotification.timeoutId);
+        }
+        
         setNotification({ message, type });
-        setTimeout(() => setNotification({ message: '', type: '' }), 4000);
-    }, []); // El array de dependencias vacío significa que la función nunca cambiará.
+        
+        if (message) {
+            showNotification.timeoutId = setTimeout(() => {
+                setNotification({ message: '', type: '' });
+                showNotification.timeoutId = null;
+            }, 4000);
+        }
+    }, []);
 
     return (
         <NotificationContext.Provider value={{ notification, showNotification }}>
