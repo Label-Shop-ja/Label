@@ -313,41 +313,44 @@ const VariantForm = ({
                             )}
                         </div>
                         
-                        <div className={`rounded-xl border ${
-                            theme === 'light' ? 'border-green-200 bg-green-50/50' : 'border-green-700/50 bg-green-900/20'
+                        <div className={`rounded-xl border shadow-sm ${
+                            theme === 'light' ? 'bg-gradient-to-r from-blue-50/50 to-purple-50/50 border-blue-200' : 'bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-700'
                         }`}>
                             <button
                                 type="button"
                                 onClick={() => toggleSection('pricing')}
                                 className={`w-full p-4 flex items-center justify-between hover:bg-opacity-80 transition-all duration-200 ${
-                                    theme === 'light' ? 'hover:bg-green-100/50' : 'hover:bg-green-800/20'
+                                    theme === 'light' ? 'hover:bg-blue-100/50' : 'hover:bg-blue-800/20'
                                 }`}
                             >
                                 <div className="flex items-center gap-2">
                                     <span className="text-lg">💰</span>
                                     <h6 className={`text-sm font-semibold ${
-                                        theme === 'light' ? 'text-green-800' : 'text-green-200'
-                                    }`}>Precios y Stock</h6>
+                                        theme === 'light' ? 'text-blue-800' : 'text-blue-200'
+                                    }`}>COSTOS Y PRECIOS</h6>
                                 </div>
                                 <ChevronDown 
                                     size={16} 
                                     className={`transition-transform duration-200 ${
                                         expandedSections.has('pricing') ? 'rotate-180' : ''
                                     } ${
-                                        theme === 'light' ? 'text-green-600' : 'text-green-400'
+                                        theme === 'light' ? 'text-blue-600' : 'text-blue-400'
                                     }`}
                                 />
                             </button>
                             
                             {expandedSections.has('pricing') && (
                                 <div className={`p-4 border-t ${
-                                    theme === 'light' ? 'border-green-200' : 'border-green-700/50'
+                                    theme === 'light' ? 'border-blue-200' : 'border-blue-700/50'
                                 }`}>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Costo Unitario */}
                                         <div>
                                             <label className={`block text-sm font-medium mb-2 ${
                                                 theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                            }`}>Costo Unitario *</label>
+                                            }`}>
+                                                💵 Costo Unitario *
+                                            </label>
                                             <div className="flex gap-2">
                                                 <input
                                                     type="number"
@@ -356,9 +359,9 @@ const VariantForm = ({
                                                     placeholder="15.00"
                                                     onChange={(e) => handleVariantInputChange(index, e)}
                                                     step="0.01"
-                                                    className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                        formErrors[`variant-${index}-costPrice`] ? 'border-red-500' : 
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
+                                                    className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 ${
+                                                        formErrors[`variant-${index}-costPrice`] ? 'border-red-500 bg-red-50/10' : 
+                                                        theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
                                                     }`}
                                                     required
                                                 />
@@ -366,8 +369,114 @@ const VariantForm = ({
                                                     name="costCurrency"
                                                     value={variant.costCurrency || 'USD'}
                                                     onChange={(e) => handleVariantInputChange(index, e)}
-                                                    className={`w-20 px-2 py-2 border rounded-lg ${
-                                                        theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
+                                                    className={`w-16 px-1 py-2 border rounded-lg text-xs ${
+                                                        theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
+                                                    }`}
+                                                >
+                                                    {currencies.map(currency => (
+                                                        <option key={currency} value={currency}>{currency}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            {formErrors[`variant-${index}-costPrice`] && <p className="text-red-500 text-xs mt-1">{formErrors[`variant-${index}-costPrice`]}</p>}
+                                        </div>
+
+                                        {/* Stock */}
+                                        <div>
+                                            <label className={`block text-sm font-medium mb-2 ${
+                                                theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                            }`}>
+                                                📦 Stock *
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    name="stock"
+                                                    value={variant.stock || ''}
+                                                    placeholder="100"
+                                                    onChange={(e) => handleVariantInputChange(index, e)}
+                                                    className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 ${
+                                                        formErrors[`variant-${index}-stock`] ? 'border-red-500 bg-red-50/10' : 
+                                                        theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
+                                                    }`}
+                                                    required
+                                                />
+                                                <span className={`text-sm ${
+                                                    theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                                                }`}>unidades</span>
+                                            </div>
+                                            {formErrors[`variant-${index}-stock`] && <p className="text-red-500 text-xs mt-1">{formErrors[`variant-${index}-stock`]}</p>}
+                                        </div>
+
+                                        {/* % Ganancia */}
+                                        <div>
+                                            <label className={`block text-sm font-medium mb-2 ${
+                                                theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                            }`}>
+                                                📈 % Ganancia
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    name="profitPercentage"
+                                                    value={variant.profitPercentage || ''}
+                                                    placeholder="30"
+                                                    onChange={(e) => handleVariantInputChange(index, e)}
+                                                    step="0.1"
+                                                    min="0"
+                                                    max="999"
+                                                    className={`w-20 px-3 py-2 border rounded-lg text-center ${
+                                                        formErrors[`variant-${index}-profitPercentage`] ? 'border-red-500 bg-red-50/10' : 
+                                                        theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
+                                                    }`}
+                                                    required
+                                                />
+                                                <span className={`text-sm ${
+                                                    theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                                                }`}>%</span>
+                                                <div className="flex gap-1 ml-2">
+                                                                    {[20, 30, 50, 100].map(percentage => (
+                                                        <button
+                                                            key={percentage}
+                                                            type="button"
+                                                            onClick={() => handleVariantInputChange(index, { target: { name: 'profitPercentage', value: percentage } })}
+                                                            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                                                                Number(variant.profitPercentage) === percentage
+                                                                    ? theme === 'light' ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'
+                                                                    : theme === 'light' ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                                            }`}
+                                                        >
+                                                            {percentage}%
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {formErrors[`variant-${index}-profitPercentage`] && <p className="text-red-500 text-xs mt-1">{formErrors[`variant-${index}-profitPercentage`]}</p>}
+                                        </div>
+
+                                        {/* Precio de Venta */}
+                                        <div>
+                                            <label className={`block text-sm font-medium mb-2 ${
+                                                theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                            }`}>
+                                                🏷️ Precio de Venta (Auto)
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={calculatedVariantPricePlaceholder !== null ? parseFloat(calculatedVariantPricePlaceholder).toFixed(2) : ''}
+                                                    readOnly
+                                                    className={`flex-1 px-3 py-2 border rounded-lg ${
+                                                        theme === 'light' ? 'border-gray-200 bg-gray-50 text-text-base' : 'border-gray-600 bg-gray-600 text-gray-100'
+                                                    }`}
+                                                    placeholder="Calculado"
+                                                />
+                                                <select
+                                                    name="saleCurrency"
+                                                    value={variant.saleCurrency || 'USD'}
+                                                    onChange={(e) => handleVariantInputChange(index, e)}
+                                                    className={`w-16 px-1 py-2 border rounded-lg text-xs ${
+                                                        theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
                                                     }`}
                                                 >
                                                     {currencies.map(currency => (
@@ -376,60 +485,72 @@ const VariantForm = ({
                                                 </select>
                                             </div>
                                         </div>
-
-                                        <div>
-                                            <label className={`block text-sm font-medium mb-2 ${
-                                                theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                            }`}>Stock *</label>
-                                            <input
-                                                type="number"
-                                                name="stock"
-                                                value={variant.stock || ''}
-                                                placeholder="100"
-                                                onChange={(e) => handleVariantInputChange(index, e)}
-                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                    formErrors[`variant-${index}-stock`] ? 'border-red-500' : 
-                                                    theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                }`}
-                                                required
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className={`block text-sm font-medium mb-2 ${
-                                                theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                            }`}>% Ganancia *</label>
-                                            <input
-                                                type="number"
-                                                name="profitPercentage"
-                                                value={variant.profitPercentage || ''}
-                                                placeholder="30"
-                                                onChange={(e) => handleVariantInputChange(index, e)}
-                                                step="0.1"
-                                                min="0"
-                                                max="500"
-                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                                    formErrors[`variant-${index}-profitPercentage`] ? 'border-red-500' : 
-                                                    theme === 'light' ? 'border-border-subtle bg-white text-text-base' : 'border-gray-600 bg-gray-700 text-gray-100'
-                                                }`}
-                                                required
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className={`block text-sm font-medium mb-2 ${
-                                                theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                            }`}>Precio de Venta</label>
-                                            <input
-                                                type="number"
-                                                value={calculatedVariantPricePlaceholder !== null ? parseFloat(calculatedVariantPricePlaceholder).toFixed(2) : ''}
-                                                readOnly
-                                                className={`w-full px-3 py-2 border rounded-lg ${
-                                                    theme === 'light' ? 'border-border-subtle bg-gray-50 text-text-base' : 'border-gray-600 bg-gray-600 text-gray-100'
-                                                }`}
-                                            />
-                                        </div>
                                     </div>
+                                    
+                                    {/* Precio Psicológico */}
+                                    {calculatedVariantPricePlaceholder && (
+                                        <div className={`mt-3 text-center p-2 rounded-lg ${
+                                            theme === 'light' ? 'bg-purple-50 border border-purple-200' : 'bg-purple-900/20 border border-purple-700'
+                                        }`}>
+                                            <div className={`text-xs font-medium mb-1 ${
+                                                theme === 'light' ? 'text-purple-700' : 'text-purple-300'
+                                            }`}>🧠 Precio Psicológico</div>
+                                            <div className={`text-lg font-bold ${
+                                                theme === 'light' ? 'text-purple-800' : 'text-purple-200'
+                                            }`}>
+                                                {variant.saleCurrency || 'USD'} {(Math.floor(parseFloat(calculatedVariantPricePlaceholder)) + 0.99).toFixed(2)}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Resumen compacto */}
+                                    {variant.costPrice && variant.stock && calculatedVariantPricePlaceholder && (
+                                        <div className={`mt-3 p-3 rounded-lg border ${
+                                            theme === 'light' ? 'bg-green-50 border-green-200' : 'bg-green-900/20 border-green-700'
+                                        }`}>
+                                            <div className="grid grid-cols-3 gap-4 text-center text-sm">
+                                                <div>
+                                                    <div className={`font-medium ${
+                                                        theme === 'light' ? 'text-orange-700' : 'text-orange-300'
+                                                    }`}>💰 Inversión</div>
+                                                    <div className="font-bold">
+                                                        {variant.costCurrency || 'USD'} {(Number(variant.costPrice) * Number(variant.stock)).toFixed(2)}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className={`font-medium ${
+                                                        theme === 'light' ? 'text-blue-700' : 'text-blue-300'
+                                                    }`}>📈 Venta Total</div>
+                                                    <div className="font-bold">
+                                                        {variant.saleCurrency || 'USD'} {(Number(calculatedVariantPricePlaceholder) * Number(variant.stock)).toFixed(2)}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className={`font-medium ${
+                                                        theme === 'light' ? 'text-green-700' : 'text-green-300'
+                                                    }`}>🎯 Ganancia</div>
+                                                    <div className="font-bold">
+                                                        {variant.saleCurrency || 'USD'} {((Number(calculatedVariantPricePlaceholder) - Number(variant.costPrice)) * Number(variant.stock)).toFixed(2)}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Indicador de Rentabilidad */}
+                                            <div className="mt-3 text-center">
+                                                <div className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${
+                                                    Number(variant.profitPercentage) >= 50 
+                                                        ? theme === 'light' ? 'bg-green-100 text-green-800' : 'bg-green-900/30 text-green-300'
+                                                        : Number(variant.profitPercentage) >= 30 
+                                                            ? theme === 'light' ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-900/30 text-yellow-300'
+                                                            : theme === 'light' ? 'bg-red-100 text-red-800' : 'bg-red-900/30 text-red-300'
+                                                }`}>
+                                                    {Number(variant.profitPercentage) >= 50 ? '🔥 Alta Rentabilidad' :
+                                                     Number(variant.profitPercentage) >= 30 ? '⚡ Rentabilidad Media' :
+                                                     '⚠️ Rentabilidad Baja'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

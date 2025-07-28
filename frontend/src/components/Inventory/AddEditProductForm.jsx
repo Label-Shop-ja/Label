@@ -526,49 +526,46 @@ const AddEditProductForm = ({
                 
             case 'pricing':
                 return (
-                    <div className="space-y-6">
-                        <div className="flex gap-6">
-                            {/* Columna principal con campos */}
-                            <div className="flex-1">
-                                {/* Fila 1: Costo + Moneda + Stock */}
-                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4">
-                                    {/* Costo Unitario */}
-                                    <div className="md:col-span-5">
-                                        <label className={`block text-sm font-medium mb-2 ${
-                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                        }`}>
-                                            Costo Unitario *
-                                        </label>
+                    <div className="space-y-4">
+                        {/* Card Unificado: Costos y Precios */}
+                        <div className={`p-4 rounded-xl border shadow-sm ${
+                            theme === 'light' ? 'bg-gradient-to-r from-blue-50/50 to-purple-50/50 border-blue-200' : 'bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-700'
+                        }`}>
+                            <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${
+                                theme === 'light' ? 'text-blue-800' : 'text-blue-200'
+                            }`}>
+                                💰 COSTOS Y PRECIOS
+                            </h4>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Costo Unitario */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>
+                                        💵 Costo Unitario *
+                                    </label>
+                                    <div className="flex gap-2">
                                         <input
                                             type="number"
                                             name="costPrice"
                                             value={productData.costPrice || ''}
                                             onChange={handleProductInputChange}
                                             step="0.01"
-                                            className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 ${
                                                 formErrors.costPrice ? 'border-red-500 bg-red-50/10' : 
-                                                theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                                theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
                                             }`}
                                             placeholder="15.00"
                                             required={!productData.variants || productData.variants.length === 0}
                                             disabled={productData.variants && productData.variants.length > 0}
                                         />
-                                        {formErrors.costPrice && <p className="text-red-500 text-xs mt-1">{formErrors.costPrice}</p>}
-                                    </div>
-
-                                    {/* Selector de Moneda */}
-                                    <div className="md:col-span-2">
-                                        <label className={`block text-sm font-medium mb-2 ${
-                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                        }`}>
-                                            Moneda
-                                        </label>
                                         <select
                                             name="costCurrency"
                                             value={productData.costCurrency || 'USD'}
                                             onChange={handleProductInputChange}
-                                            className={`w-full px-2 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
-                                                theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                            className={`w-16 px-1 py-2 border rounded-lg text-xs ${
+                                                theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
                                             }`}
                                             disabled={productData.variants && productData.variants.length > 0}
                                         >
@@ -581,48 +578,45 @@ const AddEditProductForm = ({
                                             ]}
                                         </select>
                                     </div>
+                                    {formErrors.costPrice && <p className="text-red-500 text-xs mt-1">{formErrors.costPrice}</p>}
+                                </div>
 
-                                    {/* Stock */}
-                                    <div className="md:col-span-5">
-                                        <label className={`block text-sm font-medium mb-2 ${
-                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                        }`}>
-                                            Stock *
-                                        </label>
+                                {/* Stock */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>
+                                        📦 Stock *
+                                    </label>
+                                    <div className="flex items-center gap-2">
                                         <input
                                             type="number"
                                             name="stock"
                                             value={productData.stock || ''}
                                             onChange={handleProductInputChange}
-                                            className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm ${
+                                            className={`flex-1 px-3 py-2 border rounded-lg ${
                                                 formErrors.stock ? 'border-red-500 bg-red-50/10' : 
-                                                theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                                theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
                                             }`}
                                             placeholder="100"
                                             required={!productData.variants || productData.variants.length === 0}
                                             disabled={productData.variants && productData.variants.length > 0}
                                         />
-                                        {formErrors.stock && <p className="text-red-500 text-xs mt-1">{formErrors.stock}</p>}
-                                        {/* Total de inversión */}
-                                        {productData.costPrice && productData.stock && (
-                                            <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${
-                                                theme === 'light' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-orange-900/30 text-orange-300 border border-orange-700'
-                                            }`}>
-                                                📊 Total Inversión: {productData.costCurrency || 'USD'} {(Number(productData.costPrice) * Number(productData.stock)).toFixed(2)}
-                                            </div>
-                                        )}
+                                        <span className={`text-sm ${
+                                            theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                                        }`}>unidades</span>
                                     </div>
+                                    {formErrors.stock && <p className="text-red-500 text-xs mt-1">{formErrors.stock}</p>}
                                 </div>
 
-                                {/* Fila 2: % Ganancia + Precio */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* % Ganancia */}
-                                    <div>
-                                        <label className={`block text-sm font-medium mb-2 ${
-                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                        }`}>
-                                            % Ganancia
-                                        </label>
+                                {/* % Ganancia */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>
+                                        📈 % Ganancia
+                                    </label>
+                                    <div className="flex items-center gap-2">
                                         <input
                                             type="number"
                                             name="profitPercentage"
@@ -631,164 +625,140 @@ const AddEditProductForm = ({
                                             step="0.1"
                                             min="0"
                                             max="999"
-                                            className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 hover:shadow-sm text-center ${
+                                            className={`w-20 px-3 py-2 border rounded-lg text-center ${
                                                 formErrors.profitPercentage ? 'border-red-500 bg-red-50/10' : 
-                                                theme === 'light' ? 'border-gray-200 bg-white/80 backdrop-blur-sm text-text-base hover:bg-white' : 'border-gray-600/50 bg-gray-700/50 backdrop-blur-sm text-gray-100 hover:bg-gray-700/80'
+                                                theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
                                             }`}
                                             placeholder="30"
                                             disabled={productData.variants && productData.variants.length > 0}
                                         />
-                                        {formErrors.profitPercentage && <p className="text-red-500 text-xs mt-1">{formErrors.profitPercentage}</p>}
-                                        {calculatedProductProfitPercentage !== null && (
-                                            <p className={`text-xs mt-1 text-center ${
-                                                theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                                            }`}>
-                                                {parseFloat(calculatedProductProfitPercentage).toFixed(1)}%
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Precio de Venta */}
-                                    <div>
-                                        <label className={`block text-sm font-medium mb-2 ${
-                                            theme === 'light' ? 'text-text-base' : 'text-gray-200'
-                                        }`}>
-                                            Precio de Venta
-                                            <span className={`text-xs ml-1 ${
-                                                theme === 'light' ? 'text-blue-600' : 'text-blue-400'
-                                            }`}>(Auto)</span>
-                                        </label>
-                                        <div className="flex gap-1">
-                                            <div className="relative flex-1">
-                                                <input
-                                                    type="number"
-                                                    value={calculatedProductPricePlaceholder !== null ? parseFloat(calculatedProductPricePlaceholder).toFixed(2) : ''}
-                                                    readOnly
-                                                    className={`w-full px-3 py-2.5 border rounded-xl ${
-                                                        theme === 'light' ? 'border-gray-200 bg-gray-50 text-text-base' : 'border-gray-600 bg-gray-600 text-gray-100'
+                                        <span className={`text-sm ${
+                                            theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                                        }`}>%</span>
+                                        <div className="flex gap-1 ml-2">
+                                            {[20, 30, 50, 100].map(percentage => (
+                                                <button
+                                                    key={percentage}
+                                                    type="button"
+                                                    onClick={() => handleProductInputChange({ target: { name: 'profitPercentage', value: percentage } })}
+                                                    className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                                                        Number(productData.profitPercentage) === percentage
+                                                            ? theme === 'light' ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'
+                                                            : theme === 'light' ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                                     }`}
                                                     disabled={productData.variants && productData.variants.length > 0}
-                                                    placeholder="Calculado"
-                                                />
-                                                {calculatedProductPricePlaceholder !== null && (
-                                                    <div className={`absolute right-8 top-2.5 text-xs ${
-                                                        theme === 'light' ? 'text-green-600' : 'text-green-400'
-                                                    }`}>
-                                                        🔄
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <select
-                                                name="saleCurrency"
-                                                value={productData.saleCurrency || 'USD'}
-                                                onChange={handleProductInputChange}
-                                                className={`w-16 px-1 py-2.5 border rounded-xl text-xs ${
-                                                    theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
-                                                }`}
-                                                disabled={productData.variants && productData.variants.length > 0}
-                                            >
-                                                {availableCurrencies?.map(currency => (
-                                                    <option key={currency} value={currency}>{currency}</option>
-                                                )) || [
-                                                    <option key="USD" value="USD">USD</option>,
-                                                    <option key="VES" value="VES">VES</option>,
-                                                    <option key="EUR" value="EUR">EUR</option>
-                                                ]}
-                                            </select>
+                                                >
+                                                    {percentage}%
+                                                </button>
+                                            ))}
                                         </div>
+                                    </div>
+                                    {formErrors.profitPercentage && <p className="text-red-500 text-xs mt-1">{formErrors.profitPercentage}</p>}
+                                </div>
+
+                                {/* Precio de Venta */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-text-base' : 'text-gray-200'
+                                    }`}>
+                                        🏷️ Precio de Venta (Auto)
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            value={calculatedProductPricePlaceholder !== null ? parseFloat(calculatedProductPricePlaceholder).toFixed(2) : ''}
+                                            readOnly
+                                            className={`flex-1 px-3 py-2 border rounded-lg ${
+                                                theme === 'light' ? 'border-gray-200 bg-gray-50 text-text-base' : 'border-gray-600 bg-gray-600 text-gray-100'
+                                            }`}
+                                            disabled={productData.variants && productData.variants.length > 0}
+                                            placeholder="Calculado"
+                                        />
+                                        <select
+                                            name="saleCurrency"
+                                            value={productData.saleCurrency || 'USD'}
+                                            onChange={handleProductInputChange}
+                                            className={`w-16 px-1 py-2 border rounded-lg text-xs ${
+                                                theme === 'light' ? 'border-gray-200 bg-white/80 text-text-base' : 'border-gray-600/50 bg-gray-700/50 text-gray-100'
+                                            }`}
+                                            disabled={productData.variants && productData.variants.length > 0}
+                                        >
+                                            {availableCurrencies?.map(currency => (
+                                                <option key={currency} value={currency}>{currency}</option>
+                                            )) || [
+                                                <option key="USD" value="USD">USD</option>,
+                                                <option key="VES" value="VES">VES</option>,
+                                                <option key="EUR" value="EUR">EUR</option>
+                                            ]}
+                                        </select>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Sidebar: Ganancia Neta */}
-                            <div className={`w-64 p-4 rounded-xl border ${
-                                theme === 'light' ? 'bg-green-50 border-green-200' : 'bg-green-900/20 border-green-700'
-                            }`}>
-                                <h4 className={`text-lg font-bold mb-3 text-center ${
-                                    theme === 'light' ? 'text-green-800' : 'text-green-300'
+                            
+                            {/* Precio Psicológico */}
+                            {calculatedProductPricePlaceholder && (
+                                <div className={`mt-3 text-center p-2 rounded-lg ${
+                                    theme === 'light' ? 'bg-purple-50 border border-purple-200' : 'bg-purple-900/20 border border-purple-700'
                                 }`}>
-                                    💰 Ganancia Neta
-                                </h4>
-                                
-                                {(() => {
-                                    const costo = Number(productData.costPrice) || 0;
-                                    const stock = Number(productData.stock) || 0;
-                                    const precio = calculatedProductPricePlaceholder ? Number(calculatedProductPricePlaceholder) : 0;
-                                    
-                                    const totalVenta = precio * stock;
-                                    const totalCosto = costo * stock;
-                                    const gananciaNeta = totalVenta - totalCosto;
-                                    
-                                    const hasData = costo > 0 && stock > 0 && precio > 0;
-                                    
-                                    return (
-                                        <div className="space-y-3 text-sm">
-                                            <div className={`text-center text-2xl font-bold mb-4 ${
-                                                hasData 
-                                                    ? theme === 'light' ? 'text-green-700' : 'text-green-200'
-                                                    : theme === 'light' ? 'text-gray-400' : 'text-gray-500'
-                                            }`}>
-                                                {hasData 
-                                                    ? `${productData.saleCurrency || 'USD'} ${gananciaNeta.toFixed(2)}`
-                                                    : '-- --'
-                                                }
-                                            </div>
-                                            
-                                            <div className={`p-2 rounded border-l-4 ${
-                                                theme === 'light' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-blue-900/30 border-blue-500 text-blue-300'
-                                            }`}>
-                                                <div className="flex justify-between">
-                                                    <span>📈 Total Venta:</span>
-                                                    <span className="font-semibold">
-                                                        {hasData 
-                                                            ? `${productData.saleCurrency || 'USD'} ${totalVenta.toFixed(2)}`
-                                                            : '--'
-                                                        }
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className={`p-2 rounded border-l-4 ${
-                                                theme === 'light' ? 'bg-orange-50 border-orange-400 text-orange-700' : 'bg-orange-900/30 border-orange-500 text-orange-300'
-                                            }`}>
-                                                <div className="flex justify-between">
-                                                    <span>💰 Total Costo:</span>
-                                                    <span className="font-semibold">
-                                                        {hasData 
-                                                            ? `${productData.costCurrency || 'USD'} ${totalCosto.toFixed(2)}`
-                                                            : '--'
-                                                        }
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className={`p-2 rounded border-l-4 ${
-                                                theme === 'light' ? 'bg-green-50 border-green-400 text-green-700' : 'bg-green-900/30 border-green-500 text-green-300'
-                                            }`}>
-                                                <div className="flex justify-between">
-                                                    <span>🎯 Ganancia:</span>
-                                                    <span className="font-bold">
-                                                        {hasData 
-                                                            ? `${productData.saleCurrency || 'USD'} ${gananciaNeta.toFixed(2)}`
-                                                            : '--'
-                                                        }
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className={`text-center text-xs mt-3 ${
-                                                theme === 'light' ? 'text-green-600' : 'text-green-400'
-                                            }`}>
-                                                {hasData && totalVenta > 0
-                                                    ? `Margen: ${((gananciaNeta / totalVenta) * 100).toFixed(1)}%`
-                                                    : 'Ingresa costo y stock'
-                                                }
+                                    <div className={`text-xs font-medium mb-1 ${
+                                        theme === 'light' ? 'text-purple-700' : 'text-purple-300'
+                                    }`}>🧠 Precio Psicológico</div>
+                                    <div className={`text-lg font-bold ${
+                                        theme === 'light' ? 'text-purple-800' : 'text-purple-200'
+                                    }`}>
+                                        {productData.saleCurrency || 'USD'} {(Math.floor(parseFloat(calculatedProductPricePlaceholder)) + 0.99).toFixed(2)}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Resumen compacto */}
+                            {productData.costPrice && productData.stock && calculatedProductPricePlaceholder && (
+                                <div className={`mt-3 p-3 rounded-lg border ${
+                                    theme === 'light' ? 'bg-green-50 border-green-200' : 'bg-green-900/20 border-green-700'
+                                }`}>
+                                    <div className="grid grid-cols-3 gap-4 text-center text-sm">
+                                        <div>
+                                            <div className={`font-medium ${
+                                                theme === 'light' ? 'text-orange-700' : 'text-orange-300'
+                                            }`}>💰 Inversión</div>
+                                            <div className="font-bold">
+                                                {productData.costCurrency || 'USD'} {(Number(productData.costPrice) * Number(productData.stock)).toFixed(2)}
                                             </div>
                                         </div>
-                                    );
-                                })()
-                                }
-                            </div>
+                                        <div>
+                                            <div className={`font-medium ${
+                                                theme === 'light' ? 'text-blue-700' : 'text-blue-300'
+                                            }`}>📈 Venta Total</div>
+                                            <div className="font-bold">
+                                                {productData.saleCurrency || 'USD'} {(Number(calculatedProductPricePlaceholder) * Number(productData.stock)).toFixed(2)}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className={`font-medium ${
+                                                theme === 'light' ? 'text-green-700' : 'text-green-300'
+                                            }`}>🎯 Ganancia</div>
+                                            <div className="font-bold">
+                                                {productData.saleCurrency || 'USD'} {((Number(calculatedProductPricePlaceholder) - Number(productData.costPrice)) * Number(productData.stock)).toFixed(2)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Indicador de Rentabilidad */}
+                                    <div className="mt-3 text-center">
+                                        <div className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${
+                                            Number(productData.profitPercentage) >= 50 
+                                                ? theme === 'light' ? 'bg-green-100 text-green-800' : 'bg-green-900/30 text-green-300'
+                                                : Number(productData.profitPercentage) >= 30 
+                                                    ? theme === 'light' ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-900/30 text-yellow-300'
+                                                    : theme === 'light' ? 'bg-red-100 text-red-800' : 'bg-red-900/30 text-red-300'
+                                        }`}>
+                                            {Number(productData.profitPercentage) >= 50 ? '🔥 Alta Rentabilidad' :
+                                             Number(productData.profitPercentage) >= 30 ? '⚡ Rentabilidad Media' :
+                                             '⚠️ Rentabilidad Baja'}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
