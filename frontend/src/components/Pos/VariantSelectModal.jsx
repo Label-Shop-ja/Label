@@ -2,6 +2,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { X } from 'lucide-react';
 import ProductModal from '../Common/ProductModal'; // Reutilizamos el modal base
+import { getPriceColorClass } from '../../utils/priceColors';
 
 const VariantSelectModal = ({ isOpen, onClose, product, onSelectVariant, formatPrice, convertPrice, exchangeRate }) => {
     const [selectedVariantId, setSelectedVariantId] = useState('');
@@ -61,12 +62,12 @@ const VariantSelectModal = ({ isOpen, onClose, product, onSelectVariant, formatP
                 )}
 
                 <div className="mb-4">
-                    <label htmlFor="variantSelect" className="block text-neutral-light text-sm font-bold mb-2">Selecciona una Variante:</label>
+                    <label htmlFor="variantSelect" className="block text-text-base text-sm font-bold mb-2">Selecciona una Variante:</label>
                     <select
                         id="variantSelect"
                         value={selectedVariantId}
                         onChange={handleVariantChange}
-                        className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal cursor-pointer"
+                        className="shadow appearance-none border border-surface-secondary rounded w-full py-2 px-3 text-text-base leading-tight focus:outline-none focus:ring-2 focus:ring-primary bg-surface-secondary cursor-pointer"
                     >
                         {product.variants.map(variant => (
                             <option key={variant._id} value={variant._id} disabled={variant.stock <= 0}>
@@ -80,32 +81,32 @@ const VariantSelectModal = ({ isOpen, onClose, product, onSelectVariant, formatP
                 </div>
 
                 {selectedVariant && (
-                    <div className="bg-neutral-gray-800 p-4 rounded-lg border border-neutral-gray-700">
-                        <h4 className="text-xl font-semibold text-action-blue mb-3">{selectedVariant.name}</h4>
+                    <div className="bg-surface-secondary p-4 rounded-lg border border-surface-secondary">
+                        <h4 className="text-xl font-semibold text-primary mb-3">{selectedVariant.name}</h4>
                         <img
                             src={selectedVariant.imageUrl || 'https://placehold.co/150x100/2D3748/F8F8F2?text=Var+Img'}
                             alt={selectedVariant.name}
                             className="w-32 h-auto object-cover rounded-md mb-3"
                             onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/150x100/2D3748/F8F8F2?text=Error'; }}
                         />
-                        <p className="text-neutral-light mb-1">SKU: {selectedVariant.sku}</p>
-                        <p className="text-neutral-light mb-1">Stock Disponible: <span className={`${selectedVariant.stock <= 5 ? 'text-red-400' : 'text-yellow-400'} font-bold`}>{selectedVariant.stock} {selectedVariant.unitOfMeasure}</span></p>
-                        <p className="text-success-green font-bold text-lg mt-2">Precio: {formatPrice(selectedVariant.price, primaryCurrency)}
+                        <p className="text-text-base mb-1">SKU: {selectedVariant.sku}</p>
+                        <p className="text-text-base mb-1">Stock Disponible: <span className={`${selectedVariant.stock <= 5 ? 'text-error' : 'text-secondary'} font-bold`}>{selectedVariant.stock} {selectedVariant.unitOfMeasure}</span></p>
+                        <p className="font-bold text-lg mt-2">Precio: <span className={getPriceColorClass(selectedVariant.price)}>{formatPrice(selectedVariant.price, primaryCurrency)}</span>
                             {primaryCurrency !== secondaryCurrency && exchangeRate && (
-                                <span className="ml-2 text-sm text-neutral-gray-400">
+                                <span className={`ml-2 text-sm ${getPriceColorClass(convertPrice(selectedVariant.price, primaryCurrency, secondaryCurrency))}`}>
                                     ({formatPrice(convertPrice(selectedVariant.price, primaryCurrency, secondaryCurrency), secondaryCurrency)})
                                 </span>
                             )}
                         </p>
-                        {selectedVariant.color && <p className="text-neutral-gray-300 text-sm">Color: {selectedVariant.color}</p>}
-                        {selectedVariant.size && <p className="text-neutral-gray-300 text-sm">Talla: {selectedVariant.size}</p>}
+                        {selectedVariant.color && <p className="text-text-muted text-sm">Color: {selectedVariant.color}</p>}
+                        {selectedVariant.size && <p className="text-text-muted text-sm">Talla: {selectedVariant.size}</p>}
                     </div>
                 )}
 
                 <div className="flex justify-end mt-4">
                     <button
                         onClick={handleConfirm}
-                        className="bg-action-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
+                        className="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
                         disabled={!selectedVariant || selectedVariant.stock <= 0}
                     >
                         Confirmar Selección

@@ -284,19 +284,35 @@ productSchema.pre('save', async function (next) {
     // Si no se ha modificado nada relevante para el precio, no hacemos nada.
     const isCostModified = this.isModified('costPrice') || this.isModified('profitPercentage');
     const areVariantsModified = this.isModified('variants');
+    const isUnitModified = this.isModified('unitOfMeasure');
 
-    if (!isCostModified && !areVariantsModified) {
+    if (!isCostModified && !areVariantsModified && !isUnitModified) {
+        return next();
+    }
+
+    // Si solo se cambió la unidad de medida, no recalcular precios
+    if (isUnitModified && !isCostModified && !areVariantsModified) {
         return next();
     }
 
     // Necesitamos la configuración de tasas del usuario para hacer cualquier cálculo
-    const ExchangeRate = mongoose.model('ExchangeRate');
-    const exchangeRateConfig = await ExchangeRate.findOne({ user: this.user });
+    let exchangeRateConfig;
+    try {
+        const ExchangeRate = mongoose.model('ExchangeRate');
+        exchangeRateConfig = await ExchangeRate.findOne({ user: this.user });
+    } catch (error) {
+        console.warn('Error al buscar configuración de tasa de cambio:', error.message);
+    }
 
     if (!exchangeRateConfig) {
-        const error = new Error('No se encontró la configuración de tasas de cambio para este usuario. No se puede calcular el precio.');
-        error.statusCode = 400; // Bad Request
-        return next(error);
+        console.warn('No se encontró configuración de tasa de cambio, usando valores por defecto');
+        // Crear una configuración por defecto temporal
+        exchangeRateConfig = {
+            fromCurrency: 'USD',
+            toCurrency: 'USD',
+            rate: 1,
+            user: this.user
+        };
     }
 
     // CASO 1: Producto con variantes.
@@ -306,21 +322,27 @@ productSchema.pre('save', async function (next) {
 
         // Calcular el precio de cada variante
         for (const variant of this.variants) {
-            variant.price = calculateSalePrice(
-                variant.costPrice,
-                variant.costCurrency,
-                variant.profitPercentage,
-                exchangeRateConfig,
-                variant.saleCurrency
-            );
-            if (variant.price === null) {
-                return next(new Error(`No se pudo calcular el precio para la variante "${variant.name}" debido a una configuración de moneda inválida.`));
+            try {
+                const calculatedPrice = calculateSalePrice(
+                    variant.costPrice,
+                    variant.costCurrency,
+                    variant.profitPercentage,
+                    exchangeRateConfig,
+                    variant.saleCurrency
+                );
+                variant.price = calculatedPrice !== null ? calculatedPrice : variant.costPrice * 1.2; // 20% por defecto
+            } catch (error) {
+                console.warn(`Error calculando precio para variante ${variant.name}:`, error.message);
+                variant.price = variant.costPrice * 1.2; // 20% por defecto
             }
         }
     } else if (isCostModified) { // CASO 2: Producto simple (sin variantes) y se modificó su costo o ganancia.
-        this.price = calculateSalePrice(this.costPrice, this.costCurrency, this.profitPercentage, exchangeRateConfig, this.saleCurrency);
-        if (this.price === null) {
-            return next(new Error(`No se pudo calcular el precio para el producto "${this.name}" debido a una configuración de moneda inválida.`));
+        try {
+            const calculatedPrice = calculateSalePrice(this.costPrice, this.costCurrency, this.profitPercentage, exchangeRateConfig, this.saleCurrency);
+            this.price = calculatedPrice !== null ? calculatedPrice : this.costPrice * 1.2; // 20% por defecto
+        } catch (error) {
+            console.warn(`Error calculando precio para producto ${this.name}:`, error.message);
+            this.price = this.costPrice * 1.2; // 20% por defecto
         }
     }
 

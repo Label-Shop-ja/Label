@@ -404,43 +404,57 @@ function InventoryPage() {
         setLocalError('');
         setSuccessMessage('');
 
+        // Validación básica antes de enviar
+        if (!productDataToSave.name || !productDataToSave.category) {
+            displayMessage('Nombre y categoría son campos obligatorios.', 'error');
+            return;
+        }
+
         // Prepara los datos para enviar al backend (ya gestionados en AddEditProductFormLogic)
         const productToSend = {
             ...productDataToSave,
-            price: Number(productDataToSave.price),
-            stock: Number(productDataToSave.stock),
-            costPrice: Number(productDataToSave.costPrice),
+            price: Number(productDataToSave.price) || 0,
+            stock: Number(productDataToSave.stock) || 0,
+            costPrice: Number(productDataToSave.costPrice) || 0,
             isPerishable: Boolean(productDataToSave.isPerishable),
-            reorderThreshold: Number(productDataToSave.reorderThreshold),
-            optimalMaxStock: Number(productDataToSave.optimalMaxStock),
-            shelfLifeDays: Number(productDataToSave.shelfLifeDays),
+            reorderThreshold: Number(productDataToSave.reorderThreshold) || 0,
+            optimalMaxStock: Number(productDataToSave.optimalMaxStock) || 0,
+            shelfLifeDays: Number(productDataToSave.shelfLifeDays) || 0,
+            costCurrency: productDataToSave.costCurrency || 'USD',
+            saleCurrency: productDataToSave.saleCurrency || 'USD',
+            displayCurrency: productDataToSave.displayCurrency || 'USD',
+            baseCurrency: productDataToSave.baseCurrency || 'USD',
         };
 
-        productToSend.variants = productDataToSave.variants.map(variant => ({
+        productToSend.variants = (productDataToSave.variants || []).map(variant => ({
             ...variant,
-            price: Number(variant.price),
-            costPrice: Number(variant.costPrice),
-            stock: Number(variant.stock),
+            price: Number(variant.price) || 0,
+            costPrice: Number(variant.costPrice) || 0,
+            stock: Number(variant.stock) || 0,
             isPerishable: Boolean(variant.isPerishable),
-            reorderThreshold: Number(variant.reorderThreshold),
-            optimalMaxStock: Number(variant.optimalMaxStock),
-            shelfLifeDays: Number(variant.shelfLifeDays),
+            reorderThreshold: Number(variant.reorderThreshold) || 0,
+            optimalMaxStock: Number(variant.optimalMaxStock) || 0,
+            shelfLifeDays: Number(variant.shelfLifeDays) || 0,
+            costCurrency: variant.costCurrency || 'USD',
+            saleCurrency: variant.saleCurrency || 'USD',
         }));
 
-
         try {
-            await axiosInstance.post('/products', productToSend);
+            console.log('Enviando producto:', productToSend);
+            const response = await axiosInstance.post('/products', productToSend);
+            console.log('Producto creado:', response.data);
             displayMessage('Producto añadido exitosamente.', 'success');
             closeModal();
             // Despachamos la acción para que Redux recargue la lista.
-            // Esto asegura que la paginación y los filtros se respeten.
-            dispatch(fetchProducts({ page: 1, limit: 10, sortBy: 'createdAt', sortOrder: 'desc' })); // Volver a la primera página para ver el nuevo producto
+            dispatch(fetchProducts({ page: 1, limit: 10, sortBy: 'createdAt', sortOrder: 'desc' }));
             fetchFilterOptions();
             fetchLowStockAlerts();
             fetchHighStockAlerts();
         } catch (err) {
-            const errorMessage = err.response?.data?.message || 'Error al añadir producto. Por favor, inténtalo de nuevo.';
-            displayMessage(errorMessage, 'error');
+            console.error('Error completo:', err);
+            console.error('Respuesta del servidor:', err.response?.data);
+            const errorMessage = err.response?.data?.message || err.message || 'Error al añadir producto. Por favor, inténtalo de nuevo.';
+            displayMessage(`Error: ${errorMessage}`, 'error');
         }
     }, [dispatch, displayMessage, closeModal, fetchFilterOptions, fetchLowStockAlerts, fetchHighStockAlerts]);
 

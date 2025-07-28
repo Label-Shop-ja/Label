@@ -1,6 +1,7 @@
 // C:\Proyectos\Label\frontend\src\components\Pos\WeightInputModal.jsx
 import React, { useState, useCallback, useEffect } from 'react';
 import { calculateFractionalPrice } from '../../utils/unitConversion';
+import { getPriceColorClass, getPriceBgColorClass } from '../../utils/priceColors';
 
 const WeightInputModal = ({
     onClose,
@@ -71,8 +72,8 @@ const WeightInputModal = ({
     if (!product) return null;
 
     return (
-        <div className="bg-dark-charcoal p-4 rounded-lg shadow-lg border border-action-blue mt-4">
-            <h4 className="text-lg font-bold mb-2">
+        <div className="bg-surface p-4 rounded-lg shadow-lg border border-primary mt-4">
+            <h4 className="text-lg font-bold mb-2 text-text-base">
                 Ingresar Cantidad por {majorUnitName.toUpperCase()} para {product.name}
             </h4>
             {error && (
@@ -83,20 +84,20 @@ const WeightInputModal = ({
             )}
 
             <div className="mb-4">
-                <p className="text-neutral-light text-base font-semibold mb-2">{product.name}</p>
-                <p className="text-neutral-gray-300 text-sm mb-1">
-                    Precio por {majorUnitName}: {formatPrice(product.displayPrice, primaryCurrency)}
+                <p className="text-text-base text-base font-semibold mb-2">{product.name}</p>
+                <p className="text-text-muted text-sm mb-1">
+                    Precio por {majorUnitName}: <span className={getPriceColorClass(product.displayPrice)}>{formatPrice(product.displayPrice, primaryCurrency)}</span>
                     {primaryCurrency !== secondaryCurrency && exchangeRate && (
-                        <span className="ml-1 text-xs text-neutral-gray-400">
+                        <span className={`ml-1 text-xs ${getPriceColorClass(convertPrice(product.displayPrice, primaryCurrency, secondaryCurrency))}`}>
                             ({formatPrice(convertPrice(product.displayPrice, primaryCurrency, secondaryCurrency), secondaryCurrency)})
                         </span>
                     )}
                 </p>
-                <p className="text-neutral-gray-300 text-sm mb-3">
-                    Stock Disponible: <span className={`${product.displayStock <= 5 ? 'text-red-400' : 'text-yellow-400'} font-bold`}>{product.displayStock} {majorUnitName}</span>
+                <p className="text-text-muted text-sm mb-3">
+                    Stock Disponible: <span className={`${product.displayStock <= 5 ? 'text-error' : 'text-secondary'} font-bold`}>{product.displayStock} {majorUnitName}</span>
                 </p>
 
-                <label htmlFor="inputQuantity" className="block text-neutral-light text-sm font-bold mb-2">
+                <label htmlFor="inputQuantity" className="block text-text-base text-sm font-bold mb-2">
                     Cantidad en {minorUnitName} a vender:
                 </label>
                 <input
@@ -107,16 +108,16 @@ const WeightInputModal = ({
                     step="any"
                     min="0.01"
                     placeholder={`Ej. 155 para ${minorUnitName}`}
-                    className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                    className="shadow appearance-none border border-surface-secondary rounded w-full py-2 px-3 text-text-base leading-tight focus:outline-none focus:ring-2 focus:ring-primary bg-surface-secondary"
                 />
             </div>
 
-            <div className="flex justify-between items-center mb-4 border-t border-neutral-gray-600 pt-4">
-                <p className="text-xl font-bold text-neutral-light">Precio Calculado:</p>
-                <p className="text-3xl font-extrabold text-success-green">
+            <div className={`flex justify-between items-center mb-4 border-t border-surface-secondary pt-4 px-3 py-2 rounded-lg ${getPriceBgColorClass(calculatedPrice)}`}>
+                <p className="text-xl font-bold text-text-base">Precio Calculado:</p>
+                <p className={`text-3xl font-extrabold ${getPriceColorClass(calculatedPrice)}`}>
                     {formatPrice(calculatedPrice, primaryCurrency)}
                     {primaryCurrency !== secondaryCurrency && exchangeRate && calculatedPrice > 0 && (
-                        <span className="ml-2 text-base text-neutral-gray-400">
+                        <span className={`ml-2 text-base ${getPriceColorClass(convertPrice(calculatedPrice, primaryCurrency, secondaryCurrency))}`}>
                             ({formatPrice(convertPrice(calculatedPrice, primaryCurrency, secondaryCurrency), secondaryCurrency)})
                         </span>
                     )}
@@ -126,14 +127,14 @@ const WeightInputModal = ({
             <div className="flex justify-end mt-4 gap-2">
                 <button
                     onClick={handleConfirm}
-                    className="bg-action-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
+                    className="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
                     disabled={calculatedPrice <= 0 || loading}
                 >
                     Añadir al Carrito
                 </button>
                 <button
                     onClick={onClose}
-                    className="bg-neutral-gray-500 hover:bg-neutral-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
+                    className="bg-surface-secondary hover:bg-surface-secondary/80 text-text-base font-bold py-2 px-4 rounded-lg transition duration-200"
                     disabled={loading}
                 >
                     Cancelar
