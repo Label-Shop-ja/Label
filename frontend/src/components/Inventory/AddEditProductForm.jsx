@@ -45,7 +45,12 @@ const AddEditProductForm = ({
     const [expandedVariants, setExpandedVariants] = useState(new Set());
     const [showVariantDeleteConfirm, setShowVariantDeleteConfirm] = useState(false);
     const [expandedSections, setExpandedSections] = useState(new Set(['attributes'])); // Atributos expandido por defecto
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const sectionRefs = useRef({});
+    const indexRef = useRef(null);
+    const [maxIndexHeight, setMaxIndexHeight] = useState('auto');
+    
+
     
     // Toggle para secciones colapsables (acordeón exclusivo)
     const toggleSection = (sectionId) => {
@@ -56,6 +61,50 @@ const AddEditProductForm = ({
                 return new Set([sectionId]); // Solo expandir esta
             }
         });
+    };
+    
+    // Calcular progreso de cada página
+    const getPageProgress = (pageId) => {
+        switch (pageId) {
+            case 'basic':
+                const basicFields = ['name', 'category', 'unitOfMeasure'];
+                const basicCompleted = basicFields.filter(field => productData[field]).length;
+                return Math.round((basicCompleted / basicFields.length) * 100);
+                
+            case 'pricing':
+                if (productData.variants?.length > 0) return 100; // Variantes manejan precios
+                const pricingFields = ['costPrice', 'stock'];
+                const pricingCompleted = pricingFields.filter(field => productData[field]).length;
+                return Math.round((pricingCompleted / pricingFields.length) * 100);
+                
+            case 'advanced':
+                return 100; // Opcional, siempre completa
+                
+            case 'variants':
+                if (!productData.variants?.length) return 0;
+                const totalVariants = productData.variants.length;
+                const completedVariants = productData.variants.filter(v => v.name && v.costPrice && v.stock).length;
+                return Math.round((completedVariants / totalVariants) * 100);
+                
+            default:
+                if (pageId.startsWith('variant-')) {
+                    const variantIndex = parseInt(pageId.split('-')[1]);
+                    const variant = productData.variants?.[variantIndex];
+                    if (!variant) return 0;
+                    const variantFields = ['name', 'costPrice', 'stock'];
+                    const variantCompleted = variantFields.filter(field => variant[field]).length;
+                    return Math.round((variantCompleted / variantFields.length) * 100);
+                }
+                return 100;
+        }
+    };
+    
+    // Obtener ícono de estado
+    const getPageStatusIcon = (pageId) => {
+        const progress = getPageProgress(pageId);
+        if (progress === 100) return '✅';
+        if (progress > 0) return '⚠️';
+        return '⭕';
     };
     
     // Definir las páginas del formulario
@@ -85,9 +134,161 @@ const AddEditProductForm = ({
     const pages = getPages();
     const totalPages = pages.length;
     
+    // Validar si el formulario está completo para mostrar botón
+    const isFormComplete = () => {
+        // Campos esenciales: Nombre, Categoría
+        const basicComplete = Boolean(productData.name?.trim() && productData.category?.trim());
+        
+        if (!basicComplete) return false;
+        
+        // Si tiene variantes, validar solo campos esenciales de variantes
+        if (productData.variants?.length > 0) {
+            return productData.variants.every(variant => 
+                Boolean(
+                    variant.name?.trim() && 
+                    variant.costPrice && 
+                    variant.stock
+                )
+            );
+        }
+        
+        // Si es producto simple, validar solo campos esenciales
+        return Boolean(productData.costPrice && productData.stock);
+    };
+    
+    const formComplete = isFormComplete();
+    const realErrors = Object.values(formErrors).filter(error => error && error.trim());
+    const hasErrors = realErrors.length > 0;
+    
+    // Obtener campos faltantes para mostrar en tooltip
+    const getMissingFields = () => {
+        const missing = [];
+        if (!productData.name?.trim()) missing.push('Nombre del Producto');
+        if (!productData.category?.trim()) missing.push('Categoría');
+        
+        if (productData.variants?.length > 0) {
+            productData.variants.forEach((variant, index) => {
+                if (!variant.name?.trim()) missing.push(`Variante ${index + 1}: Nombre`);
+                if (!variant.costPrice) missing.push(`Variante ${index + 1}: Costo`);
+                if (!variant.stock) missing.push(`Variante ${index + 1}: Stock`);
+            });
+        } else {
+            if (!productData.costPrice) missing.push('Costo Unitario');
+            if (!productData.stock) missing.push('Stock');
+        }
+        
+        return missing;
+    };
+    
+    const missingFields = getMissingFields();
+    const canSubmit = formComplete && !hasErrors;
+    
+    const handleSubmitClick = () => {
+        if (canSubmit) {
+            onSubmit();
+        } else {
+            // Navegar al primer campo faltante
+            if (!productData.name?.trim()) {
+                goToPage(0); // Página "Información Básica"
+                setTimeout(() => {
+                    const nameInput = document.querySelector('input[name="name"]');
+                    if (nameInput) {
+                        nameInput.focus();
+                        nameInput.style.borderColor = '#ef4444';
+                        nameInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+                    }
+                }, 100);
+            } else if (!productData.category?.trim()) {
+                goToPage(0); // Página "Información Básica"
+                setTimeout(() => {
+                    const categoryInput = document.querySelector('input[name="category"]');
+                    if (categoryInput) {
+                        categoryInput.focus();
+                        categoryInput.style.borderColor = '#ef4444';
+                        categoryInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+                    }
+                }, 100);
+            } else if (!productData.costPrice && (!productData.variants || productData.variants.length === 0)) {
+                goToPage(1); // Página "Costos y Precios"
+                setTimeout(() => {
+                    const costInput = document.querySelector('input[name="costPrice"]');
+                    if (costInput) {
+                        costInput.focus();
+                        costInput.style.borderColor = '#ef4444';
+                        costInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+                    }
+                }, 100);
+            } else if (!productData.stock && (!productData.variants || productData.variants.length === 0)) {
+                goToPage(1); // Página "Costos y Precios"
+                setTimeout(() => {
+                    const stockInput = document.querySelector('input[name="stock"]');
+                    if (stockInput) {
+                        stockInput.focus();
+                        stockInput.style.borderColor = '#ef4444';
+                        stockInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+                    }
+                }, 100);
+            } else if (productData.variants?.length > 0) {
+                // Buscar primera variante incompleta
+                const incompleteVariantIndex = productData.variants.findIndex(variant => 
+                    !variant.name?.trim() || !variant.costPrice || !variant.stock
+                );
+                if (incompleteVariantIndex !== -1) {
+                    const variantPageIndex = pages.findIndex(p => p.id === `variant-${incompleteVariantIndex}`);
+                    if (variantPageIndex !== -1) {
+                        goToPage(variantPageIndex);
+                        // Expandir la variante si no está expandida
+                        setTimeout(() => {
+                            const variant = productData.variants[incompleteVariantIndex];
+                            if (!variant.name?.trim()) {
+                                const nameInput = document.querySelector(`input[name="name"][data-variant="${incompleteVariantIndex}"]`);
+                                if (nameInput) {
+                                    nameInput.focus();
+                                    nameInput.style.borderColor = '#ef4444';
+                                    nameInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+                                }
+                            }
+                        }, 100);
+                    }
+                }
+            }
+        }
+    };
+    
+    // Calcular altura máxima disponible para el índice
+    useEffect(() => {
+        if (isOpen && sidebarOpen && indexRef.current) {
+            const calculateMaxHeight = () => {
+                const indexElement = indexRef.current;
+                const sidebar = indexElement.closest('.sidebar-container');
+                if (sidebar) {
+                    const sidebarRect = sidebar.getBoundingClientRect();
+                    const indexRect = indexElement.getBoundingClientRect();
+                    const availableHeight = sidebarRect.bottom - indexRect.top - 20; // 20px margen
+                    const variantCount = pages.filter(p => p.isVariant).length;
+                    
+                    if (variantCount > 4) {
+                        setMaxIndexHeight(`${Math.max(200, availableHeight)}px`);
+                    } else {
+                        setMaxIndexHeight('auto');
+                    }
+                }
+            };
+            
+            calculateMaxHeight();
+            window.addEventListener('resize', calculateMaxHeight);
+            
+            return () => window.removeEventListener('resize', calculateMaxHeight);
+        }
+    }, [isOpen, sidebarOpen, pages.length, productData.variants?.length]);
+    
     const goToPage = (pageIndex) => {
         if (pageIndex >= 0 && pageIndex < totalPages) {
             setCurrentPage(pageIndex);
+            // Cerrar sidebar solo en móviles
+            if (window.innerWidth < 768) {
+                setSidebarOpen(false);
+            }
         }
     };
     
@@ -1065,7 +1266,121 @@ const AddEditProductForm = ({
                     </div>
                 );
                 
+            case 'variants':
+                return (
+                    <div className="space-y-4">
+                        {/* Resumen de variantes */}
+                        <div className={`p-4 rounded-xl border ${
+                            theme === 'light' ? 'border-purple-200 bg-purple-50/50' : 'border-purple-700/50 bg-purple-900/20'
+                        }`}>
+                            <h4 className={`text-lg font-semibold mb-4 ${
+                                theme === 'light' ? 'text-purple-800' : 'text-purple-200'
+                            }`}>🎨 Gestión de Variantes</h4>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {productData.variants?.map((variant, index) => (
+                                    <div key={index} className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-md ${
+                                        theme === 'light' ? 'border-gray-200 bg-white' : 'border-gray-600 bg-gray-700'
+                                    }`}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h5 className={`font-medium ${
+                                                theme === 'light' ? 'text-gray-800' : 'text-gray-200'
+                                            }`}>
+                                                {variant.name || `Variante ${index + 1}`}
+                                            </h5>
+                                            <button
+                                                type="button"
+                                                onClick={() => goToPage(pages.findIndex(p => p.id === `variant-${index}`))}
+                                                className={`text-xs px-2 py-1 rounded transition-colors ${
+                                                    theme === 'light' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-900/50 text-blue-300 hover:bg-blue-800/50'
+                                                }`}
+                                            >
+                                                Editar
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="space-y-1 text-xs">
+                                            {variant.color && (
+                                                <div className={`flex justify-between ${
+                                                    theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                                                }`}>
+                                                    <span>Color:</span>
+                                                    <span className="font-medium">{variant.color}</span>
+                                                </div>
+                                            )}
+                                            {variant.size && (
+                                                <div className={`flex justify-between ${
+                                                    theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                                                }`}>
+                                                    <span>Talla:</span>
+                                                    <span className="font-medium">{variant.size}</span>
+                                                </div>
+                                            )}
+                                            {variant.stock && (
+                                                <div className={`flex justify-between ${
+                                                    theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                                                }`}>
+                                                    <span>Stock:</span>
+                                                    <span className="font-medium">{variant.stock}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                                
+                                {/* Botón agregar variante */}
+                                <button
+                                    type="button"
+                                    onClick={handleAddVariant}
+                                    className={`p-3 rounded-lg border-2 border-dashed transition-all duration-200 hover:shadow-md flex flex-col items-center justify-center gap-2 min-h-[100px] ${
+                                        theme === 'light' 
+                                            ? 'border-green-300 bg-green-50/50 hover:bg-green-100/50 text-green-700' 
+                                            : 'border-green-600 bg-green-900/20 hover:bg-green-800/20 text-green-300'
+                                    }`}
+                                >
+                                    <Plus size={20} />
+                                    <span className="text-sm font-medium">Agregar Variante</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+                
             default:
+                if (page.isVariant) {
+                    const variantIndex = parseInt(page.id.split('-')[1]);
+                    const variant = productData.variants?.[variantIndex];
+                    
+                    if (!variant) {
+                        return (
+                            <div className="text-center py-8">
+                                <p className={`text-lg ${
+                                    theme === 'light' ? 'text-text-base' : 'text-gray-300'
+                                }`}>Variante no encontrada</p>
+                            </div>
+                        );
+                    }
+                    
+                    return (
+                        <VariantForm
+                            variant={variant}
+                            index={variantIndex}
+                            handleVariantInputChange={handleVariantInputChange}
+                            handleRemoveVariant={handleRemoveVariant}
+                            handleVariantImageFileChange={handleVariantImageFileChange}
+                            variantImageUploading={variantImageUploading}
+                            formErrors={formErrors}
+                            calculatedVariantProfitPercentage={calculatedVariantProfitPercentage?.[variantIndex]}
+                            calculatedVariantPricePlaceholder={calculatedVariantPricePlaceholder?.[variantIndex]}
+                            formatPrice={formatPrice}
+                            availableCurrencies={availableCurrencies}
+                            unitOfMeasureOptions={unitOfMeasureOptions}
+                            isExpanded={true}
+                            onToggleExpand={() => {}}
+                        />
+                    );
+                }
+                
                 return (
                     <div className="text-center py-8">
                         <p className={`text-lg ${
@@ -1080,16 +1395,37 @@ const AddEditProductForm = ({
     };
 
     return (
-        <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-300 p-4 sm:p-6 overflow-y-auto animate-in fade-in-0"
-            onClick={onClose}
-        >
+        <>
+            <style jsx>{`
+                @keyframes marquee {
+                    0% { transform: translateX(0); }
+                    5% { transform: translateX(0); }
+                    95% { transform: translateX(-66.66%); }
+                    100% { transform: translateX(-66.66%); }
+                }
+            `}</style>
+            <div
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-300 p-4 sm:p-6 overflow-y-auto animate-in fade-in-0"
+                onClick={onClose}
+            >
             <div
                 className="bg-deep-night-blue/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 text-neutral-light w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto my-auto relative transform transition-all duration-500 scale-100 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="relative bg-gradient-to-r from-gray-800 to-gray-700">
-                    <div className="p-4 ml-56">
+                    <div className={`p-4 transition-all duration-300 ${
+                        sidebarOpen ? 'ml-0 md:ml-56' : 'ml-0'
+                    }`}>
+                        {/* Botón hamburguesa */}
+                        <button
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className="absolute top-3 left-3 text-neutral-gray-400 hover:text-white transition-colors duration-200 z-10"
+                            title="Alternar menú"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
                         <button
                             onClick={onClose}
                             className="absolute top-3 right-3 text-neutral-gray-400 hover:text-red-500 transition-colors duration-200 z-10"
@@ -1105,17 +1441,31 @@ const AddEditProductForm = ({
                 
                 <div className="overflow-y-auto flex-grow">
                     <ErrorBoundary>
-                        <div className={`flex h-[70vh] relative ${
+                        <div className={`flex h-[70vh] relative transition-all duration-300 ${
                             theme === 'light' ? 'bg-surface-primary' : 'bg-gradient-to-br from-gray-900 to-gray-800'
                         }`}>
+                            {/* Overlay para móviles */}
+                            {sidebarOpen && (
+                                <div 
+                                    className="md:hidden fixed inset-0 bg-black/50 z-40"
+                                    onClick={() => setSidebarOpen(false)}
+                                />
+                            )}
+                            
                             {/* Sidebar */}
-                            <div className={`w-56 flex-shrink-0 p-3 border-r border-opacity-30 overflow-y-auto backdrop-blur-sm ${
-                                theme === 'light' ? 'border-border-subtle bg-surface-secondary/80' : 'border-gray-600 bg-gray-800/90'
+                            <div className={`sidebar-container transition-all duration-300 overflow-y-auto overflow-x-hidden backdrop-blur-sm border-r border-opacity-30 min-w-0 ${
+                                sidebarOpen ? 'w-56 flex-shrink-0 p-3' : 'w-0 p-0 border-r-0'
+                            } md:relative fixed left-0 top-0 h-full z-50 ${
+                                sidebarOpen || window.innerWidth < 768 ? (theme === 'light' ? 'border-border-subtle bg-surface-secondary/95' : 'border-gray-600 bg-gray-800/95') : ''
+                            } ${
+                                !sidebarOpen && window.innerWidth >= 768 ? 'md:translate-x-0' : (sidebarOpen ? 'translate-x-0' : '-translate-x-full')
                             }`}>
-                                {/* Imagen del producto */}
-                                <div className={`w-full h-32 rounded-2xl overflow-hidden mb-3 relative shadow-lg ring-1 ring-white/10 ${
-                                    theme === 'light' ? 'bg-gradient-to-br from-gray-100 to-gray-200' : 'bg-gradient-to-br from-gray-700 to-gray-600'
-                                }`}>
+                                {sidebarOpen && (
+                                    <>
+                                        {/* Imagen del producto */}
+                                        <div className={`w-full h-32 rounded-2xl overflow-hidden mb-3 relative shadow-lg ring-1 ring-white/10 ${
+                                            theme === 'light' ? 'bg-gradient-to-br from-gray-100 to-gray-200' : 'bg-gradient-to-br from-gray-700 to-gray-600'
+                                        }`}>
                                     {(imagePreviewUrl || productData.imageUrl) && !isUploadingMainImage ? (
                                         <>
                                             <img
@@ -1168,9 +1518,13 @@ const AddEditProductForm = ({
                                 </div>
 
                                 {/* Índice de navegación */}
-                                <div className={`rounded-xl p-3 backdrop-blur-sm shadow-inner ring-1 ring-white/5 ${
-                                    theme === 'light' ? 'bg-surface-primary/80' : 'bg-gray-700/80'
-                                }`}>
+                                <div 
+                                    ref={indexRef}
+                                    className={`rounded-xl p-3 backdrop-blur-sm shadow-inner ring-1 ring-white/5 overflow-hidden flex flex-col ${
+                                        theme === 'light' ? 'bg-surface-primary/80' : 'bg-gray-700/80'
+                                    }`}
+                                    style={{ maxHeight: maxIndexHeight }}
+                                >
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className={`text-xs font-bold ${
                                             theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
@@ -1182,7 +1536,12 @@ const AddEditProductForm = ({
                                         </div>
                                     </div>
                                     
-                                    <div className="space-y-1">
+                                    <div className={`space-y-1 flex-1 ${
+                                        pages.filter(p => p.isVariant).length > 4 ? 'overflow-y-auto pr-1' : ''
+                                    }`} style={{
+                                        scrollbarWidth: 'thin',
+                                        scrollbarColor: theme === 'light' ? '#d1d5db #f3f4f6' : '#6b7280 #374151'
+                                    }}>
                                         {pages.map((page, index) => {
                                             const isActive = currentPage === index;
                                             const colorClasses = {
@@ -1207,13 +1566,37 @@ const AddEditProductForm = ({
                                                     <button
                                                         type="button"
                                                         onClick={() => goToPage(index)}
-                                                        className={`flex-1 text-left px-2 py-1.5 rounded-lg text-sm transition-all duration-200 flex items-center gap-1.5 ${
+                                                        className={`flex-1 text-left px-2 py-1.5 rounded-lg text-sm transition-all duration-200 flex items-center gap-1.5 min-w-0 ${
                                                             colorClasses[page.color]
                                                         }`}
                                                     >
                                                         <span className="text-sm">{page.icon}</span>
-                                                        <span className="truncate">{page.title}</span>
-                                                        {isActive && <span className="ml-auto text-xs">●</span>}
+                                                        <span className="flex-1 min-w-0 relative overflow-hidden group">
+                                                            {page.title.length > 15 ? (
+                                                                <div className="relative w-full">
+                                                                    <span 
+                                                                        className="inline-block whitespace-nowrap group-hover:animate-marquee-scroll"
+                                                                        style={{
+                                                                            animation: 'none'
+                                                                        }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.target.style.animation = 'marquee 4s ease-in-out infinite';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.target.style.animation = 'none';
+                                                                        }}
+                                                                    >
+                                                                        {page.title} • {page.title} • {page.title}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="truncate">{page.title}</span>
+                                                            )}
+                                                        </span>
+                                                        <div className="ml-auto flex items-center gap-1">
+                                                            <span className="text-xs">{getPageStatusIcon(page.id)}</span>
+                                                            {isActive && <span className="text-xs">●</span>}
+                                                        </div>
                                                     </button>
                                                     
                                                     {page.isVariant && (
@@ -1251,10 +1634,14 @@ const AddEditProductForm = ({
                                         </button>
                                     </div>
                                 </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Contenido principal */}
-                            <div className="flex-1 relative overflow-hidden">
+                            <div className={`flex-1 relative overflow-hidden transition-all duration-300 ${
+                                sidebarOpen ? 'md:ml-0' : 'md:ml-0'
+                            }`}>
                                 {/* Contenedor de páginas */}
                                 <div 
                                     className="flex h-full transition-transform duration-500 ease-in-out"
@@ -1328,12 +1715,15 @@ const AddEditProductForm = ({
                                 <div className="absolute top-4 right-4 z-10">
                                     <button
                                         type="button"
-                                        onClick={onSubmit}
+                                        onClick={handleSubmitClick}
                                         disabled={loading}
+                                        title={!canSubmit ? `Campos faltantes: ${missingFields.join(', ')}` : ''}
                                         className={`px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all duration-300 text-sm shadow-lg hover:shadow-xl transform hover:scale-105 ${
                                             loading 
-                                                ? 'bg-gray-400 cursor-not-allowed' 
-                                                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
+                                                ? 'bg-gray-400 cursor-not-allowed text-white' 
+                                                : canSubmit
+                                                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
+                                                    : 'bg-gray-400 hover:bg-gray-500 text-gray-200 cursor-pointer'
                                         }`}
                                     >
                                         {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
@@ -1346,6 +1736,7 @@ const AddEditProductForm = ({
                 </div>
             </div>
         </div>
+        </>
     );
 };
 
