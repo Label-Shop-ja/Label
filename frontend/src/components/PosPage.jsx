@@ -1,14 +1,16 @@
 // C:\Proyectos\Label\frontend\src\components\PosPage.jsx
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import { useCurrency } from '../context/CurrencyContext';
 import { useNotification } from '../context/NotificationContext';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { useDebounce } from '../hooks/useDebounce';
+import { useTheme } from '../context/ThemeContext';
 import ErrorBoundary from "./Common/ErrorBoundary";
 
 // Importaciones perezosas de los nuevos componentes
-const ProductSearchPanel = lazy(() => import('./Pos/ProductSearchPanel'));
+const ProductSelectItem = lazy(() => import('./Pos/ProductSelectItem'));
 const SaleCartPanel = lazy(() => import('./Pos/SaleCartPanel'));
 const PaymentSection = lazy(() => import('./Pos/PaymentSection'));
 const VariantSelectModal = lazy(() => import('./Pos/VariantSelectModal')); // Para la selección de variantes
@@ -18,13 +20,39 @@ function PosPage() {
   // Estados principales (ya no se guarda todo el inventario)
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]); // Resultados de búsqueda filtrados localmente
-  const [saleItems, setSaleItems] = useState([]); // Productos en el carrito de venta
+  const [saleItems, setSaleItems] = useState(() => {
+    const saved = localStorage.getItem('posCartItems');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [totalAmount, setTotalAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(false); // <-- Estado de loading del PosPage
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [stockWarning, setStockWarning] = useState('');
+  const stockTimeoutRef = useRef(null);
+
+  // Helper optimizado para mostrar mensaje de stock
+  const showStockWarning = useCallback((productName, variantName, availableStock) => {
+    if (stockTimeoutRef.current) return; // Ya hay un mensaje activo
+    
+    const message = `Stock insuficiente para ${productName}${variantName ? ` (${variantName})` : ''}. Disponible: ${availableStock}`;
+    setStockWarning(message);
+    
+    stockTimeoutRef.current = setTimeout(() => {
+      setStockWarning('');
+      stockTimeoutRef.current = null;
+    }, 2000);
+  }, []);
+
+  // Helper para limpiar mensaje si no hay timeout activo
+  const clearStockWarning = useCallback(() => {
+    if (!stockTimeoutRef.current) {
+      setStockWarning('');
+    }
+  }, []);
+
 
   // Estados para modales de selección de variante y peso digital
   const [showVariantModal, setShowVariantModal] = useState(false);
@@ -34,22 +62,24 @@ function PosPage() {
 
   const searchInputRef = useRef(null); // Ref para enfocar el campo de búsqueda
 
-  // Usa el contexto de moneda
-  const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, convertPrice, formatPrice } = useCurrency(); // <-- ¡NUEVO!
+  // Usa el contexto de moneda y tema
+  const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, convertPrice, formatPrice } = useCurrency();
+  const { theme } = useTheme();
+  const location = useLocation();
 
   // --- NUEVO: Debounce del término de búsqueda para no sobrecargar el servidor ---
   const debouncedSearchTerm = useDebounce(searchTerm, 300); // 300ms de espera
 
-  // --- MODIFICADO: Busca productos en el servidor en lugar de cargar todo ---
+  // --- MODIFICADO: Busca productos en el servidor o carga todos si no hay término ---
   const searchProductsOnServer = useCallback(async (term) => {
-    if (!term || term.length < 2) {
-      setSearchResults([]);
-      return;
-    }
     setLoading(true);
     setError('');
     try {
-      const response = await axiosInstance.get(`/products?searchTerm=${term}&limit=50`); // Limitamos a 50 resultados por búsqueda
+      const endpoint = term && term.length >= 2 
+        ? `/products?searchTerm=${term}&limit=50`
+        : `/products?limit=50&sortBy=createdAt&sortOrder=desc`;
+      
+      const response = await axiosInstance.get(endpoint);
       setSearchResults(response.data.products.map(p => ({
           ...p,
           displayStock: p.variants && p.variants.length > 0 ? p.totalStock : p.stock,
@@ -69,13 +99,20 @@ function PosPage() {
     searchProductsOnServer(debouncedSearchTerm);
   }, [debouncedSearchTerm, searchProductsOnServer]);
 
+  // --- Cargar productos iniciales al montar el componente ---
+  useEffect(() => {
+    searchProductsOnServer('');
+  }, [searchProductsOnServer]);
+
   // --- Calcular el total de la venta cada vez que cambian los items en el carrito ---
   useEffect(() => {
     const calculateTotal = saleItems.reduce(
-      (acc, item) => acc + item.quantity * item.priceAtSale, // Usar priceAtSale que es el precio real
+      (acc, item) => acc + item.quantity * item.priceAtSale,
       0
     );
     setTotalAmount(calculateTotal);
+    // Guardar en localStorage
+    localStorage.setItem('posCartItems', JSON.stringify(saleItems));
   }, [saleItems]);
 
   // Función global para mostrar mensajes
@@ -97,79 +134,75 @@ function PosPage() {
     let variantId = undefined; // ID de la variante si aplica
 
     if (selectedVariant) {
-      // Para evitar sobreescribir el nombre del producto, creamos un objeto combinado más explícito.
       itemToAdd = {
         ...productToAdd,
         ...selectedVariant,
-        _id: productToAdd._id, // Mantenemos el ID del producto padre
-        productName: productToAdd.name, // Guardamos explícitamente el nombre del producto
-        variantName: selectedVariant.name, // y el nombre de la variante
+        _id: productToAdd._id,
+        productName: productToAdd.name,
+        variantName: selectedVariant.name,
       };
-      itemStock = selectedVariant.stock; // Usar stock de la variante
-      itemPrice = selectedVariant.price; // Usar precio de la variante
+      itemStock = selectedVariant.stock;
+      itemPrice = selectedVariant.price;
       variantId = selectedVariant._id;
     } else {
-      // Para productos simples, aseguramos que la estructura sea consistente.
       itemToAdd = { ...productToAdd, productName: productToAdd.name, variantName: null };
     }
+
+    // Verificar stock antes de proceder
+    const existingItemIndex = saleItems.findIndex(
+      (item) => item.product._id === itemToAdd._id && (item.variantId === variantId || (!item.variantId && !variantId))
+    );
+    
+    let quantityToAdd = measuredQuantity !== null ? measuredQuantity : 1;
+    const currentQuantityInCart = existingItemIndex !== -1 ? saleItems[existingItemIndex].quantity : 0;
+    const totalQuantityAfterAdd = currentQuantityInCart + quantityToAdd;
+    
+    if (totalQuantityAfterAdd > itemStock) {
+      showStockWarning(itemToAdd.productName, itemToAdd.variantName, itemStock);
+      return;
+    }
+    
+    clearStockWarning();
 
     // Si es un producto que se vende por peso y no se ha medido aún
     if (['kg', 'litro', 'metro'].includes(itemToAdd.unitOfMeasure) && measuredQuantity === null) {
       setSelectedProductForWeight(itemToAdd);
       setShowWeightModal(true);
-      return; // Detener la adición al carrito hasta que se ingrese el peso
+      return;
     }
 
     // Si es un producto con variantes y no se ha seleccionado una variante
     if (itemToAdd.variants && itemToAdd.variants.length > 0 && !selectedVariant) {
         setSelectedProductForVariant(itemToAdd);
         setShowVariantModal(true);
-        return; // Detener la adición al carrito hasta que se seleccione la variante
+        return;
     }
 
-    const existingItemIndex = saleItems.findIndex(
-      (item) => item.product._id === itemToAdd._id && (item.variantId === variantId || (!item.variantId && !variantId))
-    );
-
-    let quantityToAdd = measuredQuantity !== null ? measuredQuantity : 1; // Si hay cantidad medida, usarla
-
     if (existingItemIndex !== -1) {
-      const existingItem = saleItems[existingItemIndex];
-      const newQuantity = existingItem.quantity + quantityToAdd;
-      if (newQuantity > itemStock) { // Usamos los nombres explícitos para el mensaje de error
-        setError(`No hay suficiente stock para ${itemToAdd.productName}${itemToAdd.variantName ? ` (${itemToAdd.variantName})` : ''}. Stock disponible: ${itemStock}`);
-        return;
-      }
       setSaleItems(
         saleItems.map((item, index) =>
           index === existingItemIndex
-            ? { ...item, quantity: newQuantity }
+            ? { ...item, quantity: totalQuantityAfterAdd }
             : item
         )
       );
     } else {
-      if (quantityToAdd > itemStock) {
-          setError(`No hay suficiente stock para ${itemToAdd.productName}${itemToAdd.variantName ? ` (${itemToAdd.variantName})` : ''}. Stock disponible: ${itemStock}`);
-          return;
-      }
       setSaleItems([
         ...saleItems,
         {
-          product: itemToAdd, // Guarda el objeto completo (producto o variante)
+          product: itemToAdd,
           quantity: quantityToAdd,
-          priceAtSale: itemPrice, // El precio que se usará para el cálculo de la venta
-          variantId: variantId, // Guarda el ID de la variante si aplica
-          // `name` y `unitOfMeasure` se tomarán de `itemToAdd`
+          priceAtSale: itemPrice,
+          variantId: variantId,
         },
       ]);
     }
     setSearchTerm('');
     searchInputRef.current.focus();
-    // Cierra modales si estaban abiertos
     setShowVariantModal(false);
     setSelectedProductForVariant(null);
     setShowWeightModal(false);
-    setSelectedProductForWeight(null); // No más dependencia de `products`
+    setSelectedProductForWeight(null);
   }, [saleItems, displayMessage]);
 
 
@@ -193,9 +226,10 @@ function PosPage() {
               if (variant) availableStock = variant.stock; // Usar stock de la variante
             }
 
+
             if (delta > 0 && newQuantity > availableStock) {
-              setError(`No hay suficiente stock para ${item.product.productName}${item.product.variantName ? ` (${item.product.variantName})` : ''}. Stock disponible: ${availableStock}`);
-              return item; // No actualizar si excede el stock
+              showStockWarning(item.product.productName, item.product.variantName, availableStock);
+              return item;
             }
             return { ...item, quantity: newQuantity };
           }
@@ -238,10 +272,10 @@ function PosPage() {
       setSuccessMessage(`Venta registrada con éxito. Total: ${formatPrice(response.data.sale.totalAmount, exchangeRate?.fromCurrency || 'USD')}`);
       // Limpiar el carrito y el formulario
       setSaleItems([]);
+      localStorage.removeItem('posCartItems');
       setSearchTerm('');
       setCustomerName('');
       setPaymentMethod('cash');
-      // Limpiar los resultados de búsqueda, ya no es necesario recargar todo
       setSearchResults([]);
       searchInputRef.current.focus();
     } catch (err) {
@@ -257,7 +291,16 @@ function PosPage() {
   const isLoadingGlobal = loadingCurrency; // El loading principal ahora es solo para la moneda
 
   useEffect(() => {
-    displayMessage("Bienvenido al POS", "info");
+    showNotification(`Bienvenido al POS ${Math.random()}`, "info");
+  }, [showNotification, location.pathname]);
+
+  // Cleanup del timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (stockTimeoutRef.current) {
+        clearTimeout(stockTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -277,7 +320,7 @@ function PosPage() {
           </div>
         )}
         {currencyError && (
-          <div className="bg-orange-700 bg-opacity-30 border border-orange-500 text-orange-300 px-4 py-3 rounded relative mb-6" role="alert">
+          <div className="bg-sky-700 bg-opacity-20 border border-sky-400 text-sky-300 px-4 py-3 rounded relative mb-6" role="alert">
             <strong className="font-bold">¡Alerta de Moneda!</strong>
             <span className="block sm:inline ml-2">{currencyError} Si tienes un perfil nuevo, configura la tasa del día en Ajustes.</span>
           </div>
@@ -291,26 +334,76 @@ function PosPage() {
         ) : (
           <>
             {/* Columna de Búsqueda de Productos y Resultados */}
-            <div className="flex-1 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col min-h-0">
-              <h2 className="text-4xl font-extrabold text-copper-rose-accent mb-8 border-b-2 border-action-blue pb-4">Punto de Venta (POS)</h2>
-              <Suspense fallback={<div className="h-48 bg-neutral-gray-700 rounded-lg animate-pulse"></div>}>
-                <ProductSearchPanel
-                  searchTerm={searchTerm}
-                  setSearchTerm={setSearchTerm}
-                  searchResults={searchResults}
-                  loading={loading} // Pasamos el loading de la búsqueda
-                  addProductToSale={addProductToSale}
-                  searchInputRef={searchInputRef}
-                  formatPrice={formatPrice}
-                  convertPrice={convertPrice}
-                  exchangeRate={exchangeRate}
-                />
-              </Suspense>
+            <div className="flex-1 p-6 rounded-xl shadow-xl flex flex-col min-h-0 bg-surface border border-surface-secondary">
+              <div style={{marginBottom: '16px'}}>
+                <div className="flex items-center gap-3">
+                  <div className="relative w-full max-w-md">
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Buscar producto..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 bg-surface-secondary text-text-base border border-surface-secondary rounded-lg outline-none text-base transition-all duration-200 shadow-sm focus:shadow-md focus:-translate-y-px"
+                    />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  {useMemo(() => stockWarning && (
+                    <div className="text-sm text-orange-400 bg-orange-900/20 px-3 py-2 rounded-md border border-orange-500/30 animate-pulse whitespace-nowrap">
+                      {stockWarning}
+                    </div>
+                  ), [stockWarning])}
+                </div>
+              </div>
+              
+              {searchTerm.length > 0 && searchTerm.length < 2 && (
+                <div style={{marginBottom: '16px'}}>
+                  <p className="text-text-muted">Escribe al menos 2 caracteres para buscar</p>
+                </div>
+              )}
+              
+              {searchTerm.length >= 2 && loading && (
+                <div style={{marginBottom: '16px'}}>
+                  <p className="text-primary">Buscando productos...</p>
+                </div>
+              )}
+              
+              {!loading && searchResults.length === 0 && (
+                <div style={{marginBottom: '16px'}}>
+                  <p className="text-text-muted">{searchTerm ? 'No se encontraron productos' : 'No hay productos disponibles'}</p>
+                </div>
+              )}
+              
+              <div className="flex-1 rounded-xl p-4 overflow-y-auto min-h-96 shadow-inner bg-surface-secondary border border-surface-secondary">
+                {searchResults.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+                    {searchResults.map((product) => (
+                      <Suspense key={product._id} fallback={<div className="bg-surface p-3 rounded-lg shadow h-28 animate-pulse"></div>}>
+                        <ProductSelectItem
+                          product={product}
+                          onClick={() => {}}
+                          onAddClick={() => addProductToSale(product)}
+                          formatPrice={formatPrice}
+                          convertPrice={convertPrice}
+                          exchangeRate={exchangeRate}
+                        />
+                      </Suspense>
+                    ))}
+                  </div>
+                ) : (
+                  <div></div>
+                )}
+              </div>
             </div>
 
             {/* Columna del Carrito de Venta y Pago */}
-            <div className="lg:w-1/3 bg-deep-night-blue p-6 rounded-lg shadow-inner flex flex-col">
-              <Suspense fallback={<div className="h-48 bg-neutral-gray-700 rounded-lg animate-pulse mb-6"></div>}>
+            <div className="lg:w-1/3 p-6 rounded-xl shadow-xl flex flex-col bg-surface border border-surface-secondary">
+              <Suspense fallback={<div className="h-48 bg-surface-secondary rounded-lg animate-pulse mb-6"></div>}>
                 <PaymentSection
                   totalAmount={totalAmount}
                   paymentMethod={paymentMethod}
@@ -325,8 +418,8 @@ function PosPage() {
                   exchangeRate={exchangeRate}
                 />
               </Suspense>
-              <h3 className="text-3xl font-semibold text-neutral-light my-6 border-b border-neutral-gray-200 pb-3">Carrito</h3>
-              <Suspense fallback={<div className="flex-1 overflow-y-auto pr-2 h-64 bg-neutral-gray-700 rounded-lg animate-pulse"></div>}>
+              <h3 className="text-xl font-semibold text-text-base my-4">Carrito</h3>
+              <Suspense fallback={<div className="flex-1 overflow-y-auto pr-2 h-64 bg-surface-secondary rounded-lg animate-pulse"></div>}>
                 <SaleCartPanel
                   saleItems={saleItems}
                   adjustQuantity={adjustQuantity}

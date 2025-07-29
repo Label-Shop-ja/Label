@@ -20,33 +20,55 @@ export const setupAxiosInterceptors = (store) => {
         (error) => Promise.reject(error)
     );
 
+    let isRefreshing = false;
+    let failedQueue = [];
+
+    const processQueue = (error, token = null) => {
+        failedQueue.forEach(prom => {
+            if (error) {
+                prom.reject(error);
+            } else {
+                prom.resolve(token);
+            }
+        });
+        failedQueue = [];
+    };
+
     axiosInstance.interceptors.response.use(
         (response) => response,
         async (error) => {
             const originalRequest = error.config;
-            // Si el error es 401, no hemos reintentado esta petición antes,
-            // Y LA PETICIÓN FALLIDA NO ES LA DE REFRESCAR EL TOKEN (para evitar bucles infinitos)
-            if (error.response?.status === 401 && originalRequest.url !== '/auth/refresh' && !originalRequest._retry) {
-                originalRequest._retry = true;
-                console.log('Access token expired. Attempting to refresh...');
-                try {                    
-                    // ¡CLAVE #2! Hacemos la petición de refresco SIN cuerpo. 
-                    // El navegador se encargará de adjuntar la cookie httpOnly automáticamente.
-                    const { data } = await axiosInstance.post('/auth/refresh');
-                    
-                    // Actualizamos el nuevo token en el store de Redux
-                    store.dispatch(setAccessToken(data.accessToken));
-                    
-                    // Actualizamos el header para la petición original y la reintentamos
-                    originalRequest.headers['Authorization'] = `Bearer ${data.accessToken}`;
-                    return axiosInstance(originalRequest);
+            
+            if (error.response?.status === 401 && !originalRequest._retry) {
+                if (isRefreshing) {
+                    return new Promise((resolve, reject) => {
+                        failedQueue.push({ resolve, reject });
+                    }).then(token => {
+                        originalRequest.headers['Authorization'] = `Bearer ${token}`;
+                        return axiosInstance(originalRequest);
+                    }).catch(err => {
+                        return Promise.reject(err);
+                    });
+                }
 
+                originalRequest._retry = true;
+                isRefreshing = true;
+
+                try {
+                    const { data } = await axiosInstance.post('/auth/refresh');
+                    const { accessToken } = data;
+                    
+                    store.dispatch(setAccessToken(accessToken));
+                    processQueue(null, accessToken);
+                    
+                    originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+                    return axiosInstance(originalRequest);
                 } catch (refreshError) {
-                    // ¡ESTA ES LA PARTE CRÍTICA!
-                    // Si el refresco falla, el refresh token es inválido. Debemos desloguear al usuario.
-                    console.error('Token refresh failed. Logging out.', refreshError);
-                    store.dispatch(logoutUser()); // Despachamos la acción de logout
+                    processQueue(refreshError, null);
+                    store.dispatch(logoutUser());
                     return Promise.reject(refreshError);
+                } finally {
+                    isRefreshing = false;
                 }
             }
             return Promise.reject(error);

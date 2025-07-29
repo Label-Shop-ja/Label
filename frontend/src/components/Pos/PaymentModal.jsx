@@ -1,9 +1,10 @@
 // C:\Proyectos\Label\frontend\src\components\Pos\PaymentModal.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ProductModal from '../Common/ProductModal'; // Reutilizamos el modal base
-import { Loader2 } from 'lucide-react'; // Ícono de carga
-import { FaMoneyBillWave, FaCreditCard, FaExchangeAlt, FaUserCircle, FaMobileAlt, FaListAlt } from 'react-icons/fa'; // Iconos de métodos de pago
+import { Loader2, X } from 'lucide-react'; // Ícono de carga
+import { FaMoneyBillWave, FaCreditCard, FaExchangeAlt, FaUserCircle, FaMobileAlt, FaListAlt, FaPlusCircle } from 'react-icons/fa'; // Iconos de métodos de pago
 import axiosInstance from '../../api/axiosInstance'; // Para buscar clientes
+import { getPriceColorClass, getPriceBgColorClass } from '../../utils/priceColors';
 
 const PaymentModal = ({
     isOpen,
@@ -139,15 +140,17 @@ const PaymentModal = ({
                     </div>
                 )}
 
-                <h3 className="text-xl font-bold text-neutral-light mb-4">Total de la Venta:</h3>
-                <p className="text-4xl font-extrabold text-copper-rose-accent flex items-center mb-6">
-                    {formatPrice(totalAmount, primaryCurrency)}
-                    {primaryCurrency !== secondaryCurrency && exchangeRate && (
-                        <span className="ml-3 text-2xl text-neutral-gray-300">
-                            ({formatPrice(totalAmountInSecondary, secondaryCurrency)})
-                        </span>
-                    )}
-                </p>
+                <h3 className="text-xl font-bold text-text-base mb-4">Total de la Venta:</h3>
+                <div className={`p-4 rounded-lg mb-6 ${getPriceBgColorClass(totalAmount)}`}>
+                    <p className={`text-4xl font-extrabold ${getPriceColorClass(totalAmount)} flex items-center`}>
+                        {formatPrice(totalAmount, primaryCurrency)}
+                        {primaryCurrency !== secondaryCurrency && exchangeRate && (
+                            <span className={`ml-3 text-2xl ${getPriceColorClass(totalAmountInSecondary)}`}>
+                                ({formatPrice(totalAmountInSecondary, secondaryCurrency)})
+                            </span>
+                        )}
+                    </p>
+                </div>
 
                 <div className="mb-6">
                     <label htmlFor="paymentMethod" className="block text-neutral-light text-sm font-bold mb-2">Método de Pago:</label>
@@ -188,7 +191,7 @@ const PaymentModal = ({
                             placeholder={formatPrice(totalAmount, primaryCurrency)}
                             className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
                         />
-                        <p className="text-neutral-gray-300 text-sm mt-2">Vuelto a devolver: <span className="font-bold text-success-green">{formatPrice(changeDue, primaryCurrency)}</span></p>
+                        <p className="text-text-muted text-sm mt-2">Vuelto a devolver: <span className={`font-bold ${getPriceColorClass(changeDue)}`}>{formatPrice(changeDue, primaryCurrency)}</span></p>
                     </div>
                 )}
 
@@ -271,12 +274,12 @@ const PaymentModal = ({
                 {/* Por ejemplo, un campo para el número de tarjeta o referencia de transferencia */}
                 {(paymentMethod === 'card' || paymentMethod === 'transfer' || paymentMethod === 'other') && (
                     <div className="mb-4 animate-fade-in-down">
-                        <label htmlFor="reference" className="block text-neutral-light text-sm font-bold mb-2">Referencia / Detalles (Opcional):</label>
+                        <label htmlFor="reference" className="block text-text-base text-sm font-bold mb-2">Referencia / Detalles (Opcional):</label>
                         <input
                             type="text"
                             id="reference"
                             placeholder="Ej. Últimos 4 dígitos de tarjeta, número de transferencia"
-                            className="shadow appearance-none border border-neutral-gray-700 rounded w-full py-2 px-3 text-neutral-light leading-tight focus:outline-none focus:ring-2 focus:ring-action-blue bg-dark-charcoal"
+                            className="shadow appearance-none border border-surface-secondary rounded w-full py-2 px-3 text-text-base leading-tight focus:outline-none focus:ring-2 focus:ring-primary bg-surface-secondary"
                         />
                     </div>
                 )}
@@ -284,7 +287,7 @@ const PaymentModal = ({
                 <div className="flex justify-end mt-4">
                     <button
                         onClick={handleConfirmPayment}
-                        className="bg-success-green hover:bg-green-700 text-deep-night-blue font-bold py-3 px-6 rounded-lg text-xl shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50 flex items-center justify-center"
+                        className="bg-success hover:bg-success/90 text-white font-bold py-3 px-6 rounded-lg text-xl shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-success/50 flex items-center justify-center"
                         disabled={isProcessingPayment || loading}
                     >
                         {isProcessingPayment ? <Loader2 size={24} className="mr-2 animate-spin" /> : <FaListAlt size={20} className="mr-2" />} Confirmar Pago

@@ -1,28 +1,67 @@
 // C:\Proyectos\Label\frontend\src\components\Pos\ProductSelectItem.jsx
-import React from 'react';
-import { Info } from 'lucide-react'; // Para tooltips
+import React, { useState, useEffect, useRef } from 'react';
+import { Info, Plus, MoreHorizontal } from 'lucide-react';
+import { getPriceColorClass } from '../../utils/priceColors';
 
-const ProductSelectItem = ({ product, onClick, formatPrice, convertPrice, exchangeRate }) => {
+const ProductSelectItem = ({ product, onClick, onAddClick, formatPrice, convertPrice, exchangeRate }) => {
+    const [isFlashing, setIsFlashing] = useState(false);
+    const [isButtonPressed, setIsButtonPressed] = useState(false);
+    const [showDots, setShowDots] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
+                setShowDots(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+    
     const primaryCurrency = exchangeRate?.fromCurrency || 'USD';
     const secondaryCurrency = exchangeRate?.toCurrency || 'VES';
 
     const displayedPrice = product.variants && product.variants.length > 0
-        ? product.variants[0]?.price || product.price // Precio de la primera variante si existe, sino del padre
-        : product.price; // Precio del producto principal si no tiene variantes
+        ? product.variants[0]?.price || product.price
+        : product.price;
 
     const priceInPrimary = displayedPrice;
     const priceInSecondary = convertPrice(displayedPrice, primaryCurrency, secondaryCurrency);
-
-    // Determinar stock a mostrar (totalStock si tiene variantes, stock normal si no)
     const displayStock = product.variants && product.variants.length > 0 ? product.totalStock : product.stock;
 
+    const handleClick = () => {
+        setShowDots(true);
+        onClick();
+    };
+
+    const handleDotsClick = (e) => {
+        e.stopPropagation();
+        setShowModal(true);
+    };
+
+    const handleButtonClick = (e) => {
+        e.stopPropagation();
+        setIsButtonPressed(true);
+        setTimeout(() => setIsButtonPressed(false), 150);
+        setIsFlashing(true);
+        setTimeout(() => setIsFlashing(false), 300);
+        onAddClick();
+    };
+
     return (
+        <>
         <div
-            className="bg-dark-charcoal p-4 rounded-lg shadow flex justify-between items-center border border-action-blue-light cursor-pointer hover:bg-neutral-gray-800 transition duration-200"
-            onClick={onClick}
+            ref={containerRef}
+            className={`bg-surface p-4 rounded-lg shadow flex justify-between items-center border border-primary/20 cursor-pointer hover:bg-surface-secondary transition-all duration-200 relative ${
+                isFlashing ? 'bg-primary/20 scale-105' : ''
+            }`}
+            onClick={handleClick}
         >
             {/* Sección de Imagen */}
-            <div className="w-20 h-20 flex-shrink-0 bg-neutral-gray-900 rounded-md overflow-hidden mr-4">
+            <div className="w-20 h-20 flex-shrink-0 bg-surface-secondary rounded-md overflow-hidden mr-4">
                 <img
                     src={product.imageUrl || (product.variants && product.variants.length > 0 && product.variants[0].imageUrl) || 'https://placehold.co/100x100/2D3748/F8F8F2?text=Sin+Img'}
                     alt={product.name}
@@ -33,33 +72,109 @@ const ProductSelectItem = ({ product, onClick, formatPrice, convertPrice, exchan
 
             {/* Sección de Info del Producto */}
             <div className="flex-1 min-w-0">
-                <p className="text-xl font-semibold text-neutral-light truncate">{product.name}</p>
+                <p className="text-xl font-semibold text-text-base truncate">{product.name}</p>
                 {product.variants && product.variants.length > 0 ? (
-                    <p className="text-sm text-neutral-gray-300">
+                    <p className="text-sm text-text-muted">
                         Producto con {product.variants.length} variantes
                         <span className="relative inline-block ml-1 group">
-                            <Info size={14} className="text-action-blue cursor-pointer" />
-                            <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 w-48 p-2 bg-neutral-gray-800 text-xs text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-normal text-center shadow-lg">
+                            <Info size={14} className="text-primary cursor-pointer" />
+                            <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 w-48 p-2 bg-surface-secondary text-xs text-text-base rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-normal text-center shadow-lg">
                                 Haz click para seleccionar una variante específica.
                             </span>
                         </span>
                     </p>
                 ) : (
-                    <p className="text-sm text-neutral-gray-300">{product.category} - SKU: {product.sku}</p>
+                    <p className="text-sm text-text-muted">{product.category} - SKU: {product.sku}</p>
                 )}
-                <p className="text-sm text-neutral-gray-300">Stock: {displayStock} {product.unitOfMeasure}</p>
+                <p className="text-sm text-text-muted">Stock: {displayStock} {product.unitOfMeasure}</p>
             </div>
 
             {/* Sección de Precio */}
-            <div className="flex flex-col items-end ml-4 flex-shrink-0">
-                <p className="text-2xl font-bold text-copper-rose-accent">{formatPrice(priceInPrimary, primaryCurrency)}</p>
+            <div className="flex flex-col items-end ml-4 flex-shrink-0 relative pb-6">
+                <p className={`text-2xl font-bold ${getPriceColorClass(priceInPrimary)}`}>{formatPrice(priceInPrimary, primaryCurrency)}</p>
                 {primaryCurrency !== secondaryCurrency && exchangeRate && (
-                    <p className="text-sm text-neutral-gray-400">
-                        {formatPrice(priceInSecondary, secondaryCurrency)}
-                    </p>
+                    <div className="relative inline-block">
+                        <p className={`text-sm ${getPriceColorClass(priceInSecondary)}`}>
+                            {formatPrice(priceInSecondary, secondaryCurrency)}
+                        </p>
+                        {/* Botones + y ... */}
+                        {showDots && (
+                            <div className="absolute top-full left-0 mt-4 flex gap-2">
+                                <div 
+                                    className={`w-5 h-5 border border-white/30 bg-gradient-to-br from-cyan-400/20 to-cyan-600/10 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-all duration-150 group ${
+                                        isButtonPressed ? 'scale-75 bg-cyan-500/30' : 'hover:scale-110 hover:border-white/50 hover:from-cyan-400/30 hover:to-cyan-600/20'
+                                    }`}
+                                    onClick={handleButtonClick}
+                                    title="Agregar producto"
+                                >
+                                    <Plus size={12} className="text-white" />
+                                    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-surface-secondary text-xs text-text-base rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-20">
+                                        Agregar producto
+                                    </span>
+                                </div>
+                                <div 
+                                    className="w-5 h-5 bg-gray-600/80 backdrop-blur-sm rounded flex items-center justify-center cursor-pointer hover:bg-gray-500/80 transition-colors"
+                                    onClick={handleDotsClick}
+                                    title="Ver detalles"
+                                >
+                                    <MoreHorizontal size={10} className="text-white" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+                {/* Si no hay precio secundario, mostrar botones debajo del precio principal */}
+                {(!primaryCurrency || primaryCurrency === secondaryCurrency || !exchangeRate) && showDots && (
+                    <div className="relative inline-block">
+                        <div className="absolute top-full left-0 mt-4 flex gap-2">
+                            <div 
+                                className={`w-5 h-5 border border-white/30 bg-gradient-to-br from-cyan-400/20 to-cyan-600/10 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-all duration-150 group ${
+                                    isButtonPressed ? 'scale-75 bg-cyan-500/30' : 'hover:scale-110 hover:border-white/50 hover:from-cyan-400/30 hover:to-cyan-600/20'
+                                }`}
+                                onClick={handleButtonClick}
+                                title="Agregar producto"
+                            >
+                                <Plus size={12} className="text-white" />
+                                <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-surface-secondary text-xs text-text-base rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-20">
+                                    Agregar producto
+                                </span>
+                            </div>
+                            <div 
+                                className="w-5 h-5 bg-gray-600/80 backdrop-blur-sm rounded flex items-center justify-center cursor-pointer hover:bg-gray-500/80 transition-colors"
+                                onClick={handleDotsClick}
+                                title="Ver detalles"
+                            >
+                                <MoreHorizontal size={10} className="text-white" />
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
+            
+        {/* Product Details Modal */}
+        {showModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
+                <div className="bg-surface p-6 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                    <h3 className="text-xl font-bold mb-4">{product.name}</h3>
+                    <div className="space-y-2 text-sm">
+                        <p><strong>Category:</strong> {product.category}</p>
+                        <p><strong>Stock:</strong> {displayStock}</p>
+                        <p><strong>Price:</strong> {formatPrice(priceInPrimary, primaryCurrency)}</p>
+                        {product.description && <p><strong>Description:</strong> {product.description}</p>}
+                        {product.brand && <p><strong>Brand:</strong> {product.brand}</p>}
+                        {product.sku && <p><strong>SKU:</strong> {product.sku}</p>}
+                    </div>
+                    <button 
+                        onClick={() => setShowModal(false)}
+                        className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/80"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        )}
+        </>
     );
 };
 
