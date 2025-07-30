@@ -37,8 +37,13 @@ const AddEditProductForm = ({
     showGlobalSuggestions,
     handleSelectGlobalProduct,
     handleRemoveMainImage,
+    shouldNavigateToPage,
+    setShouldNavigateToPage,
 }) => {
     if (!isOpen) return null;
+    
+    // Valores por defecto para evitar errores
+    const safeSetShouldNavigateToPage = setShouldNavigateToPage || (() => {});
     
     const { theme } = useTheme();
     const [currentPage, setCurrentPage] = useState(0);
@@ -340,6 +345,17 @@ const AddEditProductForm = ({
             setCurrentPage(0);
         }
     }, [isOpen]);
+    
+    // Navegar a página específica cuando se selecciona un producto global
+    useEffect(() => {
+        if (shouldNavigateToPage && pages.length > 0) {
+            const pageIndex = pages.findIndex(p => p.id === shouldNavigateToPage);
+            if (pageIndex >= 0) {
+                setCurrentPage(pageIndex);
+                safeSetShouldNavigateToPage(null);
+            }
+        }
+    }, [shouldNavigateToPage, pages, setShouldNavigateToPage]);
     
     // Animación de entrada para Atributos cuando se accede a Opciones Avanzadas
     useEffect(() => {
@@ -1252,9 +1268,42 @@ const AddEditProductForm = ({
                         <div className={`p-4 rounded-xl border ${
                             theme === 'light' ? 'border-purple-200 bg-purple-50/50' : 'border-purple-700/50 bg-purple-900/20'
                         }`}>
-                            <h4 className={`text-lg font-semibold mb-4 ${
-                                theme === 'light' ? 'text-purple-800' : 'text-purple-200'
-                            }`}>🎨 Gestión de Variantes</h4>
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className={`text-lg font-semibold ${
+                                    theme === 'light' ? 'text-purple-800' : 'text-purple-200'
+                                }`}>🎨 Gestión de Variantes</h4>
+                                
+                                {productData.variants?.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const firstVariant = productData.variants[0];
+                                            if (firstVariant) {
+                                                productData.variants.forEach((_, index) => {
+                                                    if (index > 0) {
+                                                        if (firstVariant.costPrice) {
+                                                            handleVariantInputChange(index, { target: { name: 'costPrice', value: firstVariant.costPrice } });
+                                                        }
+                                                        if (firstVariant.stock) {
+                                                            handleVariantInputChange(index, { target: { name: 'stock', value: firstVariant.stock } });
+                                                        }
+                                                        if (firstVariant.profitPercentage) {
+                                                            handleVariantInputChange(index, { target: { name: 'profitPercentage', value: firstVariant.profitPercentage } });
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        }}
+                                        className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
+                                            theme === 'light' 
+                                                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                                                : 'bg-blue-900/50 text-blue-300 hover:bg-blue-800/50'
+                                        }`}
+                                    >
+                                        📋 Aplicar a Todas
+                                    </button>
+                                )}
+                            </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {productData.variants?.map((variant, index) => (
@@ -1321,6 +1370,29 @@ const AddEditProductForm = ({
                                     <span className="text-sm font-medium">Agregar Variante</span>
                                 </button>
                             </div>
+                            
+                            {/* Resumen final de variantes */}
+                            {productData.variants?.length > 0 && (
+                                <div className={`mt-4 p-3 rounded-lg border ${
+                                    theme === 'light' ? 'border-green-200 bg-green-50' : 'border-green-700 bg-green-900/20'
+                                }`}>
+                                    <h5 className={`text-sm font-medium mb-2 ${
+                                        theme === 'light' ? 'text-green-800' : 'text-green-200'
+                                    }`}>📊 Resumen Final</h5>
+                                    <div className="space-y-2">
+                                        {productData.variants.map((variant, index) => (
+                                            <div key={index} className="flex justify-between items-center text-sm p-2 bg-white dark:bg-gray-800 rounded">
+                                                <span className="font-medium">{variant.name || `Variante ${index + 1}`}</span>
+                                                <div className="flex space-x-4 text-xs">
+                                                    <span>Costo: ${variant.costPrice || 0}</span>
+                                                    <span>Stock: {variant.stock || 0}</span>
+                                                    <span>Precio: ${variant.price || 0}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
