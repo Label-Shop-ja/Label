@@ -246,14 +246,14 @@ const updateExchangeRates = asyncHandler(async (req, res) => {
         });
     }
     
-    // Verificar si necesita actualización (más de 6 horas)
+    // Verificar si necesita actualización (más de 30 minutos)
     const now = new Date();
-    const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-    const needsUpdate = !exchangeRateConfig.lastOfficialUpdate || exchangeRateConfig.lastOfficialUpdate < sixHoursAgo;
+    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+    const needsUpdate = !exchangeRateConfig.lastOfficialUpdate || exchangeRateConfig.lastOfficialUpdate < thirtyMinutesAgo;
     
     if (!needsUpdate) {
         return res.status(200).json({
-            message: 'Las tasas están actualizadas (menos de 6 horas)',
+            message: 'Las tasas están actualizadas (menos de 30 minutos)',
             exchangeRateConfig,
             updated: false
         });
