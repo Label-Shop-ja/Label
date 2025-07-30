@@ -12,6 +12,7 @@ const ExchangeRateModal = ({ isOpen, onClose }) => {
         currencyError, 
         fetchExchangeRate, 
         updateExchangeRate,
+        updateExchangeRatesManually,
         formatPrice, 
         convertPrice,
     } = useCurrency();
@@ -20,6 +21,7 @@ const ExchangeRateModal = ({ isOpen, onClose }) => {
     const [defaultProfitPercentageInput, setDefaultProfitPercentageInput] = useState('');
     const [personalRateThresholdPercentageInput, setPersonalRateThresholdPercentageInput] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [isUpdatingRates, setIsUpdatingRates] = useState(false);
     const [personalRateAlert, setPersonalRateAlert] = useState(null); // Estado para la alerta de tasa personal
 
     // Sincronizar estados locales con los valores del contexto al abrir el modal o al cambiar exchangeRate
@@ -101,6 +103,27 @@ const ExchangeRateModal = ({ isOpen, onClose }) => {
         }
     }, [personalRateInput, defaultProfitPercentageInput, personalRateThresholdPercentageInput, updateExchangeRate, onClose, currencyError, exchangeRate]);
 
+    const handleUpdateRates = useCallback(async () => {
+        setIsUpdatingRates(true);
+        try {
+            const result = await updateExchangeRatesManually();
+            if (result.success) {
+                if (result.updated) {
+                    toast.success('Tasas actualizadas desde la API externa');
+                } else {
+                    toast.info('Las tasas ya están actualizadas (menos de 6 horas)');
+                }
+            } else {
+                toast.error(result.message || 'Error al actualizar tasas');
+            }
+        } catch (error) {
+            console.error('Error al actualizar tasas:', error);
+            toast.error('Error inesperado al actualizar tasas');
+        } finally {
+            setIsUpdatingRates(false);
+        }
+    }, [updateExchangeRatesManually]);
+
     // No renderizar si el modal no está abierto
     if (!isOpen) return null;
 
@@ -135,9 +158,20 @@ const ExchangeRateModal = ({ isOpen, onClose }) => {
                         <div className="bg-neutral-gray-800 p-4 rounded-lg border border-neutral-gray-700">
                             <h3 className="text-xl font-semibold text-neutral-light mb-4 flex items-center">
                                 <Info size={20} className="mr-2 text-action-blue" />Tasas Oficiales (Actualizadas Automáticamente)
-                                <button type="button" onClick={fetchExchangeRate} className="ml-auto text-sm text-action-blue hover:text-action-blue-light flex items-center" disabled={loadingCurrency}>
-                                    <RefreshCw size={16} className="mr-1" /> Forzar Actualización
-                                </button>
+                                <div className="ml-auto flex gap-2">
+                                    <button 
+                                        type="button" 
+                                        onClick={handleUpdateRates} 
+                                        className="text-sm bg-action-blue hover:bg-blue-700 text-white px-3 py-1 rounded flex items-center transition-colors" 
+                                        disabled={isUpdatingRates || loadingCurrency}
+                                    >
+                                        {isUpdatingRates ? <Loader2 size={16} className="mr-1 animate-spin" /> : <RefreshCw size={16} className="mr-1" />} 
+                                        Actualizar Tasa
+                                    </button>
+                                    <button type="button" onClick={fetchExchangeRate} className="text-sm text-action-blue hover:text-action-blue-light flex items-center" disabled={loadingCurrency}>
+                                        <RefreshCw size={16} className="mr-1" /> Recargar
+                                    </button>
+                                </div>
                             </h3>
                             <p className="text-neutral-gray-300 text-sm mb-2">Estas tasas se obtienen de una fuente externa y se actualizan periódicamente en el backend de forma automática (con un cron job).</p>
                             <p className="text-neutral-gray-300 text-sm mb-4">Última actualización: {exchangeRate.lastOfficialUpdate ? new Date(exchangeRate.lastOfficialUpdate).toLocaleString() : 'N/A'}</p>

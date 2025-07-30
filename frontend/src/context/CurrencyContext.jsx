@@ -90,6 +90,30 @@ export const CurrencyProvider = ({ children }) => {
     }
   }, [user]);
 
+  const updateExchangeRatesManually = useCallback(async () => {
+    if (!user) {
+      setCurrencyError('Debes iniciar sesión para actualizar las tasas.');
+      return { success: false, message: 'Usuario no autenticado' };
+    }
+    setLoadingCurrency(true);
+    setCurrencyError('');
+    try {
+      const response = await axiosInstance.post('/exchangeRate/update');
+      if (response.data.updated) {
+        setExchangeRate(response.data.exchangeRateConfig);
+        localStorage.setItem('exchangeRate', JSON.stringify(response.data.exchangeRateConfig));
+      }
+      return { success: true, message: response.data.message, updated: response.data.updated };
+    } catch (err) {
+      const msg = String(err.response?.data?.message || err.message || 'Error al actualizar tasas.');
+      console.error('Error al actualizar tasas manualmente:', msg);
+      setCurrencyError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoadingCurrency(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     // Lógica para cargar la tasa de cambio solo una vez
     fetchExchangeRate();
@@ -182,6 +206,7 @@ export const CurrencyProvider = ({ children }) => {
     currencyError,
     fetchExchangeRate,
     updateExchangeRate,
+    updateExchangeRatesManually,
     convertPrice,
     formatPrice,
     // ¡NUEVA PROP! Exportamos la lista de monedas disponibles

@@ -4,6 +4,7 @@ import {
   getExchangeRate,
   setExchangeRate,
   fetchOfficialRate,
+  updateExchangeRates,
 } from '../controllers/exchangeRateController.js';
 import { protect } from '../middleware/authMiddleware.js'; // Asumimos que tienes este middleware de protección
 
@@ -16,5 +17,8 @@ router.route('/')
 
 // GET /api/exchangeRate/fetch
 router.get('/fetch', protect, fetchOfficialRate);
+
+// POST /api/exchangeRate/update
+router.post('/update', protect, updateExchangeRates);
 
 export default router;
