@@ -123,8 +123,7 @@ function InventoryPage() {
     // Usa el contexto de moneda
     const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, updateExchangeRate, convertPrice, formatPrice } = useCurrency(); // <-- ¡NUEVA LÍNEA!
 
-    // Estado para controlar la visibilidad del modal de tasa de cambio
-    const [showExchangeRateModal, setShowExchangeRateModal] = useState(false); // <-- ¡NUEVA LÍNEA!
+
 
     // Función auxiliar para mostrar mensajes de éxito o error al usuario
     const displayMessage = useCallback((msg, type) => {
@@ -689,31 +688,7 @@ function InventoryPage() {
                     />
                 </Suspense>
 
-                {/* Modal para Configurar Tasa de Cambio */}
-                <Suspense fallback={<div>Cargando modal de tasa...</div>}>
-                    {showExchangeRateModal && (
-                        <ExchangeRateModal
-                            isOpen={showExchangeRateModal}
-                            onClose={() => setShowExchangeRateModal(false)}
-                            currentExchangeRate={exchangeRate}
-                            loading={loadingCurrency}
-                            error={currencyError}
-                            onSave={updateExchangeRate}
-                        />
-                    )}
-                </Suspense>
 
-                {/* Sección de Tasa de Cambio */}
-                <div className="mb-6 p-4 bg-deep-night-blue rounded-lg border border-neutral-gray-700">
-                    <h3 className="text-lg font-semibold text-neutral-light mb-3">Tasa de Cambio Actual</h3>
-                    <ExchangeRateDisplay 
-                        exchangeRate={exchangeRate}
-                        loading={loadingCurrency}
-                        error={currencyError}
-                        formatPrice={formatPrice}
-                        onOpenModal={() => setShowExchangeRateModal(true)}
-                    />
-                </div>
 
                 {/* Sección de Alertas de Stock */}
                 <Suspense fallback={<div className="mb-6 p-4 border rounded-md bg-yellow-900 bg-opacity-20 text-yellow-300">Cargando alertas...</div>}>

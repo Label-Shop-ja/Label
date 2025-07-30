@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ExchangeRateDisplay from '../Currency/ExchangeRateDisplay';
 import { useCurrency } from '../../context/CurrencyContext';
+const ExchangeRateModal = lazy(() => import('../Currency/ExchangeRateModal'));
 
 const breadcrumbNameMap = {
   'dashboard': 'Dashboard',
@@ -18,6 +19,7 @@ const breadcrumbNameMap = {
 const Breadcrumbs = () => {
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter((x) => x);
+  const [showExchangeRateModal, setShowExchangeRateModal] = useState(false);
 
   // Obtén la tasa desde el contexto
   const { exchangeRate, loadingCurrency, currencyError, formatPrice } = useCurrency();
@@ -57,14 +59,32 @@ const Breadcrumbs = () => {
         </ol>
       </nav>
       <div className="ml-4 flex-shrink-0">
-        <ExchangeRateDisplay
-          exchangeRate={exchangeRate}
-          loading={loadingCurrency}
-          error={currencyError}
-          formatPrice={formatPrice}
-          primaryCurrency={exchangeRate?.fromCurrency || 'USD'}
-          secondaryCurrency={exchangeRate?.toCurrency || 'VES'}
-        />
+        <button
+          onClick={() => setShowExchangeRateModal(true)}
+          className="text-right text-sm text-text-muted hover:text-text-base transition-colors cursor-pointer"
+          title="Configurar tasas de cambio"
+        >
+          {exchangeRate && (
+            <>
+              <div className="font-semibold">
+                1 USD = {formatPrice(exchangeRate.personalRate > 0 ? exchangeRate.personalRate : exchangeRate.officialRate, 'VES')}
+              </div>
+              <div className="text-xs">
+                {exchangeRate.personalRate > 0 ? '(Tasa Personal)' : '(Tasa Oficial)'}
+              </div>
+              <div className="text-xs">
+                (Última Act: {exchangeRate.lastOfficialUpdate ? new Date(exchangeRate.lastOfficialUpdate).toLocaleString() : 'N/A'})
+              </div>
+            </>
+          )}
+        </button>
+        
+        <Suspense fallback={<div>Cargando...</div>}>
+          <ExchangeRateModal
+            isOpen={showExchangeRateModal}
+            onClose={() => setShowExchangeRateModal(false)}
+          />
+        </Suspense>
       </div>
     </div>
   );
