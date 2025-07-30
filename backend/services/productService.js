@@ -108,9 +108,7 @@ const createProduct = async (productData, userId) => {
     try {
         // Generar SKU si no existe
         if (!productData.sku) {
-            const timestamp = Date.now().toString(36);
-            const random = Math.random().toString(36).substring(2, 8);
-            productData.sku = `${productData.name?.substring(0, 3).toUpperCase() || 'PRD'}-${timestamp}-${random}`;
+            productData.sku = await generateUniqueSKU(productData.name, userId);
         }
 
         const product = await Product.create({
@@ -118,7 +116,9 @@ const createProduct = async (productData, userId) => {
             user: userId, // ¡CRUCIAL! Asocia el producto con el usuario.
         });
 
-        // Actualiza el catálogo global de productos (manejo de errores)
+        // Actualiza el catálogo global SOLO al crear productos nuevos
+        // Esto permite que otros usuarios vean sugerencias basadas en productos creados
+        // pero no afecta el catálogo cuando se editan productos existentes
         try {
             await createGlobalProduct(product);
         } catch (globalError) {
@@ -148,11 +148,8 @@ const updateProduct = async (productId, productData, userId) => {
         Object.assign(product, cleanData);
         const updatedProduct = await product.save();
 
-        try {
-            await createGlobalProduct(updatedProduct);
-        } catch (globalError) {
-            console.warn('Error al actualizar producto global:', globalError.message);
-        }
+        // NO actualizar el catálogo global al editar productos existentes
+        // Solo se actualiza cuando se crean productos nuevos
 
         return updatedProduct;
     } catch (error) {
@@ -274,6 +271,32 @@ const deleteMultipleProducts = async (ids, userId) => {
         { _id: { $in: ids }, user: userObjectId }
     );
     return result;
+};
+
+// Función auxiliar para generar SKU único por usuario
+const generateUniqueSKU = async (productName, userId) => {
+    const basePrefix = productName?.replace(/\s+/g, '-').substring(0, 15).toUpperCase() || 'PRODUCTO';
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const candidateSKU = `${basePrefix}-${random}`;
+        
+        // Verificar si el SKU ya existe para este usuario
+        const existingProduct = await Product.findOne({ user: userId, sku: candidateSKU });
+        
+        if (!existingProduct) {
+            return candidateSKU;
+        }
+        
+        attempts++;
+    }
+    
+    // Si después de varios intentos no se puede generar un SKU único, usar timestamp
+    const fallbackSKU = `${basePrefix}-${Date.now()}`;
+    return fallbackSKU;
 };
 
 export const productService = {

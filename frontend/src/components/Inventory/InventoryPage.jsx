@@ -104,10 +104,11 @@ function InventoryPage() {
 
     // Estado para los datos del producto nuevo (se usa como initialProductData para AddEditProductFormLogic)
     const defaultNewProductState = {
-        name: '', description: '', category: '', price: '', stock: '',
-        costPrice: '', sku: '', unitOfMeasure: 'unidad', brand: '', supplier: '', imageUrl: '',
+        name: '', description: '', category: '', price: 0, stock: 0,
+        costPrice: 0, sku: '', unitOfMeasure: 'unidad', brand: '', supplier: '', imageUrl: '',
         color: '', size: '', material: '', variants: [],
         isPerishable: false, reorderThreshold: 0, optimalMaxStock: 0, shelfLifeDays: 0,
+        profitPercentage: 30, costCurrency: 'USD', saleCurrency: 'USD', baseCurrency: 'USD', displayCurrency: 'USD',
     };
     const [newProductInitialData, setNewProductInitialData] = useState(defaultNewProductState);
 

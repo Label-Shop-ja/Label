@@ -56,6 +56,76 @@ const globalProductSchema = mongoose.Schema(
             default: 'https://placehold.co/600x400/2D3748/F8F8F2?text=Sin+Imagen', // Placeholder por defecto
             trim: true,
         },
+        // Campos adicionales para completar la información del producto
+        model: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        barcode: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        weight: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        length: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        width: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        height: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        color: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        size: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        material: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        isPerishable: {
+            type: Boolean,
+            default: false,
+        },
+        reorderThreshold: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        optimalMaxStock: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        shelfLifeDays: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        profitPercentage: {
+            type: Number,
+            default: 30,
+            min: 0,
+        },
         // Campo para la purga de datos
         lastUsedAt: {
             type: Date,
