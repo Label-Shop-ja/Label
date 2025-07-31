@@ -75,10 +75,15 @@ const AddEditProductFormLogic = ({
     
     // Resetear estado cuando se abre/cierra el modal
     useEffect(() => {
-        if (isOpen && isNewProduct) {
-            setCurrentStep('search');
-            setSearchValue('');
-            setShouldNavigateToPage(null);
+        if (isOpen) {
+            if (isNewProduct) {
+                setCurrentStep('search');
+                setSearchValue('');
+                setShouldNavigateToPage(null);
+            } else {
+                // Para edición, ir directo al formulario
+                setCurrentStep('form');
+            }
         }
     }, [isOpen, isNewProduct]);
 
