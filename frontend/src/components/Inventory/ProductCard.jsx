@@ -1,6 +1,6 @@
 // src/components/Inventory/ProductCard.jsx
 import React from 'react';
-import { Edit, Trash2, MoreVertical, Info, DollarSign, TrendingUp, Package, AlertTriangle } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, Info, BadgeDollarSign, TrendingUp, Package2, AlertTriangle } from 'lucide-react';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Menu, Transition } from '@headlessui/react';
@@ -9,13 +9,14 @@ const ProductCard = ({ product, handleEditClick, confirmDeleteProduct, isExpande
     const { exchangeRate, convertPrice, formatPrice } = useCurrency();
     const { theme } = useTheme();
 
-    // Convertir precios a la moneda actual
-    const convertedPrice = convertPrice(product.price, product.saleCurrency || 'USD', exchangeRate?.toCurrency || 'VES');
-    const convertedCostPrice = convertPrice(product.costPrice, product.costCurrency || 'USD', exchangeRate?.toCurrency || 'VES');
+    // Mostrar precios en su moneda original (incluyendo precios auto-calculados)
+    const salePrice = product.price;
+    const saleCurrency = product.saleCurrency || 'USD';
+    const costPrice = product.costPrice;
+    const costCurrency = product.costCurrency || 'USD';
     
-    // Calcular ganancia
-    const profitMargin = product.price && product.costPrice ? 
-        Math.round(((product.price - product.costPrice) / product.costPrice) * 100) : 0;
+    // Usar porcentaje de ganancia almacenado en lugar de calcularlo
+    const profitMargin = product.profitPercentage || 0;
 
     const isLowStock = product.stock <= 5;
     const hasVariants = product.variants && product.variants.length > 0;
@@ -160,55 +161,83 @@ const ProductCard = ({ product, handleEditClick, confirmDeleteProduct, isExpande
                     
 
 
-                    {/* Grid 2x2 - Información Financiera con bordes */}
-                    <div className={`grid grid-cols-2 border rounded text-center ${
-                        theme === 'light' ? 'border-gray-200' : 'border-gray-600'
-                    }`}>
-                        <div className={`py-2 px-1 border-r border-b ${
-                            theme === 'light' ? 'border-gray-200' : 'border-gray-600'
+                    {/* Grid 2x2 - Información Financiera Moderna */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className={`py-3 px-3 rounded-lg flex items-center justify-between transition-all duration-200 hover:scale-105 ${
+                            theme === 'light' 
+                                ? 'bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100' 
+                                : 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 hover:from-green-800/30 hover:to-emerald-800/30'
                         }`}>
-                            <div className="flex items-center justify-center gap-1 mb-1">
-                                <DollarSign size={10} className="text-green-600" />
-                                <span className="text-xs text-gray-500">Venta</span>
+                            <div className="flex items-center gap-2">
+                                <BadgeDollarSign size={16} className="text-white" />
+                                <span className={`text-sm font-medium ${
+                                    theme === 'light' ? 'text-green-700' : 'text-green-300'
+                                }`}>Venta</span>
                             </div>
-                            <div className="font-bold text-green-600 text-sm leading-tight">
-                                {convertedPrice ? formatPrice(convertedPrice, exchangeRate?.toCurrency || 'VES') : 'N/A'}
+                            <div className="font-bold text-green-600 text-base">
+                                {salePrice ? formatPrice(salePrice, saleCurrency) : 'N/A'}
                             </div>
                         </div>
                         
-                        <div className={`py-2 px-1 border-b ${
-                            theme === 'light' ? 'border-gray-200' : 'border-gray-600'
+                        <div className={`py-3 px-3 rounded-lg flex items-center justify-between transition-all duration-200 hover:scale-105 ${
+                            theme === 'light' 
+                                ? 'bg-gradient-to-r from-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100' 
+                                : 'bg-gradient-to-r from-orange-900/20 to-amber-900/20 hover:from-orange-800/30 hover:to-amber-800/30'
                         }`}>
-                            <div className="flex items-center justify-center gap-1 mb-1">
-                                <DollarSign size={10} className="text-orange-500" />
-                                <span className="text-xs text-gray-500">Costo</span>
+                            <div className="flex items-center gap-2">
+                                <BadgeDollarSign size={16} className="text-white" />
+                                <span className={`text-sm font-medium ${
+                                    theme === 'light' ? 'text-orange-700' : 'text-orange-300'
+                                }`}>Costo</span>
                             </div>
-                            <div className="font-bold text-orange-500 text-sm leading-tight">
-                                {convertedCostPrice ? formatPrice(convertedCostPrice, exchangeRate?.toCurrency || 'VES') : 'N/A'}
+                            <div className="font-bold text-orange-500 text-base">
+                                {costPrice ? formatPrice(costPrice, costCurrency) : 'N/A'}
                             </div>
                         </div>
                         
-                        <div className={`py-2 px-1 border-r ${
-                            theme === 'light' ? 'border-gray-200' : 'border-gray-600'
+                        <div className={`py-3 px-3 rounded-lg flex items-center justify-between transition-all duration-200 hover:scale-105 ${
+                            theme === 'light' 
+                                ? isLowStock 
+                                    ? 'bg-gradient-to-r from-red-50 to-pink-50 hover:from-red-100 hover:to-pink-100'
+                                    : 'bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100'
+                                : isLowStock
+                                    ? 'bg-gradient-to-r from-red-900/20 to-pink-900/20 hover:from-red-800/30 hover:to-pink-800/30'
+                                    : 'bg-gradient-to-r from-blue-900/20 to-indigo-900/20 hover:from-blue-800/30 hover:to-indigo-800/30'
                         }`}>
-                            <div className="flex items-center justify-center gap-1 mb-1">
-                                <Package size={10} className={isLowStock ? 'text-red-600' : 'text-blue-600'} />
-                                <span className="text-xs text-gray-500">Stock</span>
+                            <div className="flex items-center gap-2">
+                                <Package2 size={16} className="text-white" />
+                                <span className={`text-sm font-medium ${
+                                    theme === 'light' 
+                                        ? isLowStock ? 'text-red-700' : 'text-blue-700'
+                                        : isLowStock ? 'text-red-300' : 'text-blue-300'
+                                }`}>Stock</span>
                             </div>
-                            <div className={`font-bold text-sm leading-tight ${
+                            <div className={`font-bold text-base ${
                                 isLowStock ? 'text-red-600' : 'text-blue-600'
                             }`}>
                                 {product.stock} uds
                             </div>
                         </div>
                         
-                        <div className="py-2 px-1">
-                            <div className="flex items-center justify-center gap-1 mb-1">
-                                <TrendingUp size={10} className={profitMargin > 20 ? 'text-green-600' : 'text-yellow-600'} />
-                                <span className="text-xs text-gray-500">Ganancia</span>
+                        <div className={`py-3 px-3 rounded-lg flex items-center justify-between transition-all duration-200 hover:scale-105 ${
+                            theme === 'light' 
+                                ? profitMargin > 20
+                                    ? 'bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100'
+                                    : 'bg-gradient-to-r from-yellow-50 to-amber-50 hover:from-yellow-100 hover:to-amber-100'
+                                : profitMargin > 20
+                                    ? 'bg-gradient-to-r from-emerald-900/20 to-teal-900/20 hover:from-emerald-800/30 hover:to-teal-800/30'
+                                    : 'bg-gradient-to-r from-yellow-900/20 to-amber-900/20 hover:from-yellow-800/30 hover:to-amber-800/30'
+                        }`}>
+                            <div className="flex items-center gap-2">
+                                <TrendingUp size={16} className="text-white" />
+                                <span className={`text-sm font-medium ${
+                                    theme === 'light' 
+                                        ? profitMargin > 20 ? 'text-emerald-700' : 'text-yellow-700'
+                                        : profitMargin > 20 ? 'text-emerald-300' : 'text-yellow-300'
+                                }`}>Ganancia</span>
                             </div>
-                            <div className={`font-bold text-sm leading-tight ${
-                                profitMargin > 20 ? 'text-green-600' : 'text-yellow-600'
+                            <div className={`font-bold text-base ${
+                                profitMargin > 20 ? 'text-emerald-600' : 'text-yellow-600'
                             }`}>
                                 {profitMargin}%
                             </div>
