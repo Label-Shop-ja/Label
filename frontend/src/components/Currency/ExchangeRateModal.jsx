@@ -6,6 +6,29 @@ import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Estilos para scrollbar personalizada
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.7);
+  }
+  .custom-scrollbar-light::-webkit-scrollbar-thumb {
+    background: rgba(107, 114, 128, 0.4);
+  }
+  .custom-scrollbar-light::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.6);
+  }
+`;
+
 const ExchangeRateModal = ({ isOpen, onClose }) => {
     const { theme } = useTheme();
     const { 
@@ -42,12 +65,14 @@ const ExchangeRateModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
+        <>
+            <style>{scrollbarStyles}</style>
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className={`${
                 theme === 'light' 
                     ? 'bg-white border-gray-200 text-gray-900' 
                     : 'bg-gray-900 border-gray-700 text-white'
-            } p-8 rounded-2xl shadow-2xl border w-full max-w-3xl max-h-[90vh] overflow-y-auto relative transform transition-all duration-300`}>
+            } p-6 rounded-2xl shadow-2xl border w-full max-w-2xl max-h-[85vh] overflow-hidden relative transform transition-all duration-300`}>
                 <button
                     onClick={onClose}
                     className={`absolute top-6 right-6 p-2 rounded-full transition-colors ${
@@ -59,7 +84,7 @@ const ExchangeRateModal = ({ isOpen, onClose }) => {
                     <X size={20} />
                 </button>
                 
-                <div className="flex items-center gap-3 mb-8">
+                <div className="flex items-center gap-3 mb-6">
                     <div className={`p-3 rounded-xl ${
                         theme === 'light' 
                             ? 'bg-blue-100 text-blue-600' 
@@ -93,9 +118,9 @@ const ExchangeRateModal = ({ isOpen, onClose }) => {
                 )}
                 
                 {exchangeRate && (
-                    <div className="space-y-8">
+                    <div className="space-y-6">
                         {/* Tasa Principal USD-VES */}
-                        <div className={`relative overflow-hidden rounded-2xl p-8 ${
+                        <div className={`relative overflow-hidden rounded-xl p-6 ${
                             theme === 'light'
                                 ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
                                 : 'bg-gradient-to-br from-blue-600 to-blue-700 text-white'
@@ -117,27 +142,29 @@ const ExchangeRateModal = ({ isOpen, onClose }) => {
                                     </button>
                                 </div>
                                 <div className="text-center">
-                                    <div className="text-5xl font-bold mb-3">
+                                    <div className="text-4xl font-bold mb-2">
                                         {formatPrice(exchangeRate.officialRate, 'VES')}
                                     </div>
-                                    <div className="flex items-center justify-center gap-2 text-white/80">
-                                        <Clock size={16} />
-                                        <span>Última actualización: {exchangeRate.lastOfficialUpdate ? new Date(exchangeRate.lastOfficialUpdate).toLocaleString() : 'Nunca'}</span>
+                                    <div className="flex items-center justify-center gap-2 text-white/80 text-sm">
+                                        <Clock size={14} />
+                                        <span>{exchangeRate.lastOfficialUpdate ? new Date(exchangeRate.lastOfficialUpdate).toLocaleString() : 'Nunca'}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Todas las Conversiones */}
-                        <div className={`rounded-2xl p-6 border ${
+                        <div className={`rounded-xl p-4 border ${
                             theme === 'light'
                                 ? 'bg-gray-50 border-gray-200'
                                 : 'bg-gray-800/50 border-gray-700'
                         }`}>
-                            <h3 className={`text-xl font-semibold mb-4 ${
+                            <h3 className={`text-lg font-semibold mb-3 ${
                                 theme === 'light' ? 'text-gray-900' : 'text-white'
                             }`}>Todas las Conversiones</h3>
-                            <div className={`max-h-64 overflow-y-auto rounded-xl p-4 ${
+                            <div className={`max-h-48 overflow-y-auto rounded-lg p-3 custom-scrollbar ${
+                                theme === 'light' ? 'custom-scrollbar-light' : ''
+                            } ${
                                 theme === 'light'
                                     ? 'bg-white border border-gray-200'
                                     : 'bg-gray-900/50 border border-gray-600'
@@ -185,6 +212,7 @@ const ExchangeRateModal = ({ isOpen, onClose }) => {
                 )}
             </div>
         </div>
+        </>
     );
 };
 
