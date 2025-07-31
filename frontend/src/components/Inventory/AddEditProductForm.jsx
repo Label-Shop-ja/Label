@@ -1,6 +1,6 @@
 // src/components/Inventory/AddEditProductForm.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Upload, Loader2, Save, Settings, Package, DollarSign, AlertTriangle, X, Trash2, XCircle, ChevronDown } from 'lucide-react';
+import { Plus, Upload, Loader2, Save, Settings, Package, DollarSign, AlertTriangle, X, Trash2, XCircle, ChevronDown, FileText, CreditCard, Cog, Palette, BarChart3, Tag, Scale, Apple, Camera, Box } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import VariantForm from './VariantForm';
 import ErrorBoundary from '../Common/ErrorBoundary';
@@ -115,18 +115,18 @@ const AddEditProductForm = ({
     // Definir las páginas del formulario
     const getPages = () => {
         const basePages = [
-            { id: 'basic', title: 'Información Básica', icon: '📝', color: 'blue' },
-            { id: 'pricing', title: 'Costos y Precios', icon: '💰', color: 'green' },
-            { id: 'advanced', title: 'Opciones Avanzadas', icon: '⚙️', color: 'orange' }
+            { id: 'basic', title: 'Información Básica', icon: <FileText size={16} />, color: 'blue' },
+            { id: 'pricing', title: 'Costos y Precios', icon: <CreditCard size={16} />, color: 'green' },
+            { id: 'advanced', title: 'Opciones Avanzadas', icon: <Cog size={16} />, color: 'orange' }
         ];
         
         if (productData.variants && productData.variants.length > 0) {
-            basePages.push({ id: 'variants', title: 'Variantes', icon: '🎨', color: 'purple' });
+            basePages.push({ id: 'variants', title: 'Variantes', icon: <Palette size={16} />, color: 'purple' });
             productData.variants.forEach((variant, index) => {
                 basePages.push({
                     id: `variant-${index}`,
                     title: variant.name || `Variante ${index + 1}`,
-                    icon: '🎯',
+                    icon: <Box size={14} />,
                     color: 'purple',
                     isVariant: true
                 });
@@ -391,8 +391,10 @@ const AddEditProductForm = ({
                                         onChange={() => handleProductInputChange({ target: { name: 'variants', value: [] } })}
                                         className="mr-2 text-blue-600"
                                     />
-                                    <span className={theme === 'light' ? 'text-blue-700' : 'text-blue-200'}>
-                                        📦 Producto Simple
+                                    <span className={`flex items-center gap-2 ${
+                                        theme === 'light' ? 'text-blue-700' : 'text-blue-200'
+                                    }`}>
+                                        <Package size={16} /> Producto Simple
                                     </span>
                                 </label>
                                 <label className="flex items-center">
@@ -403,8 +405,10 @@ const AddEditProductForm = ({
                                         onChange={() => handleAddVariant()}
                                         className="mr-2 text-blue-600"
                                     />
-                                    <span className={theme === 'light' ? 'text-blue-700' : 'text-blue-200'}>
-                                        🎨 Con Variantes
+                                    <span className={`flex items-center gap-2 ${
+                                        theme === 'light' ? 'text-blue-700' : 'text-blue-200'
+                                    }`}>
+                                        <Palette size={16} /> Con Variantes
                                     </span>
                                 </label>
                             </div>
@@ -559,7 +563,7 @@ const AddEditProductForm = ({
                             <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${
                                 theme === 'light' ? 'text-blue-800' : 'text-blue-200'
                             }`}>
-                                💰 COSTOS Y PRECIOS
+                                <CreditCard size={20} /> COSTOS Y PRECIOS
                             </h4>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -568,7 +572,7 @@ const AddEditProductForm = ({
                                     <label className={`block text-sm font-medium mb-2 ${
                                         theme === 'light' ? 'text-text-base' : 'text-gray-200'
                                     }`}>
-                                        💵 Costo Unitario *
+                                        <DollarSign size={16} className="inline mr-1" /> Costo Unitario *
                                     </label>
                                     <div className="flex gap-2">
                                         <input
@@ -611,7 +615,7 @@ const AddEditProductForm = ({
                                     <label className={`block text-sm font-medium mb-2 ${
                                         theme === 'light' ? 'text-text-base' : 'text-gray-200'
                                     }`}>
-                                        📦 Stock *
+                                        <Package size={16} className="inline mr-1" /> Stock *
                                     </label>
                                     <div className="flex items-center gap-2">
                                         <input
@@ -639,7 +643,7 @@ const AddEditProductForm = ({
                                     <label className={`block text-sm font-medium mb-2 ${
                                         theme === 'light' ? 'text-text-base' : 'text-gray-200'
                                     }`}>
-                                        📈 % Ganancia
+                                        <BarChart3 size={16} className="inline mr-1" /> % Ganancia
                                     </label>
                                     <div className="flex items-center gap-2">
                                         <input
@@ -686,7 +690,7 @@ const AddEditProductForm = ({
                                     <label className={`block text-sm font-medium mb-2 ${
                                         theme === 'light' ? 'text-text-base' : 'text-gray-200'
                                     }`}>
-                                        🏷️ Precio de Venta (Auto)
+                                        <Tag size={16} className="inline mr-1" /> Precio de Venta (Auto)
                                     </label>
                                     <div className="flex gap-2">
                                         <input
@@ -725,9 +729,9 @@ const AddEditProductForm = ({
                                 <div className={`mt-3 text-center p-2 rounded-lg ${
                                     theme === 'light' ? 'bg-purple-50 border border-purple-200' : 'bg-purple-900/20 border border-purple-700'
                                 }`}>
-                                    <div className={`text-xs font-medium mb-1 ${
+                                    <div className={`text-xs font-medium mb-1 flex items-center gap-1 ${
                                         theme === 'light' ? 'text-purple-700' : 'text-purple-300'
-                                    }`}>🧠 Precio Psicológico</div>
+                                    }`}><Scale size={12} /> Precio Psicológico</div>
                                     <div className={`text-lg font-bold ${
                                         theme === 'light' ? 'text-purple-800' : 'text-purple-200'
                                     }`}>
@@ -743,25 +747,25 @@ const AddEditProductForm = ({
                                 }`}>
                                     <div className="grid grid-cols-3 gap-4 text-center text-sm">
                                         <div>
-                                            <div className={`font-medium ${
+                                            <div className={`font-medium flex items-center gap-1 ${
                                                 theme === 'light' ? 'text-orange-700' : 'text-orange-300'
-                                            }`}>💰 Inversión</div>
+                                            }`}><DollarSign size={12} /> Inversión</div>
                                             <div className="font-bold">
                                                 {productData.costCurrency || 'USD'} {(Number(productData.costPrice) * Number(productData.stock)).toFixed(2)}
                                             </div>
                                         </div>
                                         <div>
-                                            <div className={`font-medium ${
+                                            <div className={`font-medium flex items-center gap-1 ${
                                                 theme === 'light' ? 'text-blue-700' : 'text-blue-300'
-                                            }`}>📈 Venta Total</div>
+                                            }`}><BarChart3 size={12} /> Venta Total</div>
                                             <div className="font-bold">
                                                 {productData.saleCurrency || 'USD'} {(Number(calculatedProductPricePlaceholder) * Number(productData.stock)).toFixed(2)}
                                             </div>
                                         </div>
                                         <div>
-                                            <div className={`font-medium ${
+                                            <div className={`font-medium flex items-center gap-1 ${
                                                 theme === 'light' ? 'text-green-700' : 'text-green-300'
-                                            }`}>🎯 Ganancia</div>
+                                            }`}><Tag size={12} /> Ganancia</div>
                                             <div className="font-bold">
                                                 {productData.saleCurrency || 'USD'} {((Number(calculatedProductPricePlaceholder) - Number(productData.costPrice)) * Number(productData.stock)).toFixed(2)}
                                             </div>
@@ -807,7 +811,7 @@ const AddEditProductForm = ({
                                     }`}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <span className="text-lg">🏷️</span>
+                                        <Tag size={16} className={theme === 'light' ? 'text-gray-600' : 'text-gray-400'} />
                                         <h4 className={`text-sm font-semibold ${
                                             theme === 'light' ? 'text-gray-800' : 'text-gray-200'
                                         }`}>Atributos del Producto</h4>
@@ -974,9 +978,9 @@ const AddEditProductForm = ({
                             <div className={`mt-4 p-3 rounded-lg border ${
                                 theme === 'light' ? 'border-gray-200 bg-gray-50/30' : 'border-gray-600/30 bg-gray-700/20'
                             }`}>
-                                <h5 className={`text-sm font-medium mb-3 ${
+                                <h5 className={`text-sm font-medium mb-3 flex items-center gap-2 ${
                                     theme === 'light' ? 'text-gray-700' : 'text-gray-300'
-                                }`}>📏 Dimensiones (cm)</h5>
+                                }`}><Scale size={14} /> Dimensiones (cm)</h5>
                                 <div className="grid grid-cols-3 gap-3">
                                     <div>
                                         <label className={`block text-xs font-medium mb-1 ${
@@ -1044,7 +1048,7 @@ const AddEditProductForm = ({
                                     }`}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <span className="text-lg">📊</span>
+                                        <BarChart3 size={16} className={theme === 'light' ? 'text-green-600' : 'text-green-400'} />
                                         <h4 className={`text-sm font-semibold ${
                                             theme === 'light' ? 'text-green-800' : 'text-green-200'
                                         }`}>Gestión de Stock</h4>
@@ -1075,8 +1079,10 @@ const AddEditProductForm = ({
                                         className="mr-2 text-blue-600"
                                         disabled={productData.variants && productData.variants.length > 0}
                                     />
-                                    <span className={theme === 'light' ? 'text-green-700' : 'text-green-200'}>
-                                        🍎 ¿Es Perecedero?
+                                    <span className={`flex items-center gap-2 ${
+                                        theme === 'light' ? 'text-green-700' : 'text-green-200'
+                                    }`}>
+                                        <Apple size={16} /> ¿Es Perecedero?
                                     </span>
                                 </label>
 
@@ -1158,7 +1164,7 @@ const AddEditProductForm = ({
                                     }`}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <span className="text-lg">🖼️</span>
+                                        <Camera size={16} className={theme === 'light' ? 'text-purple-600' : 'text-purple-400'} />
                                         <h4 className={`text-sm font-semibold ${
                                             theme === 'light' ? 'text-purple-800' : 'text-purple-200'
                                         }`}>Imagen Principal</h4>
@@ -1300,7 +1306,7 @@ const AddEditProductForm = ({
                                                 : 'bg-blue-900/50 text-blue-300 hover:bg-blue-800/50'
                                         }`}
                                     >
-                                        📋 Aplicar a Todas
+                                        <FileText size={12} /> Aplicar a Todas
                                     </button>
                                 )}
                             </div>
@@ -1376,9 +1382,9 @@ const AddEditProductForm = ({
                                 <div className={`mt-4 p-3 rounded-lg border ${
                                     theme === 'light' ? 'border-green-200 bg-green-50' : 'border-green-700 bg-green-900/20'
                                 }`}>
-                                    <h5 className={`text-sm font-medium mb-2 ${
+                                    <h5 className={`text-sm font-medium mb-2 flex items-center gap-2 ${
                                         theme === 'light' ? 'text-green-800' : 'text-green-200'
-                                    }`}>📊 Resumen Final</h5>
+                                    }`}><BarChart3 size={14} /> Resumen Final</h5>
                                     <div className="space-y-2">
                                         {productData.variants.map((variant, index) => (
                                             <div key={index} className="flex justify-between items-center text-sm p-2 bg-white dark:bg-gray-800 rounded">
@@ -1460,17 +1466,29 @@ const AddEditProductForm = ({
                 onClick={onClose}
             >
             <div
-                className="bg-deep-night-blue/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 text-neutral-light w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto my-auto relative transform transition-all duration-500 scale-100 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4"
+                className={`backdrop-blur-xl rounded-2xl shadow-2xl border w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto my-auto relative transform transition-all duration-500 scale-100 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 ${
+                    theme === 'light' 
+                        ? 'bg-white/95 border-gray-200 text-gray-900' 
+                        : 'bg-gray-900/95 border-white/10 text-white'
+                }`}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="relative bg-gradient-to-r from-gray-800 to-gray-700">
+                <div className={`relative ${
+                    theme === 'light' 
+                        ? 'bg-gradient-to-r from-gray-100 to-gray-200' 
+                        : 'bg-gradient-to-r from-gray-800 to-gray-700'
+                }`}>
                     <div className={`p-4 transition-all duration-300 ${
                         sidebarOpen ? 'ml-0 md:ml-56' : 'ml-0'
                     }`}>
                         {/* Botón hamburguesa */}
                         <button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="absolute top-3 left-3 text-neutral-gray-400 hover:text-white transition-colors duration-200 z-10"
+                            className={`absolute top-3 left-3 transition-colors duration-200 z-10 ${
+                                theme === 'light' 
+                                    ? 'text-gray-600 hover:text-gray-900' 
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
                             title="Alternar menú"
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1479,12 +1497,20 @@ const AddEditProductForm = ({
                         </button>
                         <button
                             onClick={onClose}
-                            className="absolute top-3 right-3 text-neutral-gray-400 hover:text-red-500 transition-colors duration-200 z-10"
+                            className={`absolute top-3 right-3 hover:text-red-500 transition-colors duration-200 z-10 ${
+                                theme === 'light' 
+                                    ? 'text-gray-600' 
+                                    : 'text-gray-400'
+                            }`}
                             title="Cerrar"
                         >
                             <XCircle size={28} />
                         </button>
-                        <h3 className="text-2xl sm:text-3xl font-bold text-copper-rose-accent text-center pr-12">
+                        <h3 className={`text-2xl sm:text-3xl font-bold text-center pr-12 ${
+                            theme === 'light' 
+                                ? 'text-gray-900' 
+                                : 'text-orange-400'
+                        }`}>
                             {title}
                         </h3>
                     </div>
@@ -1504,18 +1530,24 @@ const AddEditProductForm = ({
                             )}
                             
                             {/* Sidebar */}
-                            <div className={`sidebar-container transition-all duration-300 overflow-y-auto overflow-x-hidden backdrop-blur-sm border-r border-opacity-30 min-w-0 ${
-                                sidebarOpen ? 'w-56 flex-shrink-0 p-3' : 'w-0 p-0 border-r-0'
+                            <div className={`sidebar-container transition-all duration-300 overflow-y-auto overflow-x-hidden backdrop-blur-xl border-r min-w-0 ${
+                                sidebarOpen ? 'w-64 flex-shrink-0 p-4' : 'w-0 p-0 border-r-0'
                             } md:relative fixed left-0 top-0 h-full z-50 ${
-                                sidebarOpen || window.innerWidth < 768 ? (theme === 'light' ? 'border-border-subtle bg-surface-secondary/95' : 'border-gray-600 bg-gray-800/95') : ''
+                                sidebarOpen || window.innerWidth < 768 ? (
+                                    theme === 'light' 
+                                        ? 'border-gray-200/50 bg-gradient-to-b from-white/90 to-gray-50/90 shadow-xl' 
+                                        : 'border-gray-700/50 bg-gradient-to-b from-gray-800/90 to-gray-900/90 shadow-2xl shadow-black/20'
+                                ) : ''
                             } ${
                                 !sidebarOpen && window.innerWidth >= 768 ? 'md:translate-x-0' : (sidebarOpen ? 'translate-x-0' : '-translate-x-full')
                             }`}>
                                 {sidebarOpen && (
                                     <>
                                         {/* Imagen del producto */}
-                                        <div className={`w-full h-32 rounded-2xl overflow-hidden mb-3 relative shadow-lg ring-1 ring-white/10 ${
-                                            theme === 'light' ? 'bg-gradient-to-br from-gray-100 to-gray-200' : 'bg-gradient-to-br from-gray-700 to-gray-600'
+                                        <div className={`w-full h-36 rounded-2xl overflow-hidden mb-4 relative shadow-2xl ring-1 transition-all duration-300 hover:scale-105 hover:shadow-3xl ${
+                                            theme === 'light' 
+                                                ? 'bg-gradient-to-br from-blue-50 to-purple-100 ring-gray-200/50' 
+                                                : 'bg-gradient-to-br from-gray-700 to-gray-800 ring-white/10'
                                         }`}>
                                     {(imagePreviewUrl || productData.imageUrl) && !isUploadingMainImage ? (
                                         <>
@@ -1550,14 +1582,14 @@ const AddEditProductForm = ({
                                 </div>
 
                                 {/* Botón subir imagen */}
-                                <div className="mb-4">
-                                    <label htmlFor="main-image-upload" className={`w-full py-2 px-3 rounded-xl text-center cursor-pointer transition-all duration-200 text-xs flex items-center justify-center gap-1.5 font-medium shadow-lg hover:shadow-xl hover:scale-105 ${
+                                <div className="mb-6">
+                                    <label htmlFor="main-image-upload" className={`w-full py-3 px-4 rounded-xl text-center cursor-pointer transition-all duration-300 text-sm flex items-center justify-center gap-2 font-semibold shadow-xl hover:shadow-2xl hover:scale-105 transform ${
                                         theme === 'light' 
-                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white' 
-                                            : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                                            ? 'bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 hover:from-blue-700 hover:via-blue-800 hover:to-purple-700 text-white' 
+                                            : 'bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 hover:from-blue-600 hover:via-blue-700 hover:to-purple-700 text-white'
                                     }`}>
-                                        {isUploadingMainImage ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                                        Subir
+                                        {isUploadingMainImage ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                                        Subir Imagen
                                     </label>
                                     <input
                                         id="main-image-upload"
@@ -1571,27 +1603,31 @@ const AddEditProductForm = ({
                                 {/* Índice de navegación */}
                                 <div 
                                     ref={indexRef}
-                                    className={`rounded-xl p-3 backdrop-blur-sm shadow-inner ring-1 ring-white/5 overflow-hidden flex flex-col ${
-                                        theme === 'light' ? 'bg-surface-primary/80' : 'bg-gray-700/80'
+                                    className={`rounded-2xl p-4 backdrop-blur-xl shadow-2xl ring-1 overflow-hidden flex flex-col transition-all duration-300 ${
+                                        theme === 'light' 
+                                            ? 'bg-gradient-to-b from-white/80 to-gray-50/80 ring-gray-200/30 shadow-gray-200/50' 
+                                            : 'bg-gradient-to-b from-gray-800/80 to-gray-900/80 ring-white/10 shadow-black/30'
                                     }`}
                                     style={{ maxHeight: maxIndexHeight }}
                                 >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h4 className={`text-xs font-bold ${
-                                            theme === 'light' ? 'text-text-emphasis' : 'text-gray-100'
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className={`text-sm font-bold tracking-wide ${
+                                            theme === 'light' ? 'text-gray-800' : 'text-gray-100'
                                         }`}>PÁGINAS</h4>
-                                        <div className={`text-xs px-2 py-1 rounded-full font-semibold shadow-sm ring-1 ring-white/10 ${
-                                            theme === 'light' ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800' : 'bg-gradient-to-r from-blue-900/60 to-blue-800/60 text-blue-200'
+                                        <div className={`text-xs px-3 py-1.5 rounded-full font-bold shadow-lg ring-1 backdrop-blur-sm ${
+                                            theme === 'light' 
+                                                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white ring-blue-200/50' 
+                                                : 'bg-gradient-to-r from-blue-600 to-purple-700 text-white ring-white/20'
                                         }`}>
                                             {currentPage + 1} / {totalPages}
                                         </div>
                                     </div>
                                     
-                                    <div className={`space-y-1 flex-1 ${
-                                        pages.filter(p => p.isVariant).length > 4 ? 'overflow-y-auto pr-1' : ''
+                                    <div className={`space-y-2 flex-1 ${
+                                        pages.filter(p => p.isVariant).length > 4 ? 'overflow-y-auto pr-2' : ''
                                     }`} style={{
                                         scrollbarWidth: 'thin',
-                                        scrollbarColor: theme === 'light' ? '#d1d5db #f3f4f6' : '#6b7280 #374151'
+                                        scrollbarColor: theme === 'light' ? '#3b82f6 #e5e7eb' : '#6366f1 #374151'
                                     }}>
                                         {pages.map((page, index) => {
                                             const isActive = currentPage === index;
@@ -1617,11 +1653,17 @@ const AddEditProductForm = ({
                                                     <button
                                                         type="button"
                                                         onClick={() => goToPage(index)}
-                                                        className={`flex-1 text-left px-2 py-1.5 rounded-lg text-sm transition-all duration-200 flex items-center gap-1.5 min-w-0 ${
-                                                            colorClasses[page.color]
+                                                        className={`flex-1 text-left px-3 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center gap-2 min-w-0 transform hover:scale-105 ${
+                                                            isActive 
+                                                                ? theme === 'light'
+                                                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-200/50 ring-2 ring-blue-200'
+                                                                    : 'bg-gradient-to-r from-blue-600 to-purple-700 text-white shadow-lg shadow-blue-900/50 ring-2 ring-blue-500/30'
+                                                                : theme === 'light'
+                                                                    ? 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 text-gray-700 hover:shadow-md hover:ring-1 hover:ring-gray-200'
+                                                                    : 'hover:bg-gradient-to-r hover:from-gray-700 hover:to-gray-600 text-gray-300 hover:shadow-lg hover:ring-1 hover:ring-gray-500/30'
                                                         }`}
                                                     >
-                                                        <span className="text-sm">{page.icon}</span>
+                                                        <span className="flex items-center justify-center">{page.icon}</span>
                                                         <span className="flex-1 min-w-0 relative overflow-hidden group">
                                                             {page.title.length > 15 ? (
                                                                 <div className="relative w-full">
@@ -1674,13 +1716,13 @@ const AddEditProductForm = ({
                                         <button
                                             type="button"
                                             onClick={handleAddVariant}
-                                            className={`w-full text-left px-2 py-1.5 rounded-lg text-sm transition-all duration-200 flex items-center gap-1.5 mt-2 border-t pt-2 ${
+                                            className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all duration-300 flex items-center gap-2 mt-4 border-t pt-4 transform hover:scale-105 ${
                                                 theme === 'light' 
-                                                    ? 'hover:bg-green-50 text-green-600 hover:text-green-700 hover:shadow-sm border-gray-200' 
-                                                    : 'hover:bg-green-900/20 text-green-400 hover:text-green-300 hover:shadow-sm border-gray-600'
+                                                    ? 'hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 text-green-600 hover:text-green-700 hover:shadow-lg border-gray-200/50' 
+                                                    : 'hover:bg-gradient-to-r hover:from-green-900/20 hover:to-emerald-900/20 text-green-400 hover:text-green-300 hover:shadow-lg border-gray-600/50'
                                             }`}
                                         >
-                                            <Plus size={12} />
+                                            <Plus size={14} />
                                             Añadir Variante
                                         </button>
                                     </div>

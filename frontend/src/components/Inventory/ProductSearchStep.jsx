@@ -181,37 +181,69 @@ const ProductSearchStep = ({ onProductSelect, onNewProduct, searchValue, onSearc
             )}
 
             {searchResults.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border max-h-96 overflow-y-auto">
+                <div className={`rounded-xl shadow-xl border max-h-96 overflow-hidden ${
+                    theme === 'light' 
+                        ? 'bg-white border-gray-200' 
+                        : 'bg-gray-800 border-gray-600'
+                }`}>
+                    <div className="overflow-y-auto max-h-96">
                     {searchResults.map((product, index) => (
                         <div
                             key={product._id || index}
                             onClick={() => handleProductClick(product)}
-                            className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b last:border-b-0 dark:border-gray-600"
+                            className={`p-4 cursor-pointer transition-all duration-200 ${
+                                theme === 'light'
+                                    ? 'hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50'
+                                    : 'hover:bg-gradient-to-r hover:from-gray-600 hover:to-gray-500'
+                            } ${index !== searchResults.length - 1 ? (theme === 'light' ? 'border-b border-gray-200' : 'border-b border-gray-600') : ''}`}
                         >
-                            <div className="flex items-center space-x-3">
-                                {product.imageUrl && (
-                                    <img
-                                        src={product.imageUrl}
-                                        alt={product.name}
-                                        className="w-12 h-12 object-cover rounded-lg"
-                                    />
-                                )}
-                                <div className="flex-1">
-                                    <h3 className="font-medium text-gray-900 dark:text-white">
+                            <div className="flex items-center space-x-4">
+                                <div className={`relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 ${
+                                    theme === 'light' ? 'bg-gray-100' : 'bg-gray-600'
+                                }`}>
+                                    {product.imageUrl ? (
+                                        <img
+                                            src={product.imageUrl}
+                                            alt={product.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className={`w-full h-full flex items-center justify-center text-xl font-bold text-white ${
+                                            theme === 'light' ? 'bg-gradient-to-br from-blue-500 to-purple-600' : 'bg-gradient-to-br from-gray-500 to-gray-700'
+                                        }`}>
+                                            {product.name?.charAt(0)?.toUpperCase() || 'P'}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className={`font-semibold text-base truncate ${
+                                        theme === 'light' ? 'text-gray-900' : 'text-white'
+                                    }`}>
                                         {product.name}
                                     </h3>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        {product.category}
-                                    </p>
-                                    {product.variants?.length > 0 && (
-                                        <p className="text-xs text-blue-600 dark:text-blue-400">
-                                            {product.variants.length} variantes disponibles
-                                        </p>
-                                    )}
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className={`text-sm px-2 py-1 rounded-full ${
+                                            theme === 'light' 
+                                                ? 'bg-blue-100 text-blue-700' 
+                                                : 'bg-blue-900/50 text-blue-300'
+                                        }`}>
+                                            {product.category}
+                                        </span>
+                                        {product.variants?.length > 0 && (
+                                            <span className={`text-xs px-2 py-1 rounded-full ${
+                                                theme === 'light' 
+                                                    ? 'bg-purple-100 text-purple-700' 
+                                                    : 'bg-purple-900/50 text-purple-300'
+                                            }`}>
+                                                {product.variants.length} variantes
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     ))}
+                    </div>
                 </div>
             )}
 
