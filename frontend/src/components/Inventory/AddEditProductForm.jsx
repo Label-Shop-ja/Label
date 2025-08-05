@@ -147,13 +147,22 @@ const AddEditProductForm = ({
                 Boolean(
                     variant.name?.trim() && 
                     variant.costPrice && 
-                    variant.stock
+                    Number(variant.costPrice) > 0 &&
+                    variant.stock !== undefined && 
+                    variant.stock !== null &&
+                    Number(variant.stock) >= 0
                 )
             );
         }
         
         // Si es producto simple, validar solo campos esenciales
-        return Boolean(productData.costPrice && productData.stock);
+        return Boolean(
+            productData.costPrice && 
+            Number(productData.costPrice) > 0 &&
+            productData.stock !== undefined && 
+            productData.stock !== null &&
+            Number(productData.stock) >= 0
+        );
     };
     
     const formComplete = isFormComplete();
@@ -169,12 +178,12 @@ const AddEditProductForm = ({
         if (productData.variants?.length > 0) {
             productData.variants.forEach((variant, index) => {
                 if (!variant.name?.trim()) missing.push(`Variante ${index + 1}: Nombre`);
-                if (!variant.costPrice) missing.push(`Variante ${index + 1}: Costo`);
-                if (!variant.stock) missing.push(`Variante ${index + 1}: Stock`);
+                if (!variant.costPrice || Number(variant.costPrice) <= 0) missing.push(`Variante ${index + 1}: Costo`);
+                if (variant.stock === undefined || variant.stock === null || Number(variant.stock) < 0) missing.push(`Variante ${index + 1}: Stock`);
             });
         } else {
-            if (!productData.costPrice) missing.push('Costo Unitario');
-            if (!productData.stock) missing.push('Stock');
+            if (!productData.costPrice || Number(productData.costPrice) <= 0) missing.push('Costo Unitario');
+            if (productData.stock === undefined || productData.stock === null || Number(productData.stock) < 0) missing.push('Stock');
         }
         
         return missing;
@@ -185,7 +194,7 @@ const AddEditProductForm = ({
     
     const handleSubmitClick = () => {
         if (canSubmit) {
-            onSubmit();
+            onSubmit(new Event('submit'));
         } else {
             // Navegar al primer campo faltante
             if (!productData.name?.trim()) {

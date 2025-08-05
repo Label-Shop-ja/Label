@@ -12,6 +12,7 @@ import {
     getHighStockProducts,
     getVariantInventoryReport,
     getProductFilterOptions,
+    searchGlobalProducts,
 } from '../controllers/productController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import Product from '../models/productModel.js';
@@ -41,26 +42,7 @@ router.get('/filter-options', protect, getProductFilterOptions);
 router.put('/bulk-update', protect, updateMultipleProducts);
 
 // NUEVA RUTA: Búsqueda global de productos
-router.get('/global-search', protect, async (req, res) => {
-    try {
-        const { q } = req.query;
-        if (!q || q.length < 2) {
-            return res.json([]);
-        }
-        const products = await Product.find({
-            user: req.user.id,
-            $or: [
-                { name: { $regex: q, $options: 'i' } },
-                { category: { $regex: q, $options: 'i' } },
-                { sku: { $regex: q, $options: 'i' } }
-            ]
-        }).limit(10).select('name category sku imageUrl').lean();
-        res.json(products);
-    } catch (error) {
-        console.error('Error en global-search:', error);
-        res.status(500).json({ message: 'Error en búsqueda global' });
-    }
-});
+router.get('/global-search', protect, searchGlobalProducts);
 
 
 // Ruta para un producto específico por su ID.

@@ -119,6 +119,38 @@ const getProductFilterOptions = asyncHandler(async (req, res) => {
 });
 
 
+// @desc    Buscar productos globales para sugerencias
+// @route   GET /api/products/global-search
+// @access  Private
+const searchGlobalProducts = asyncHandler(async (req, res) => {
+    const { q } = req.query;
+    
+    if (!q || q.trim().length < 2) {
+        return res.status(200).json([]);
+    }
+    
+    try {
+        const GlobalProduct = (await import('../models/GlobalProduct.js')).default;
+        
+        const searchTerm = q.trim();
+        const globalProducts = await GlobalProduct.find({
+            $or: [
+                { name: { $regex: searchTerm, $options: 'i' } },
+                { category: { $regex: searchTerm, $options: 'i' } },
+                { brand: { $regex: searchTerm, $options: 'i' } }
+            ]
+        })
+        .limit(5)
+        .sort({ lastUsedAt: -1 })
+        .lean();
+        
+        res.status(200).json(globalProducts);
+    } catch (error) {
+        console.error('Error searching global products:', error);
+        res.status(200).json([]);
+    }
+});
+
 export {
     getProducts,
     getProductById,
@@ -126,9 +158,10 @@ export {
     updateProduct,
     updateMultipleProducts,
     deleteProduct,
-    deleteMultipleProducts, // <-- Exportar la nueva función
+    deleteMultipleProducts,
     getLowStockProducts,
     getHighStockProducts,
     getVariantInventoryReport,
-    getProductFilterOptions, // <-- Exportar la nueva función
+    getProductFilterOptions,
+    searchGlobalProducts,
 };

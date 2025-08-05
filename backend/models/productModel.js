@@ -19,7 +19,7 @@ const variantSchema = mongoose.Schema(
         },
         price: {
             type: Number,
-            required: [true, 'Por favor, añade un precio de venta para la variante'],
+            required: false, // El precio se calcula automáticamente
             default: 0,
             min: 0,
         },
@@ -131,19 +131,19 @@ const productSchema = mongoose.Schema(
         },
         price: {
             type: Number,
-            required: true,
+            required: false, // El precio se calcula automáticamente
             default: 0,
             min: 0,
         },
         stock: {
             type: Number,
-            required: true,
+            required: false, // Permitir que sea opcional para productos con variantes
             default: 0,
             min: 0,
         },
         costPrice: {
             type: Number,
-            required: true,
+            required: false, // Permitir que sea opcional para productos con variantes
             default: 0,
             min: 0,
         },
@@ -172,7 +172,6 @@ const productSchema = mongoose.Schema(
         sku: {
             type: String,
             required: true,
-            unique: true, // El SKU del producto principal debe ser único
             trim: true,
         },
         unitOfMeasure: {
@@ -224,6 +223,36 @@ const productSchema = mongoose.Schema(
             trim: true,
             default: '',
         },
+        model: {
+            type: String,
+            trim: true,
+            default: '',
+        },
+        barcode: {
+            type: String,
+            trim: true,
+            default: '',
+        },
+        weight: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        length: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        width: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        height: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
         // --- NUEVOS CAMPOS PARA ALERTAS DE STOCK Y PERECEDEROS (PARA PRODUCTOS SIN VARIANTES) ---
         isPerishable: { // Indica si el producto principal es perecedero
             type: Boolean,
@@ -255,6 +284,7 @@ const productSchema = mongoose.Schema(
 
 // Índices para optimizar las búsquedas
 productSchema.index({ user: 1 }); // Para filtrar productos por usuario rápidamente
+productSchema.index({ user: 1, sku: 1 }, { unique: true }); // SKU único por usuario
 productSchema.index({ name: 'text', description: 'text', sku: 'text', brand: 'text', supplier: 'text' }); // Para búsquedas de texto
 
 // Virtual para calcular el stock total del producto a partir de sus variantes
