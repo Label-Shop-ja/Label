@@ -1,15 +1,21 @@
 // C:\Proyectos\Label\frontend\src\main.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { Provider } from 'react-redux'; // <-- ¡ESTA LÍNEA ES CLAVE Y TIENE QUE ESTAR ASÍ!
-import store from './redux/store'; // <-- ¡ESTA LÍNEA ES CLAVE Y TIENE QUE ESTAR ASÍ!
+import { Provider } from 'react-redux';
+import store from './redux/store';
 import { BrowserRouter } from 'react-router-dom';
 import { CurrencyProvider } from './context/CurrencyContext.jsx';
 import { NotificationProvider } from './context/NotificationContext';
-import { ThemeProvider } from './context/ThemeContext.jsx'; // 1. Importamos el ThemeProvider
-import './i18n'; // Importa antes de renderizar la app
+import { ThemeProvider } from './context/ThemeContext.jsx';
+import { initSentry } from './utils/sentry.js';
+import { initGA4 } from './utils/analytics.js';
+import './i18n';
 import App from './App.jsx';
-import './index.css'; // ¡Esta es la línea que restaura los estilos!
+import './index.css';
+
+// Initialize monitoring and analytics
+initSentry();
+initGA4();
 
 const lang = 'es'; // O 'en' para inglés
 

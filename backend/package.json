@@ -6,9 +6,21 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "start:prod": "cross-env NODE_ENV=production node server.js",
     "server": "nodemon server.js",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand --coverage",
-    "test:watch": "npm test -- --watch"
+    "test:watch": "npm test -- --watch",
+    "check-env": "node scripts/checkEnvironment.js",
+    "check-env:prod": "cross-env NODE_ENV=production node scripts/checkEnvironment.js",
+    "generate-secrets": "node scripts/generateSecrets.js",
+    "clear-cache": "node scripts/clearExchangeRateCache.js",
+    "test-security": "node scripts/testSecurity.js",
+    "test-errors": "node scripts/testErrorHandling.js",
+    "optimize-db": "node scripts/optimizeDatabase.js",
+    "analyze-queries": "node scripts/analyzeQueryPerformance.js",
+    "analyze-logs": "node scripts/analyzeLogs.js",
+    "clean-logs": "node -e \"require('fs').rmSync('logs', {recursive: true, force: true}); console.log('Logs cleaned')\"",
+    "test-monitoring": "node scripts/testMonitoring.js"
   },
   "keywords": [],
   "author": "Jhosber Arrieta",
@@ -23,7 +35,11 @@
     "dotenv": "^16.6.1",
     "express": "^4.19.2",
     "express-async-handler": "^1.2.0",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.0.1",
     "express-session": "^1.18.1",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
     "mongoose": "^8.15.1",
@@ -31,7 +47,9 @@
     "nodemailer": "^7.0.4",
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
-    "passport-google-oauth20": "^2.0.0"
+    "passport-google-oauth20": "^2.0.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.0",

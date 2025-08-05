@@ -2,35 +2,35 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-    // Iconos nuevos para un look renovado
-    Compass,
-    Boxes,
-    Landmark,
-    ScanLine,
-    Contact,
-    PieChart,
+    // Iconos modernos y específicos
+    LayoutDashboard,
+    Package,
+    CreditCard,
+    ShoppingCart,
+    Users,
+    TrendingUp,
     // Iconos de la interfaz del Sidebar
     Settings,
     PanelLeftClose,
     PanelLeftOpen
 } from 'lucide-react';
 
-// Lista de enlaces con los nuevos iconos
+// Lista de enlaces con iconos modernos
 const navLinks = [
-  { to: "/dashboard", icon: Compass, text: "Panel", end: true },
-  { to: "/dashboard/inventario", icon: Boxes, text: "Inventario" },
-  { to: "/dashboard/pos", icon: ScanLine, text: "Punto de Venta" },
-  { to: "/dashboard/clientes", icon: Contact, text: "Clientes" },
-  { to: "/dashboard/estadisticas", icon: PieChart, text: "Estadísticas" },
-  { to: "/dashboard/finanzas", icon: Landmark, text: "Finanzas" },
+  { to: "/dashboard", icon: LayoutDashboard, text: "Panel", end: true },
+  { to: "/dashboard/inventario", icon: Package, text: "Inventario" },
+  { to: "/dashboard/pos", icon: ShoppingCart, text: "Punto de Venta" },
+  { to: "/dashboard/finanzas", icon: CreditCard, text: "Finanzas" },
+  { to: "/dashboard/clientes", icon: Users, text: "Clientes" },
+  { to: "/dashboard/estadisticas", icon: TrendingUp, text: "Estadísticas" },
 ];
 
 function Sidebar({ isExpanded, isPinned, onTogglePin, onMouseEnter, onMouseLeave }) {
   const getNavLinkClass = ({ isActive }) =>
-    `flex items-center py-3 px-3 my-1 rounded-lg transition-all duration-200 ease-in-out ${
+    `group flex items-center py-3 px-3 my-1 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
       isActive
-        ? 'bg-primary text-white font-semibold shadow-lg'
-        : 'text-text-muted hover:bg-surface-secondary hover:text-text-base'
+        ? 'bg-primary text-white font-semibold shadow-lg shadow-primary/20'
+        : 'text-text-muted hover:bg-surface-secondary hover:text-text-base hover:shadow-md'
     }`;
 
   return (
@@ -45,10 +45,13 @@ function Sidebar({ isExpanded, isPinned, onTogglePin, onMouseEnter, onMouseLeave
       <div className="flex items-center mb-4 h-[28px]">
         <button 
           onClick={onTogglePin} 
-          className="p-1 rounded-lg hover:bg-surface-secondary focus:outline-none focus:ring-2 focus:ring-primary"
+          className="p-1 rounded-lg hover:bg-surface-secondary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-110"
           aria-label={isPinned ? 'Desfijar menú' : 'Fijar menú'}
         >
-          {isPinned ? <PanelLeftClose size={24} className="text-primary" /> : <PanelLeftOpen size={24} className="text-text-muted" />}
+          {isPinned ? 
+            <PanelLeftClose size={24} className="text-primary transition-all duration-300 hover:rotate-180" /> : 
+            <PanelLeftOpen size={24} className="text-text-muted transition-all duration-300 hover:rotate-180" />
+          }
         </button>
         <span className={`whitespace-nowrap font-semibold text-sm text-text-muted transition-opacity duration-200 ml-3 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
             Fijar menú
@@ -64,8 +67,8 @@ function Sidebar({ isExpanded, isPinned, onTogglePin, onMouseEnter, onMouseLeave
             {navLinks.map((link) => (
               <li key={link.to}>
                 <NavLink to={link.to} className={getNavLinkClass} end={link.end ?? false} title={link.text}>
-                  <link.icon className="min-w-[32px] transition-all duration-200" strokeWidth={1.5} size={24} />
-                  <span className={`whitespace-nowrap transition-opacity duration-200 ml-3 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                  <link.icon className="min-w-[32px] transition-all duration-300 hover:scale-110 hover:rotate-3 group-hover:text-primary" strokeWidth={1.5} size={24} />
+                  <span className={`whitespace-nowrap transition-all duration-300 ml-3 ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
                     {link.text}
                   </span>
                 </NavLink>
@@ -77,8 +80,8 @@ function Sidebar({ isExpanded, isPinned, onTogglePin, onMouseEnter, onMouseLeave
         <div>
           <div className="border-t border-surface-secondary my-2"></div>
           <NavLink to="/dashboard/ajustes" className={getNavLinkClass} title="Ajustes">
-            <Settings className="min-w-[32px]" strokeWidth={1.5} size={24} />
-            <span className={`whitespace-nowrap transition-opacity duration-200 ml-3 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
+            <Settings className="min-w-[32px] transition-all duration-300 hover:scale-110 hover:rotate-90 group-hover:text-primary" strokeWidth={1.5} size={24} />
+            <span className={`whitespace-nowrap transition-all duration-300 ml-3 ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
               Ajustes
             </span>
           </NavLink>

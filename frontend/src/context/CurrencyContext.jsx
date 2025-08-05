@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import useAuth from '../hooks/useAuth';
-// Importamos las funciones de nuestra calculadora criminal del frontend
+// Import currency calculator functions
 import { convertPrice as currencyCalculatorConvertPrice, getConversionRate } from '../utils/currencyCalculator';
 
 const CurrencyContext = createContext({});
@@ -14,21 +14,20 @@ export const useCurrency = () => {
 export const CurrencyProvider = ({ children }) => {
   const { user } = useAuth();
   const [exchangeRate, setExchangeRate] = useState(null); 
-  const [loadingCurrency, setLoadingCurrency] = useState(true);
+  const [loadingCurrency, setLoadingCurrency] = useState(false);
   const [currencyError, setCurrencyError] = useState('');
-  // ¡NUEVO ESTADO! Para guardar la lista de todas las monedas disponibles.
+  // Available currencies list
   const [availableCurrencies, setAvailableCurrencies] = useState([]);
-  // ¡ESTADO CRIMINAL! Aquí guardamos las tasas personalizadas del pana.
+  // Custom exchange rates state
   const [customRates, setCustomRates] = useState([]);
   const [loadingCustomRates, setLoadingCustomRates] = useState(true);
 
   const fetchExchangeRate = useCallback(async () => {
     if (!user) {
-      setLoadingCurrency(false);
-      // ¡CLAVE! Si no hay usuario, no es un error. Simplemente no podemos cargar las tasas.
-      // Limpiamos el estado y salimos para que la app no se tranque.
+      // No user authenticated - clear state and exit early to prevent app blocking
       setExchangeRate(null);
-      setCurrencyError(''); // Limpiamos cualquier error previo.
+      setCurrencyError(''); // Clear any previous errors
+      setLoadingCurrency(false);
       return;
     }
     setLoadingCurrency(true);
@@ -38,8 +37,8 @@ export const CurrencyProvider = ({ children }) => {
       setExchangeRate(response.data);
       localStorage.setItem('exchangeRate', JSON.stringify(response.data));
     } catch (err) {
-      const msg = String(err.response?.data?.message || err.message || 'Error desconocido al cargar tasa.');
-      console.error('¡Coño! Error al cargar la tasa de cambio:', msg);
+      const msg = String(err.response?.data?.message || err.message || 'Unknown error loading exchange rate.');
+      console.error('Error loading exchange rate:', msg);
       setExchangeRate(null);
       setCurrencyError(msg);
       localStorage.removeItem('exchangeRate');
@@ -48,7 +47,7 @@ export const CurrencyProvider = ({ children }) => {
     }
   }, [user]);
 
-  // ¡NUEVA FUNCIÓN CRIMINAL! Pa' ir a buscar las tasas personalizadas del usuario.
+  // Fetch custom exchange rates for the user
   const fetchCustomRates = useCallback(async () => {
     if (!user) {
       setLoadingCustomRates(false);
@@ -56,13 +55,13 @@ export const CurrencyProvider = ({ children }) => {
     }
     setLoadingCustomRates(true);
     try {
-      // Le metemos un GET al nuevo endpoint que creamos en el backend
+      // GET request to custom rates endpoint
       const response = await axiosInstance.get('/custom-rates');
       setCustomRates(response.data);
     } catch (err) {
-      const msg = String(err.response?.data?.message || err.message || 'Error desconocido al cargar tasas personalizadas.');
-      console.error('¡Coño! Error al cargar las tasas personalizadas:', msg);
-      setCustomRates([]); // Si hay peo, lo dejamos vacío pa' no romper nada.
+      const msg = String(err.response?.data?.message || err.message || 'Unknown error loading custom rates.');
+      console.error('Error loading custom rates:', msg);
+      setCustomRates([]); // Set empty array on error to prevent breaking
     } finally {
       setLoadingCustomRates(false);
     }
@@ -81,8 +80,8 @@ export const CurrencyProvider = ({ children }) => {
       localStorage.setItem('exchangeRate', JSON.stringify(response.data));
       return true;
     } catch (err) {
-      const msg = String(err.response?.data?.message || err.message || 'Error desconocido al actualizar tasa.');
-      console.error('¡Verga! Error al actualizar la tasa de cambio:', msg);
+      const msg = String(err.response?.data?.message || err.message || 'Unknown error updating exchange rate.');
+      console.error('Error updating exchange rate:', msg);
       setCurrencyError(msg);
       return false;
     } finally {
@@ -105,8 +104,8 @@ export const CurrencyProvider = ({ children }) => {
       }
       return { success: true, message: response.data.message, updated: response.data.updated };
     } catch (err) {
-      const msg = String(err.response?.data?.message || err.message || 'Error al actualizar tasas.');
-      console.error('Error al actualizar tasas manualmente:', msg);
+      const msg = String(err.response?.data?.message || err.message || 'Error updating exchange rates.');
+      console.error('Error updating exchange rates manually:', msg);
       setCurrencyError(msg);
       return { success: false, message: msg };
     } finally {
@@ -117,14 +116,14 @@ export const CurrencyProvider = ({ children }) => {
   useEffect(() => {
     // Lógica para cargar la tasa de cambio solo una vez
     fetchExchangeRate();
-  }, [fetchExchangeRate]); // <-- ¡ARREGLADO! Ahora escucha los cambios en el usuario a través del hook
+  }, [fetchExchangeRate]); // Listen for user changes through the hook
 
-  // ¡DE UNA! Llamamos a la nueva función aquí también.
+  // Fetch custom rates when component mounts
   useEffect(() => {
     fetchCustomRates();
   }, [fetchCustomRates]);
 
-  // --- ¡NUEVO EFECTO! Para extraer y almacenar las monedas disponibles ---
+  // Extract and store available currencies from exchange rate data
   useEffect(() => {
     if (exchangeRate && exchangeRate.conversions) {
       const uniqueCurrencies = new Set();
@@ -132,22 +131,22 @@ export const CurrencyProvider = ({ children }) => {
         uniqueCurrencies.add(conv.fromCurrency);
         uniqueCurrencies.add(conv.toCurrency);
       });
-      // Convertir a array y ordenar alfabéticamente
+      // Convert to array and sort alphabetically
       setAvailableCurrencies(Array.from(uniqueCurrencies).sort());
     } else {
-      setAvailableCurrencies([]); // Vaciar si no hay tasas
+      setAvailableCurrencies([]); // Clear if no exchange rates
     }
-  }, [exchangeRate]); // Este efecto se dispara cada vez que exchangeRate cambia
+  }, [exchangeRate]); // Effect triggers when exchangeRate changes
 
 
   const convertPrice = useCallback((amount, fromCurrency, toCurrency) => {
     if (!exchangeRate || !exchangeRate.conversions) {
-      console.warn('¡Coño! No hay configuración de tasas de cambio disponible para convertir. Devolviendo null.');
+      console.warn('No exchange rate configuration available for conversion. Returning null.');
       return null;
     }
-    // ¡LA JUGADA MAESTRA! Le pasamos las tasas personalizadas a la calculadora.
+    // Pass custom rates to the calculator
     return currencyCalculatorConvertPrice(amount, fromCurrency, toCurrency, exchangeRate, customRates);
-  }, [exchangeRate, customRates]); // ¡OJO! Añadimos customRates a las dependencias.
+  }, [exchangeRate, customRates]); // Include customRates in dependencies
 
   const formatPrice = useCallback((amount, currency) => {
     if (amount === undefined || amount === null || isNaN(Number(amount))) return 'N/A';
@@ -161,16 +160,16 @@ export const CurrencyProvider = ({ children }) => {
     return formatter.format(amount);
   }, [exchangeRate]);
 
-  // --- ¡NUEVAS FUNCIONES! Pa' que el usuario meta mano en sus tasas (CRUD) ---
+  // CRUD functions for custom exchange rates
 
   const createCustomRate = useCallback(async (rateData) => {
     try {
       await axiosInstance.post('/custom-rates', rateData);
-      await fetchCustomRates(); // Refrescamos la lista después de crear
+      await fetchCustomRates(); // Refresh list after creating
       return { success: true };
     } catch (err) {
-      const msg = String(err.response?.data?.message || err.message || 'Error al crear tasa.');
-      console.error('¡Peo creando tasa personalizada!', msg);
+      const msg = String(err.response?.data?.message || err.message || 'Error creating custom rate.');
+      console.error('Error creating custom rate:', msg);
       return { success: false, error: msg };
     }
   }, [fetchCustomRates]);
@@ -178,11 +177,11 @@ export const CurrencyProvider = ({ children }) => {
   const updateCustomRate = useCallback(async (rateId, rateData) => {
     try {
       await axiosInstance.put(`/custom-rates/${rateId}`, rateData);
-      await fetchCustomRates(); // Refrescamos la lista después de actualizar
+      await fetchCustomRates(); // Refresh list after updating
       return { success: true };
     } catch (err) {
-      const msg = String(err.response?.data?.message || err.message || 'Error al actualizar tasa.');
-      console.error('¡Peo actualizando tasa personalizada!', msg);
+      const msg = String(err.response?.data?.message || err.message || 'Error updating custom rate.');
+      console.error('Error updating custom rate:', msg);
       return { success: false, error: msg };
     }
   }, [fetchCustomRates]);
@@ -190,11 +189,11 @@ export const CurrencyProvider = ({ children }) => {
   const deleteCustomRate = useCallback(async (rateId) => {
     try {
       await axiosInstance.delete(`/custom-rates/${rateId}`);
-      await fetchCustomRates(); // Refrescamos la lista después de borrar
+      await fetchCustomRates(); // Refresh list after deleting
       return { success: true };
     } catch (err) {
-      const msg = String(err.response?.data?.message || err.message || 'Error al eliminar tasa.');
-      console.error('¡Peo eliminando tasa personalizada!', msg);
+      const msg = String(err.response?.data?.message || err.message || 'Error deleting custom rate.');
+      console.error('Error deleting custom rate:', msg);
       return { success: false, error: msg };
     }
   }, [fetchCustomRates]);
@@ -209,9 +208,9 @@ export const CurrencyProvider = ({ children }) => {
     updateExchangeRatesManually,
     convertPrice,
     formatPrice,
-    // ¡NUEVA PROP! Exportamos la lista de monedas disponibles
+    // Available currencies list
     availableCurrencies, 
-    // ¡EXPORTANDO EL NUEVO GUISO!
+    // Custom rates functionality
     customRates,
     loadingCustomRates,
     fetchCustomRates,

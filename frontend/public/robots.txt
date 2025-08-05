@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /admin/
+Disallow: /unauthorized
+
+# Sitemap
+Sitemap: https://label.com/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1

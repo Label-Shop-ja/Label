@@ -214,3 +214,21 @@ C:.
                 formatters.js
                 unitConversion.js
                 validators.js
+
+
+
+
+
+
+NOTA:
+
+# Desarrollo
+npm run dev              # Backend + Frontend simultáneo
+npm run install:all      # Instalar todas las dependencias
+
+# Deployment
+npm run deploy:check     # Verificaciones pre-deploy
+npm run deploy           # Deploy automatizado completo
+
+# Testing
+npm run test:all         # Tests completos del proyecto

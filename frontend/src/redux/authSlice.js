@@ -244,6 +244,12 @@ export const authSlice = createSlice({
       })
       .addCase(verifyAuth.rejected, (state) => {
         state.isLoading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.accessToken = null;
+        // Limpiar localStorage cuando la verificación falla
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
       })
       // Casos para el reseteo de contraseña
       .addCase(forgotPassword.pending, (state) => {

@@ -11,16 +11,17 @@ import {
   resetPassword
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { authLimiter, passwordResetLimiter } from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
-router.post('/logout', logoutUser);
-router.post('/forgot-password', forgotPassword);
-router.post('/verify-reset-code', verifyResetCode);
-// Esta ruta ahora debe estar protegida para que solo se pueda acceder con el token temporal
-router.post('/reset-password', protect, resetPassword);
+// Authentication routes with specific rate limiting
+router.post('/register', authLimiter, registerUser);
+router.post('/login', authLimiter, loginUser);
+router.post('/logout', logoutUser); // No rate limit for logout
+router.post('/forgot-password', passwordResetLimiter, forgotPassword);
+router.post('/verify-reset-code', authLimiter, verifyResetCode);
+router.post('/reset-password', authLimiter, protect, resetPassword);
 
 // --- Rutas de Autenticación Social ---
 

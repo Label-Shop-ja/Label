@@ -1,7 +1,10 @@
 import app from './app.js';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
-import 'colors'; // Para que los colores en la consola funcionen
+import logMonitor from './utils/logMonitor.js';
+import uptimeMonitor from './utils/uptimeMonitor.js';
+import { logInfo } from './utils/logger.js';
+import 'colors';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -11,9 +14,19 @@ connectDB();
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, '0.0.0.0', () =>
+app.listen(PORT, '0.0.0.0', () => {
   console.log(
     `Servidor corriendo en el puerto ${PORT} en modo ${process.env.NODE_ENV}`
       .yellow.bold
-  )
-);
+  );
+  
+  // Start monitoring systems
+  logMonitor.startMonitoring();
+  uptimeMonitor.startHealthChecks();
+  
+  logInfo('Server started with monitoring', {
+    port: PORT,
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
+});
