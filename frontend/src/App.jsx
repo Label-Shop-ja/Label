@@ -1,4 +1,4 @@
-// C:\Proyectos\Label\frontend\src\App.jsx
+// Main App component with routing and layout
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
@@ -42,7 +42,7 @@ const PageLoader = () => (
 
 function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isModalOpening, setIsModalOpening] = useState(false); // Estado para el spinner
+    const [isModalOpening, setIsModalOpening] = useState(false); // State for loading spinner
     const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
     const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
     const [legalContent, setLegalContent] = useState({ title: '', markdown: '' });
@@ -65,7 +65,7 @@ function App() {
     const handleOpenModal = () => {
         if (isModalOpening) return; // Prevenir doble clic
         setIsModalOpening(true);
-        // Pequeño delay para que el spinner sea visible, mejorando la UX
+        // Small delay to make spinner visible, improving UX
         setTimeout(() => {
             setIsModalOpen(true);
             setIsModalOpening(false);
@@ -75,8 +75,8 @@ function App() {
     const handleCloseModal = () => setIsModalOpen(false);
     
     const handleOpenForgotPasswordModal = () => {
-        setIsModalOpen(false); // Cierra el modal de acceso
-        // Pequeño delay para que la animación de salida del primer modal termine
+        setIsModalOpen(false); // Close access modal
+        // Small delay for exit animation to complete
         setTimeout(() => {
             setIsForgotPasswordModalOpen(true);
         }, 300);
@@ -84,7 +84,7 @@ function App() {
 
     const handleBackToLogin = () => {
         setIsForgotPasswordModalOpen(false);
-        // Pequeño delay para que la animación de salida termine
+        // Small delay for exit animation to complete
         setTimeout(() => setIsModalOpen(true), 300);
     };
 

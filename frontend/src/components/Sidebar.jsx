@@ -1,4 +1,4 @@
-// C:\Proyectos\Label\frontend\src\components\Sidebar.jsx
+// Sidebar navigation component
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
@@ -15,7 +15,7 @@ import {
     PanelLeftOpen
 } from 'lucide-react';
 
-// Lista de enlaces con iconos modernos
+// Navigation links with modern icons
 const navLinks = [
   { to: "/dashboard", icon: LayoutDashboard, text: "Panel", end: true },
   { to: "/dashboard/inventario", icon: Package, text: "Inventario" },
@@ -41,7 +41,7 @@ function Sidebar({ isExpanded, isPinned, onTogglePin, onMouseEnter, onMouseLeave
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* ¡AQUÍ ESTÁ EL CAMBIO! El botón de anclar ahora es el rey */}
+      {/* Pin button - main control */}
       <div className="flex items-center mb-4 h-[28px]">
         <button 
           onClick={onTogglePin} 
@@ -58,7 +58,7 @@ function Sidebar({ isExpanded, isPinned, onTogglePin, onMouseEnter, onMouseLeave
         </span>
       </div>
 
-      {/* 1. Línea divisoria para separar la funcionalidad del menú de la navegación */}
+      {/* Divider line to separate menu functionality from navigation */}
       <div className="border-t border-surface-secondary my-4"></div>
       
       <nav className="flex-1 flex flex-col justify-between">
