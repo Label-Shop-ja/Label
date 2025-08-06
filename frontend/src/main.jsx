@@ -4,9 +4,10 @@ import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import store from './redux/store';
 import { BrowserRouter } from 'react-router-dom';
-// Context providers removed - now using Redux
+import { NotificationProvider } from './context/NotificationContext';
 import { initSentry } from './utils/sentry.js';
 import { initGA4 } from './utils/analytics.js';
+import { initializeAuthState } from './utils/authCleanup.js';
 import './i18n';
 import App from './App.jsx';
 import './index.css';
@@ -14,6 +15,9 @@ import './index.css';
 // Initialize monitoring and analytics
 initSentry();
 initGA4();
+
+// Limpiar estado corrupto antes de iniciar la app
+initializeAuthState();
 
 const lang = 'es'; // O 'en' para inglés
 
@@ -30,7 +34,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <Provider store={store}>
-        <App />
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
       </Provider>
     </BrowserRouter>
   </React.StrictMode>

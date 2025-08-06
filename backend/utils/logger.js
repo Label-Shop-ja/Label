@@ -2,6 +2,7 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import { config } from '../config/environment.js';
+import { sanitizeForLog, sanitizeError } from './sanitizer.js';
 
 // Custom log format
 const logFormat = winston.format.combine(
@@ -108,26 +109,36 @@ const logger = winston.createLogger({
 
 // Enhanced logging methods
 export const logError = (message, error = null, meta = {}) => {
-  logger.error(message, {
-    error: error ? {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    } : null,
-    ...meta
+  logger.error(sanitizeForLog(message), {
+    error: error ? sanitizeError(error) : null,
+    ...Object.fromEntries(
+      Object.entries(meta).map(([key, value]) => [key, sanitizeForLog(value)])
+    )
   });
 };
 
 export const logWarning = (message, meta = {}) => {
-  logger.warn(message, meta);
+  logger.warn(sanitizeForLog(message), 
+    Object.fromEntries(
+      Object.entries(meta).map(([key, value]) => [key, sanitizeForLog(value)])
+    )
+  );
 };
 
 export const logInfo = (message, meta = {}) => {
-  logger.info(message, meta);
+  logger.info(sanitizeForLog(message), 
+    Object.fromEntries(
+      Object.entries(meta).map(([key, value]) => [key, sanitizeForLog(value)])
+    )
+  );
 };
 
 export const logDebug = (message, meta = {}) => {
-  logger.debug(message, meta);
+  logger.debug(sanitizeForLog(message), 
+    Object.fromEntries(
+      Object.entries(meta).map(([key, value]) => [key, sanitizeForLog(value)])
+    )
+  );
 };
 
 // Security event logging

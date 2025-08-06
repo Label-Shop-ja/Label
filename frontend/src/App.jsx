@@ -15,6 +15,7 @@ import { useReduxTheme } from './hooks/useReduxTheme';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import ErrorBoundary from './components/Common/ErrorBoundary';
 import Toast from './components/Common/Toast';
+import ModernLoader from './components/Common/ModernLoader';
 
 // Lazy loaded components
 const WelcomePage = lazy(() => import('./pages/Public/WelcomePage'));
@@ -35,9 +36,14 @@ const ForgotPasswordModal = lazy(() => import('./components/Auth/ForgotPasswordM
 
 // Loading component
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-deep-night-blue">
-    <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full border-t-transparent border-copper-rose-accent"></div>
-    <p className="ml-3 text-lg text-neutral-light">Cargando...</p>
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="relative">
+        <div className="w-12 h-12 border-4 border-blue-200/30 rounded-full"></div>
+        <div className="absolute top-0 left-0 w-12 h-12 border-4 border-transparent border-t-blue-400 border-r-blue-400 rounded-full animate-spin"></div>
+      </div>
+      <p className="text-white text-lg font-medium">Cargando página...</p>
+    </div>
   </div>
 );
 
@@ -60,7 +66,7 @@ function App() {
     const isSidebarExpanded = isSidebarPinned || isSidebarHovered;
 
     const { isAuthenticated, isLoading: authLoading, verify, user } = useAuth();
-    const { loadingCurrency, currencyError, fetchExchangeRate } = useReduxCurrency();
+    const { fetchExchangeRate } = useReduxCurrency();
     const { theme } = useReduxTheme();
     const location = useLocation();
 
@@ -127,17 +133,32 @@ function App() {
             prefetchResources(['/dashboard', '/inventario', '/pos']);
         }
         
-        // Auth verification - Force verification if we have a token but no user
+        // Auth verification con timeout
         const hasToken = localStorage.getItem('accessToken');
         const wasLoggedOut = localStorage.getItem('wasLoggedOut') === 'true';
         
         if (hasToken && !wasLoggedOut && (!isAuthenticated || !user)) {
-            verify();
+            // Timeout para evitar carga infinita
+            const verifyTimeout = setTimeout(() => {
+                console.warn('Verificación de auth tomando demasiado tiempo, limpiando estado...');
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('user');
+                localStorage.setItem('wasLoggedOut', 'true');
+                window.location.reload();
+            }, 15000);
+            
+            verify().finally(() => {
+                clearTimeout(verifyTimeout);
+            });
         }
         
-        // Initialize currency when user is authenticated
+        // Initialize currency when user is authenticated (sin bloquear)
         if (isAuthenticated && user) {
-            fetchExchangeRate();
+            try {
+                fetchExchangeRate();
+            } catch (error) {
+                console.warn('No se pudo cargar configuración de moneda, usando valores por defecto');
+            }
         }
     }, [verify, isAuthenticated, user, fetchExchangeRate]);
 
@@ -164,16 +185,11 @@ function App() {
     }, [location.pathname]); // Se ejecuta cada vez que la URL cambia
 
     // Si la aplicación está cargando (ej. verificando autenticación inicial), mostrar un spinner
-    if (authLoading || loadingCurrency) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-deep-night-blue text-neutral-light">
-                <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full border-t-transparent border-copper-rose-accent"></div>
-                <p className="ml-3 text-lg">Cargando aplicación...</p>
-            </div>
-        );
+    if (authLoading) {
+        return <ModernLoader message="Verificando autenticación" />;
     }
 
-    if (currencyError) return <div className="min-h-screen flex items-center justify-center bg-deep-night-blue text-red-500 text-lg">{currencyError}</div>;
+
 
     return (
         <ErrorBoundary>

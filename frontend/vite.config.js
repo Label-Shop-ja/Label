@@ -27,17 +27,29 @@ export default defineConfig({
     cssCodeSplit: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor libraries
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          // UI and animations
-          ui: ['framer-motion', 'lucide-react', 'react-hot-toast'],
-          // Forms and validation
-          forms: ['react-hook-form', 'yup'],
-          // State management
-          state: ['@reduxjs/toolkit', 'react-redux'],
-          // HTTP and utilities
-          utils: ['axios', 'date-fns']
+        manualChunks: (id) => {
+          // Vendor chunk para librerías principales
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react';
+            }
+            if (id.includes('framer-motion') || id.includes('lucide-react')) {
+              return 'vendor-ui';
+            }
+            if (id.includes('@reduxjs/toolkit') || id.includes('react-redux')) {
+              return 'vendor-state';
+            }
+            if (id.includes('axios') || id.includes('i18next')) {
+              return 'vendor-utils';
+            }
+            return 'vendor-misc';
+          }
+          
+          // Chunks por funcionalidad
+          if (id.includes('/components/Auth/')) return 'auth';
+          if (id.includes('/components/Inventory/')) return 'inventory';
+          if (id.includes('/components/Pos/')) return 'pos';
+          if (id.includes('/pages/')) return 'pages';
         },
         chunkFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId
@@ -58,7 +70,7 @@ export default defineConfig({
         }
       }
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500,
     assetsInlineLimit: 4096
   },
   resolve: {

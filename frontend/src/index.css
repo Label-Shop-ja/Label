@@ -146,3 +146,27 @@ body {
   color: hsl(var(--color-text-base));
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* Animaciones con delay para el loader */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Gradiente animado para la barra de progreso */
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: gradient-x 3s ease infinite;
+}

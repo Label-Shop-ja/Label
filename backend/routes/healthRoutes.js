@@ -2,11 +2,12 @@
 import express from 'express';
 import uptimeMonitor from '../utils/uptimeMonitor.js';
 import { asyncHandler } from '../middleware/errorMiddleware.js';
+import { healthRouteAuth, requireAuth } from '../middleware/authorizationMiddleware.js';
 
 const router = express.Router();
 
 // Basic health check
-router.get('/health', asyncHandler(async (req, res) => {
+router.get('/health', healthRouteAuth, asyncHandler(async (req, res) => {
   const health = await uptimeMonitor.performHealthCheck();
   
   const statusCode = health.overall === 'healthy' ? 200 : 503;
@@ -23,11 +24,7 @@ router.get('/ping', (req, res) => {
 });
 
 // Detailed metrics (protected in production)
-router.get('/metrics', asyncHandler(async (req, res) => {
-  // In production, you might want to protect this endpoint
-  if (process.env.NODE_ENV === 'production' && !req.headers['x-monitoring-key']) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+router.get('/metrics', requireAuth, asyncHandler(async (req, res) => {
   
   const metrics = uptimeMonitor.getMetricsSummary();
   res.json(metrics);

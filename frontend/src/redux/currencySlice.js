@@ -147,8 +147,13 @@ const currencySlice = createSlice({
       })
       .addCase(fetchExchangeRate.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
-        state.exchangeRate = null;
+        state.error = null; // No mostrar error, usar valores por defecto
+        state.exchangeRate = {
+          baseCurrency: 'USD',
+          displayCurrency: 'USD',
+          conversions: [],
+          defaultProfitPercentage: 0
+        };
       })
       
       // Update exchange rate

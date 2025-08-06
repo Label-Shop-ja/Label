@@ -1,7 +1,8 @@
 // Service Worker for caching and offline support
-const CACHE_NAME = 'label-v1.0.0';
-const STATIC_CACHE = 'label-static-v1';
-const API_CACHE = 'label-api-v1';
+const CACHE_VERSION = '1.0.1';
+const STATIC_CACHE = `label-static-v${CACHE_VERSION}`;
+const API_CACHE = `label-api-v${CACHE_VERSION}`;
+const IMAGE_CACHE = `label-images-v${CACHE_VERSION}`;
 
 // Assets to cache immediately
 const STATIC_ASSETS = [
@@ -33,7 +34,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== STATIC_CACHE && cacheName !== API_CACHE) {
+          if (!cacheName.includes(CACHE_VERSION)) {
             return caches.delete(cacheName);
           }
         })
@@ -138,7 +139,7 @@ async function handleStaticRequest(request) {
 
 // Handle images with cache-first strategy
 async function handleImageRequest(request) {
-  const cache = await caches.open(STATIC_CACHE);
+  const cache = await caches.open(IMAGE_CACHE);
   const cachedResponse = await cache.match(request);
   
   if (cachedResponse) {

@@ -84,7 +84,16 @@ export const verifyAuth = createAsyncThunk(
   'auth/verify',
   async (_, thunkAPI) => {
     try {
-      const response = await authService.verifyToken();
+      // Timeout de 10 segundos para evitar carga infinita
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: Verificación de autenticación')), 10000)
+      );
+      
+      const response = await Promise.race([
+        authService.verifyToken(),
+        timeoutPromise
+      ]);
+      
       return response.data;
     } catch (error) {
       const message =
@@ -93,7 +102,12 @@ export const verifyAuth = createAsyncThunk(
           error.response.data.message) ||
         error.message ||
         error.toString();
-      thunkAPI.dispatch(authSlice.actions.logoutUser());
+      
+      // Limpiar estado si hay error
+      localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+      localStorage.setItem('wasLoggedOut', 'true');
+      
       return thunkAPI.rejectWithValue(message);
     }
   }

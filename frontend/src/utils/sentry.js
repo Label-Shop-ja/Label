@@ -1,6 +1,7 @@
 // Sentry configuration for error tracking
 import * as Sentry from '@sentry/react';
 import { BrowserTracing } from '@sentry/tracing';
+import { sanitizeForLog, sanitizeAnalyticsData } from './sanitizer.js';
 
 export const initSentry = () => {
   if (import.meta.env.VITE_APP_ENV === 'production') {
@@ -34,17 +35,21 @@ export const initSentry = () => {
 };
 
 export const captureError = (error, context = {}) => {
+  const sanitizedContext = sanitizeAnalyticsData(context);
+  
   if (import.meta.env.VITE_APP_ENV === 'production') {
-    Sentry.captureException(error, { extra: context });
+    Sentry.captureException(error, { extra: sanitizedContext });
   } else {
-    console.error('Error captured:', error, context);
+    console.error('Error captured:', error, sanitizedContext);
   }
 };
 
 export const captureMessage = (message, level = 'info') => {
+  const sanitizedMessage = sanitizeForLog(message);
+  
   if (import.meta.env.VITE_APP_ENV === 'production') {
-    Sentry.captureMessage(message, level);
+    Sentry.captureMessage(sanitizedMessage, level);
   } else {
-    console.log(`[${level.toUpperCase()}] ${message}`);
+    console.log(`[${level.toUpperCase()}] ${sanitizedMessage}`);
   }
 };
