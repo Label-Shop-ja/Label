@@ -1,8 +1,8 @@
 // C:\Proyectos\Label\frontend\src\components\Currency\ExchangeRateDisplay.jsx
 import React from 'react';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, Info, Settings } from 'lucide-react';
 
-const ExchangeRateDisplay = ({ exchangeRate, loading, error, formatPrice }) => {
+const ExchangeRateDisplay = ({ exchangeRate, loading, error, formatPrice, onOpenModal }) => {
     // Determinar la tasa principal a mostrar (siempre de USD a VES para este display)
     // Daremos prioridad a la tasa personal del usuario si está definida y es positiva,
     // de lo contrario, usaremos la tasa oficial del sistema.
@@ -18,7 +18,8 @@ const ExchangeRateDisplay = ({ exchangeRate, loading, error, formatPrice }) => {
     const formattedLastUpdate = lastUpdate ? new Date(lastUpdate).toLocaleString() : 'N/A';
 
     return (
-        <div className="flex items-center space-x-3 text-neutral-light">
+        <div className="flex items-center justify-between w-full">
+            <div className="flex items-center space-x-3 text-neutral-light">
             {loading ? (
                 <Loader2 size={20} className="animate-spin text-action-blue" />
             ) : error ? (
@@ -48,6 +49,17 @@ const ExchangeRateDisplay = ({ exchangeRate, loading, error, formatPrice }) => {
                 <span className="text-yellow-400 flex items-center">
                     <Info size={16} className="mr-1" /> Tasa USD-VES no disponible o configurada.
                 </span>
+            )}
+            </div>
+            {onOpenModal && (
+                <button
+                    onClick={onOpenModal}
+                    className="ml-4 p-2 bg-action-blue hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                    title="Configurar Tasas de Cambio"
+                >
+                    <Settings size={16} />
+                    <span className="hidden sm:inline">Configurar Tasas</span>
+                </button>
             )}
         </div>
     );

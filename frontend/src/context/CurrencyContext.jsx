@@ -14,7 +14,7 @@ export const useCurrency = () => {
 export const CurrencyProvider = ({ children }) => {
   const { user } = useAuth();
   const [exchangeRate, setExchangeRate] = useState(null); 
-  const [loadingCurrency, setLoadingCurrency] = useState(true);
+  const [loadingCurrency, setLoadingCurrency] = useState(false);
   const [currencyError, setCurrencyError] = useState('');
   // ¡NUEVO ESTADO! Para guardar la lista de todas las monedas disponibles.
   const [availableCurrencies, setAvailableCurrencies] = useState([]);
@@ -24,11 +24,11 @@ export const CurrencyProvider = ({ children }) => {
 
   const fetchExchangeRate = useCallback(async () => {
     if (!user) {
-      setLoadingCurrency(false);
       // ¡CLAVE! Si no hay usuario, no es un error. Simplemente no podemos cargar las tasas.
-      // Limpiamos el estado y salimos para que la app no se tranque.
+      // Limpiamos el estado y salimos INMEDIATAMENTE para que la app no se tranque.
       setExchangeRate(null);
       setCurrencyError(''); // Limpiamos cualquier error previo.
+      setLoadingCurrency(false);
       return;
     }
     setLoadingCurrency(true);
@@ -85,6 +85,30 @@ export const CurrencyProvider = ({ children }) => {
       console.error('¡Verga! Error al actualizar la tasa de cambio:', msg);
       setCurrencyError(msg);
       return false;
+    } finally {
+      setLoadingCurrency(false);
+    }
+  }, [user]);
+
+  const updateExchangeRatesManually = useCallback(async () => {
+    if (!user) {
+      setCurrencyError('Debes iniciar sesión para actualizar las tasas.');
+      return { success: false, message: 'Usuario no autenticado' };
+    }
+    setLoadingCurrency(true);
+    setCurrencyError('');
+    try {
+      const response = await axiosInstance.post('/exchangeRate/update');
+      if (response.data.updated) {
+        setExchangeRate(response.data.exchangeRateConfig);
+        localStorage.setItem('exchangeRate', JSON.stringify(response.data.exchangeRateConfig));
+      }
+      return { success: true, message: response.data.message, updated: response.data.updated };
+    } catch (err) {
+      const msg = String(err.response?.data?.message || err.message || 'Error al actualizar tasas.');
+      console.error('Error al actualizar tasas manualmente:', msg);
+      setCurrencyError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoadingCurrency(false);
     }
@@ -182,6 +206,7 @@ export const CurrencyProvider = ({ children }) => {
     currencyError,
     fetchExchangeRate,
     updateExchangeRate,
+    updateExchangeRatesManually,
     convertPrice,
     formatPrice,
     // ¡NUEVA PROP! Exportamos la lista de monedas disponibles

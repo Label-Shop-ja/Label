@@ -67,11 +67,6 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Endpoint de salud para diagnóstico
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Backend funcionando correctamente' });
-});
-
 // --- Middlewares de manejo de errores (deben ir al final) ---
 app.use(notFound);
 app.use(errorHandler);

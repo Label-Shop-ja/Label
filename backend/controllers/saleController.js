@@ -175,15 +175,8 @@ export const createSale = asyncHandler(async (req, res) => {
 // @route   GET /api/sales
 // @access  Private
 export const getSales = asyncHandler(async (req, res) => {
-  const { financialTransaction } = req.query;
-  
-  let query = { user: req.user.id };
-  if (financialTransaction) {
-    query.financialTransaction = financialTransaction;
-  }
-  
-  const sales = await Sale.find(query)
-    .populate('productsSold.product', 'name price category brand sku')
+  const sales = await Sale.find({ user: req.user.id })
+    .populate('productsSold.product', 'name price')
     .sort({ createdAt: -1 });
   res.status(200).json(sales);
 });

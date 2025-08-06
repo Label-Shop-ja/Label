@@ -28,7 +28,6 @@ import LegalModal from './components/Common/LegalModal'; // Importamos el nuevo 
 import ResetPasswordPage from './pages/Auth/ResetPasswordPage'; // Importamos la página de reseteo
 import ForgotPasswordModal from './components/Auth/ForgotPasswordModal'; // Importamos el nuevo modal
 import Toast from './components/Common/Toast';
-import RenderDiagnostic from './components/Common/RenderDiagnostic';
 
 function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -103,8 +102,11 @@ function App() {
     };
 
     useEffect(() => {
-        // Solo verificar si no está autenticado y no se deslogueo intencionalmente
-        if (!isAuthenticated && localStorage.getItem('wasLoggedOut') !== 'true') {
+        // Solo verificar si no está autenticado, no se deslogueo intencionalmente Y hay un token
+        const hasToken = localStorage.getItem('accessToken');
+        const wasLoggedOut = localStorage.getItem('wasLoggedOut') === 'true';
+        
+        if (!isAuthenticated && !wasLoggedOut && hasToken) {
             verify();
         }
     }, [verify, isAuthenticated]);
@@ -226,8 +228,6 @@ function App() {
                 </LegalModal>
                 {/* Componente Toast para mostrar notificaciones, fuera del <Routes> pero dentro del layout general */}
                 <Toast />
-                {/* Componente de diagnóstico temporal */}
-                <RenderDiagnostic />
             </div>
         </ErrorBoundary>
     );

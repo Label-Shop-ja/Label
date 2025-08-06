@@ -123,8 +123,7 @@ function InventoryPage() {
     // Usa el contexto de moneda
     const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, updateExchangeRate, convertPrice, formatPrice } = useCurrency(); // <-- ¡NUEVA LÍNEA!
 
-    // Estado para controlar la visibilidad del modal de tasa de cambio
-    const [showExchangeRateModal, setShowExchangeRateModal] = useState(false); // <-- ¡NUEVA LÍNEA!
+
 
     // Función auxiliar para mostrar mensajes de éxito o error al usuario
     const displayMessage = useCallback((msg, type) => {
@@ -412,8 +411,9 @@ function InventoryPage() {
         }
 
         // Prepara los datos para enviar al backend (ya gestionados en AddEditProductFormLogic)
+        const { _id, ...productWithoutId } = productDataToSave;
         const productToSend = {
-            ...productDataToSave,
+            ...productWithoutId,
             price: Number(productDataToSave.price) || 0,
             stock: Number(productDataToSave.stock) || 0,
             costPrice: Number(productDataToSave.costPrice) || 0,
@@ -689,19 +689,7 @@ function InventoryPage() {
                     />
                 </Suspense>
 
-                {/* Modal para Configurar Tasa de Cambio */}
-                <Suspense fallback={<div>Cargando modal de tasa...</div>}>
-                    {showExchangeRateModal && (
-                        <ExchangeRateModal
-                            isOpen={showExchangeRateModal}
-                            onClose={() => setShowExchangeRateModal(false)}
-                            currentExchangeRate={exchangeRate}
-                            loading={loadingCurrency}
-                            error={currencyError}
-                            onSave={updateExchangeRate}
-                        />
-                    )}
-                </Suspense>
+
 
                 {/* Sección de Alertas de Stock */}
                 <Suspense fallback={<div className="mb-6 p-4 border rounded-md bg-yellow-900 bg-opacity-20 text-yellow-300">Cargando alertas...</div>}>

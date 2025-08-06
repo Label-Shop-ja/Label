@@ -13,11 +13,20 @@ const getVariantInventoryReport = () => {
     return axiosInstance.get('/products/reports/variants');
 };
 
-// En el futuro, podrías mover más lógica aquí, como:
-// const deleteProduct = (id) => axiosInstance.delete(`/products/${id}`);
+const searchGlobalProducts = async (searchTerm) => {
+    try {
+        const response = await axiosInstance.get(`/products/global-search?q=${encodeURIComponent(searchTerm)}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error searching global products:', error);
+        return [];
+    }
+};
 
 export const productService = {
     getLowStockProducts,
     getHighStockProducts,
     getVariantInventoryReport,
 };
+
+export { searchGlobalProducts };

@@ -16,7 +16,16 @@ const getExchangeRate = asyncHandler(async (req, res) => {
     if (exchangeRateConfig) {
         res.status(200).json(exchangeRateConfig);
     } else {
-        res.status(404).json({ message: 'No se ha configurado ninguna tasa de cambio para este usuario.' });
+        // Crear configuración básica si no existe
+        const defaultConfig = await ExchangeRate.create({
+            user: req.user.id,
+            conversions: [],
+            defaultProfitPercentage: 20,
+            personalRateThresholdPercentage: 5,
+            personalRate: 0,
+            officialRate: 0
+        });
+        res.status(200).json(defaultConfig);
     }
 });
 
@@ -225,8 +234,127 @@ const fetchOfficialRate = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Actualizar tasas manualmente (botón "Actualizar Tasa")
+// @route   POST /api/exchangeRate/update
+// @access  Private
+const updateExchangeRates = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const API_KEY = process.env.EXCHANGE_RATE_API_KEY;
+    const API_BASE_URL = `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/USD`;
+    
+    let exchangeRateConfig = await ExchangeRate.findOne({ user: userId });
+    
+    // Si no existe configuración, crear una nueva
+    if (!exchangeRateConfig) {
+        exchangeRateConfig = new ExchangeRate({
+            user: userId,
+            conversions: [],
+            defaultProfitPercentage: 20,
+            personalRateThresholdPercentage: 5,
+            personalRate: 0
+        });
+    }
+    
+    // Verificar si necesita actualización (más de 30 minutos)
+    const now = new Date();
+    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+    const needsUpdate = !exchangeRateConfig.lastOfficialUpdate || exchangeRateConfig.lastOfficialUpdate < thirtyMinutesAgo;
+    
+    if (!needsUpdate) {
+        return res.status(200).json({
+            message: 'Las tasas están actualizadas (menos de 30 minutos)',
+            exchangeRateConfig,
+            updated: false
+        });
+    }
+    
+    try {
+        const response = await axios.get(API_BASE_URL);
+        const data = response.data;
+        
+        if (data && data.result === 'success' && data.conversion_rates) {
+            const officialRateUSDVES = data.conversion_rates.VES;
+            if (officialRateUSDVES) {
+                exchangeRateConfig.officialRate = officialRateUSDVES;
+            }
+            exchangeRateConfig.lastOfficialUpdate = now;
+            
+            // Actualizar todas las conversiones
+            const updatedConversions = [];
+            const tempConversionMap = new Map();
+            
+            for (const currency of TARGET_CURRENCIES) {
+                if (currency === 'USD') continue;
+                
+                const rateFromUSD = data.conversion_rates[currency];
+                if (rateFromUSD && rateFromUSD > 0) {
+                    updatedConversions.push({
+                        fromCurrency: 'USD',
+                        toCurrency: currency,
+                        rate: rateFromUSD,
+                        lastUpdated: now,
+                    });
+                    tempConversionMap.set(`USD-${currency}`, rateFromUSD);
+                    
+                    updatedConversions.push({
+                        fromCurrency: currency,
+                        toCurrency: 'USD',
+                        rate: 1 / rateFromUSD,
+                        lastUpdated: now,
+                    });
+                    tempConversionMap.set(`${currency}-USD`, 1 / rateFromUSD);
+                }
+            }
+            
+            // Conversiones cruzadas
+            for (const fromCurr of TARGET_CURRENCIES) {
+                for (const toCurr of TARGET_CURRENCIES) {
+                    if (fromCurr === toCurr) continue;
+                    
+                    const key = `${fromCurr}-${toCurr}`;
+                    if (tempConversionMap.has(key)) continue;
+                    
+                    const rateFromUsdToFromCurr = tempConversionMap.get(`${fromCurr}-USD`);
+                    const rateFromUsdToToCurr = tempConversionMap.get(`USD-${toCurr}`);
+                    
+                    if (rateFromUsdToFromCurr && rateFromUsdToToCurr && rateFromUsdToFromCurr > 0 && rateFromUsdToToCurr > 0) {
+                        const crossRate = rateFromUsdToFromCurr * rateFromUsdToToCurr;
+                        updatedConversions.push({
+                            fromCurrency: fromCurr,
+                            toCurrency: toCurr,
+                            rate: crossRate,
+                            lastUpdated: now,
+                        });
+                        tempConversionMap.set(key, crossRate);
+                    }
+                }
+            }
+            
+            updatedConversions.sort((a, b) => {
+                if (a.fromCurrency === b.fromCurrency) return a.toCurrency.localeCompare(b.toCurrency);
+                return a.fromCurrency.localeCompare(b.fromCurrency);
+            });
+            
+            exchangeRateConfig.conversions = updatedConversions;
+            await exchangeRateConfig.save();
+            
+            res.status(200).json({
+                message: 'Tasas actualizadas exitosamente',
+                exchangeRateConfig,
+                updated: true
+            });
+        } else {
+            res.status(500).json({ message: 'Error al procesar respuesta de la API' });
+        }
+    } catch (error) {
+        console.error('Error al actualizar tasas:', error.message);
+        res.status(500).json({ message: 'Error al conectar con la API de tasas de cambio' });
+    }
+});
+
 export {
   getExchangeRate,
   setExchangeRate,
   fetchOfficialRate,
+  updateExchangeRates,
 };

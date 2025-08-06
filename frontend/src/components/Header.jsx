@@ -51,7 +51,7 @@ function Header({ heightClass }) {
             </Link>
             <div className="flex items-center gap-4">
                 <ThemeSwitcher />
-                <FullscreenToggle /> {/* 2. Lo añadimos junto a los otros iconos */}
+                <FullscreenToggle />
                 {user && (
                     <div className="relative" ref={menuRef}>
                         <button

@@ -11,6 +11,9 @@ import {
 
 // Importación directa del componente AddEditProductForm
 import AddEditProductFormUI from './AddEditProductForm';
+import ProductSearchStep from './ProductSearchStep';
+import { X } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 // Define defaultNewProductState aquí, ya que es la base para la inicialización
 const defaultNewProductState = {
@@ -51,6 +54,7 @@ const AddEditProductFormLogic = ({
     // Usa el contexto de moneda y desestructura TODO lo que necesitas de una vez
     // ¡NUEVA PROP: availableCurrencies!
     const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, convertPrice, formatPrice, baseCurrency: contextBaseCurrency, availableCurrencies } = currencyContext;
+    const { theme } = useTheme();
 
     // Estados internos para la lógica del formulario
     const [productData, setProductData] = useState(initialProductData || defaultNewProductState);
@@ -65,6 +69,23 @@ const AddEditProductFormLogic = ({
     const [variantImageUploading, setVariantImageUploading] = useState({});
     const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
     const [formErrors, setFormErrors] = useState({});
+    const [currentStep, setCurrentStep] = useState('search'); // 'search' | 'form'
+    const [searchValue, setSearchValue] = useState('');
+    const [shouldNavigateToPage, setShouldNavigateToPage] = useState(null);
+    
+    // Resetear estado cuando se abre/cierra el modal
+    useEffect(() => {
+        if (isOpen) {
+            if (isNewProduct) {
+                setCurrentStep('search');
+                setSearchValue('');
+                setShouldNavigateToPage(null);
+            } else {
+                // Para edición, ir directo al formulario
+                setCurrentStep('form');
+            }
+        }
+    }, [isOpen, isNewProduct]);
 
     // ESTADOS PARA PORCENTAJE DE GANANCIA Y PRECIO CALCULADO (PARA LA UI)
     const [calculatedProductProfitPercentage, setCalculatedProductProfitPercentage] = useState(null);
@@ -829,9 +850,64 @@ const AddEditProductFormLogic = ({
         }
     }, []);
 
+    const handleProductSelect = (selectedProduct) => {
+        // Auto-rellenar con datos del producto global
+        const newData = {
+            ...selectedProduct,
+            costPrice: 0,
+            stock: 0,
+            variants: selectedProduct.variants?.map(v => ({
+                ...v,
+                costPrice: 0,
+                stock: 0
+            })) || []
+        };
+        setProductData(newData);
+        setCurrentStep('form');
+        
+        // Marcar que debemos navegar a la página correcta
+        const targetPage = selectedProduct.variants?.length > 0 ? 'variants' : 'pricing';
+        setShouldNavigateToPage(targetPage);
+    };
+
+    const handleNewProduct = (productName) => {
+        setProductData({
+            ...defaultNewProductState,
+            name: productName
+        });
+        setCurrentStep('form');
+    };
+
+    if (!isOpen) return null;
+
     return (
         <ErrorBoundary>
-            <AddEditProductFormUI
+            {currentStep === 'search' ? (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className={`rounded-2xl shadow-2xl w-full max-w-2xl p-6 relative ${
+                        theme === 'light' ? 'bg-white' : 'bg-gray-800'
+                    }`}>
+                        <button
+                            onClick={onClose}
+                            className={`absolute top-4 right-4 ${
+                                theme === 'light' 
+                                    ? 'text-gray-400 hover:text-gray-600' 
+                                    : 'text-gray-400 hover:text-gray-300'
+                            }`}
+                        >
+                            <X className="h-6 w-6" />
+                        </button>
+                        <ProductSearchStep
+                            onProductSelect={handleProductSelect}
+                            onNewProduct={handleNewProduct}
+                            searchValue={searchValue}
+                            onSearchChange={setSearchValue}
+                            onClose={onClose}
+                        />
+                    </div>
+                </div>
+            ) : (
+                <AddEditProductFormUI
                     isOpen={isOpen}
                     onClose={onClose}
                     title={title}
@@ -881,12 +957,10 @@ const AddEditProductFormLogic = ({
                     exchangeRate={exchangeRate}
                     availableCurrencies={availableCurrencies}
                     handleRemoveMainImage={handleRemoveMainImage}
-                    onProductAdded={onProductAdded}
-                    selectedGlobalProduct={selectedGlobalProduct}
-                    initialProductName={initialProductName}
-                    initialPage={initialPage}
-                    showSearchTransition={showSearchTransition}
+                    shouldNavigateToPage={shouldNavigateToPage}
+                    setShouldNavigateToPage={setShouldNavigateToPage}
                 />
+            )}
         </ErrorBoundary>
     );
 };
