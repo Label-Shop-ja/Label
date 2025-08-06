@@ -1,6 +1,6 @@
 // C:\Proyectos\Label\frontend\src\components\Pos\ProductSelectItem.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Info, Plus, MoreHorizontal } from 'lucide-react';
+import { Info, MoreHorizontal } from 'lucide-react';
 import { getPriceColorClass } from '../../utils/priceColors';
 
 const ProductSelectItem = ({ product, onClick, onAddClick, formatPrice, convertPrice, exchangeRate }) => {
@@ -33,8 +33,9 @@ const ProductSelectItem = ({ product, onClick, onAddClick, formatPrice, convertP
     const displayStock = product.variants && product.variants.length > 0 ? product.totalStock : product.stock;
 
     const handleClick = () => {
-        setShowDots(true);
-        onClick();
+        onAddClick();
+        setIsFlashing(true);
+        setTimeout(() => setIsFlashing(false), 300);
     };
 
     const handleDotsClick = (e) => {
@@ -55,10 +56,12 @@ const ProductSelectItem = ({ product, onClick, onAddClick, formatPrice, convertP
         <>
         <div
             ref={containerRef}
-            className={`bg-surface p-4 rounded-lg shadow flex justify-between items-center border border-primary/20 cursor-pointer hover:bg-surface-secondary transition-all duration-200 relative ${
+            className={`bg-surface p-4 rounded-lg shadow flex justify-between items-center border border-primary/20 cursor-pointer hover:bg-surface-secondary transition-all duration-200 relative group ${
                 isFlashing ? 'bg-primary/20 scale-105' : ''
             }`}
             onClick={handleClick}
+            onMouseEnter={() => setShowDots(true)}
+            onMouseLeave={() => setShowDots(false)}
         >
             {/* Sección de Imagen */}
             <div className="w-20 h-20 flex-shrink-0 bg-surface-secondary rounded-md overflow-hidden mr-4">
@@ -90,66 +93,25 @@ const ProductSelectItem = ({ product, onClick, onAddClick, formatPrice, convertP
             </div>
 
             {/* Sección de Precio */}
-            <div className="flex flex-col items-end ml-4 flex-shrink-0 relative pb-6">
+            <div className="flex flex-col items-end ml-4 flex-shrink-0 relative">
                 <p className={`text-2xl font-bold ${getPriceColorClass(priceInPrimary)}`}>{formatPrice(priceInPrimary, primaryCurrency)}</p>
                 {primaryCurrency !== secondaryCurrency && exchangeRate && (
-                    <div className="relative inline-block">
-                        <p className={`text-sm ${getPriceColorClass(priceInSecondary)}`}>
-                            {formatPrice(priceInSecondary, secondaryCurrency)}
-                        </p>
-                        {/* Botones + y ... */}
-                        {showDots && (
-                            <div className="absolute top-full left-0 mt-4 flex gap-2">
-                                <div 
-                                    className={`w-5 h-5 border border-white/30 bg-gradient-to-br from-cyan-400/20 to-cyan-600/10 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-all duration-150 group ${
-                                        isButtonPressed ? 'scale-75 bg-cyan-500/30' : 'hover:scale-110 hover:border-white/50 hover:from-cyan-400/30 hover:to-cyan-600/20'
-                                    }`}
-                                    onClick={handleButtonClick}
-                                    title="Agregar producto"
-                                >
-                                    <Plus size={12} className="text-white" />
-                                    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-surface-secondary text-xs text-text-base rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-20">
-                                        Agregar producto
-                                    </span>
-                                </div>
-                                <div 
-                                    className="w-5 h-5 bg-gray-600/80 backdrop-blur-sm rounded flex items-center justify-center cursor-pointer hover:bg-gray-500/80 transition-colors"
-                                    onClick={handleDotsClick}
-                                    title="Ver detalles"
-                                >
-                                    <MoreHorizontal size={10} className="text-white" />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-                {/* Si no hay precio secundario, mostrar botones debajo del precio principal */}
-                {(!primaryCurrency || primaryCurrency === secondaryCurrency || !exchangeRate) && showDots && (
-                    <div className="relative inline-block">
-                        <div className="absolute top-full left-0 mt-4 flex gap-2">
-                            <div 
-                                className={`w-5 h-5 border border-white/30 bg-gradient-to-br from-cyan-400/20 to-cyan-600/10 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-all duration-150 group ${
-                                    isButtonPressed ? 'scale-75 bg-cyan-500/30' : 'hover:scale-110 hover:border-white/50 hover:from-cyan-400/30 hover:to-cyan-600/20'
-                                }`}
-                                onClick={handleButtonClick}
-                                title="Agregar producto"
-                            >
-                                <Plus size={12} className="text-white" />
-                                <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-surface-secondary text-xs text-text-base rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-20">
-                                    Agregar producto
-                                </span>
-                            </div>
-                            <div 
-                                className="w-5 h-5 bg-gray-600/80 backdrop-blur-sm rounded flex items-center justify-center cursor-pointer hover:bg-gray-500/80 transition-colors"
-                                onClick={handleDotsClick}
-                                title="Ver detalles"
-                            >
-                                <MoreHorizontal size={10} className="text-white" />
-                            </div>
-                        </div>
-                    </div>
+                    <p className={`text-sm ${getPriceColorClass(priceInSecondary)}`}>
+                        {formatPrice(priceInSecondary, secondaryCurrency)}
+                    </p>
                 )}
             </div>
+
+            {/* Botón de 3 puntos en esquina superior derecha */}
+            {showDots && (
+                <div 
+                    className="absolute top-2 right-2 w-6 h-6 bg-gray-600/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-500/80 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                    onClick={handleDotsClick}
+                    title="Ver detalles"
+                >
+                    <MoreHorizontal size={12} className="text-white" />
+                </div>
+            )}
         </div>
             
         {/* Product Details Modal */}

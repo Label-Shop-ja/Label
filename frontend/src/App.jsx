@@ -1,79 +1,56 @@
-// Main App component with routing and layout
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+// C:\Proyectos\Label\frontend\src\App.jsx
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { useServiceWorker } from './hooks/useServiceWorker';
-import { preloadCriticalResources, prefetchResources } from './utils/resourceOptimizer';
-import UpdateAvailable from './components/Common/UpdateAvailable';
 
-// Critical components (loaded immediately)
 import AccessModal from './components/Auth/AccessModal';
+import DashboardHome from './components/Dashboard/DashboardHome';
+import WelcomePage from './pages/Public/WelcomePage'; // 1. Importamos nuestro nuevo componente
+
+// Importar los componentes de "páginas"
+import InventoryPage from "./components/Inventory/InventoryPage";
+import FinancialPage from './components/FinancialPage';
+import PosPage from './components/PosPage';
+import ClientsPage from './components/ClientsPage';
+import StatsPage from './components/StatsPage';
+import SettingsPage from './components/SettingsPage';
+import CustomRatesSettings from './pages/Settings/CustomRatesSettings'; // ¡El nuevo beta!
+import AdminPanel from './pages/Admin/AdminPanel'; // Un componente de ejemplo para la página de admin
+import UnauthorizedPage from './pages/Common/UnauthorizedPage'; // Página para error 403
+
 import DashboardLayout from './components/DashboardLayout';
-import useAuth from './hooks/useAuth';
-import { useReduxCurrency } from './hooks/useReduxCurrency';
-import { useReduxTheme } from './hooks/useReduxTheme';
-import ProtectedRoute from './components/Auth/ProtectedRoute';
-import ErrorBoundary from './components/Common/ErrorBoundary';
+import useAuth from './hooks/useAuth'; // Importamos nuestro hook
+import { useCurrency } from './context/CurrencyContext';
+import ProtectedRoute from './components/Auth/ProtectedRoute'; // Importamos el componente una sola vez
+import ErrorBoundary from "./components/Common/ErrorBoundary";
+import AuthCallbackPage from './pages/Auth/AuthCallbackPage'; // Importamos la nueva página
+import LegalModal from './components/Common/LegalModal'; // Importamos el nuevo modal
+import ResetPasswordPage from './pages/Auth/ResetPasswordPage'; // Importamos la página de reseteo
+import ForgotPasswordModal from './components/Auth/ForgotPasswordModal'; // Importamos el nuevo modal
 import Toast from './components/Common/Toast';
-import ModernLoader from './components/Common/ModernLoader';
-
-// Lazy loaded components
-const WelcomePage = lazy(() => import('./pages/Public/WelcomePage'));
-const DashboardHome = lazy(() => import('./components/Dashboard/DashboardHome'));
-const InventoryPage = lazy(() => import('./components/Inventory/InventoryPage'));
-const FinancialPage = lazy(() => import('./components/FinancialPage'));
-const PosPage = lazy(() => import('./components/PosPage'));
-const ClientsPage = lazy(() => import('./components/ClientsPage'));
-const StatsPage = lazy(() => import('./components/StatsPage'));
-const SettingsPage = lazy(() => import('./components/SettingsPage'));
-const CustomRatesSettings = lazy(() => import('./pages/Settings/CustomRatesSettings'));
-const AdminPanel = lazy(() => import('./pages/Admin/AdminPanel'));
-const UnauthorizedPage = lazy(() => import('./pages/Common/UnauthorizedPage'));
-const AuthCallbackPage = lazy(() => import('./pages/Auth/AuthCallbackPage'));
-const LegalModal = lazy(() => import('./components/Common/LegalModal'));
-const ResetPasswordPage = lazy(() => import('./pages/Auth/ResetPasswordPage'));
-const ForgotPasswordModal = lazy(() => import('./components/Auth/ForgotPasswordModal'));
-
-// Loading component
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-    <div className="flex flex-col items-center space-y-4">
-      <div className="relative">
-        <div className="w-12 h-12 border-4 border-blue-200/30 rounded-full"></div>
-        <div className="absolute top-0 left-0 w-12 h-12 border-4 border-transparent border-t-blue-400 border-r-blue-400 rounded-full animate-spin"></div>
-      </div>
-      <p className="text-white text-lg font-medium">Cargando página...</p>
-    </div>
-  </div>
-);
 
 function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isModalOpening, setIsModalOpening] = useState(false); // State for loading spinner
+    const [isModalOpening, setIsModalOpening] = useState(false); // Estado para el spinner
     const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
     const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
     const [legalContent, setLegalContent] = useState({ title: '', markdown: '' });
     const [isLegalLoading, setIsLegalLoading] = useState(false);
-    const [updateDismissed, setUpdateDismissed] = useState(false);
     
-    // Sidebar state
+    // ¡AQUÍ ESTÁ EL NUEVO GUISO! El estado del sidebar ahora vive en App.jsx
     const [isSidebarPinned, setSidebarPinned] = useState(false);
     const [isSidebarHovered, setSidebarHovered] = useState(false);
     
-    // Service Worker
-    const { updateAvailable, updateServiceWorker } = useServiceWorker();
-    
     const isSidebarExpanded = isSidebarPinned || isSidebarHovered;
 
-    const { isAuthenticated, isLoading: authLoading, verify, user } = useAuth();
-    const { fetchExchangeRate } = useReduxCurrency();
-    const { theme } = useReduxTheme();
+    const { isAuthenticated, isLoading: authLoading, verify } = useAuth();
+    const { loadingCurrency, currencyError } = useCurrency();
     const location = useLocation();
 
     const handleOpenModal = () => {
         if (isModalOpening) return; // Prevenir doble clic
         setIsModalOpening(true);
-        // Small delay to make spinner visible, improving UX
+        // Pequeño delay para que el spinner sea visible, mejorando la UX
         setTimeout(() => {
             setIsModalOpen(true);
             setIsModalOpening(false);
@@ -83,8 +60,8 @@ function App() {
     const handleCloseModal = () => setIsModalOpen(false);
     
     const handleOpenForgotPasswordModal = () => {
-        setIsModalOpen(false); // Close access modal
-        // Small delay for exit animation to complete
+        setIsModalOpen(false); // Cierra el modal de acceso
+        // Pequeño delay para que la animación de salida del primer modal termine
         setTimeout(() => {
             setIsForgotPasswordModalOpen(true);
         }, 300);
@@ -92,7 +69,7 @@ function App() {
 
     const handleBackToLogin = () => {
         setIsForgotPasswordModalOpen(false);
-        // Small delay for exit animation to complete
+        // Pequeño delay para que la animación de salida termine
         setTimeout(() => setIsModalOpen(true), 300);
     };
 
@@ -125,42 +102,14 @@ function App() {
     };
 
     useEffect(() => {
-        // Performance optimizations
-        preloadCriticalResources();
-        
-        // Prefetch likely next routes
-        if (isAuthenticated) {
-            prefetchResources(['/dashboard', '/inventario', '/pos']);
-        }
-        
-        // Auth verification con timeout
+        // Solo verificar si no está autenticado, no se deslogueo intencionalmente Y hay un token
         const hasToken = localStorage.getItem('accessToken');
         const wasLoggedOut = localStorage.getItem('wasLoggedOut') === 'true';
         
-        if (hasToken && !wasLoggedOut && (!isAuthenticated || !user)) {
-            // Timeout para evitar carga infinita
-            const verifyTimeout = setTimeout(() => {
-                console.warn('Verificación de auth tomando demasiado tiempo, limpiando estado...');
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('user');
-                localStorage.setItem('wasLoggedOut', 'true');
-                window.location.reload();
-            }, 15000);
-            
-            verify().finally(() => {
-                clearTimeout(verifyTimeout);
-            });
+        if (!isAuthenticated && !wasLoggedOut && hasToken) {
+            verify();
         }
-        
-        // Initialize currency when user is authenticated (sin bloquear)
-        if (isAuthenticated && user) {
-            try {
-                fetchExchangeRate();
-            } catch (error) {
-                console.warn('No se pudo cargar configuración de moneda, usando valores por defecto');
-            }
-        }
-    }, [verify, isAuthenticated, user, fetchExchangeRate]);
+    }, [verify, isAuthenticated]);
 
     // Efecto para actualizar el título de la página dinámicamente
     useEffect(() => {
@@ -185,18 +134,22 @@ function App() {
     }, [location.pathname]); // Se ejecuta cada vez que la URL cambia
 
     // Si la aplicación está cargando (ej. verificando autenticación inicial), mostrar un spinner
-    if (authLoading) {
-        return <ModernLoader message="Verificando autenticación" />;
+    if (authLoading || loadingCurrency) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-deep-night-blue text-neutral-light">
+                <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full border-t-transparent border-copper-rose-accent"></div>
+                <p className="ml-3 text-lg">Cargando aplicación...</p>
+            </div>
+        );
     }
 
-
+    if (currencyError) return <div className="min-h-screen flex items-center justify-center bg-deep-night-blue text-red-500 text-lg">{currencyError}</div>;
 
     return (
         <ErrorBoundary>
             <div className="min-h-screen bg-deep-night-blue text-neutral-light font-inter relative overflow-hidden">
                 <AnimatePresence mode="wait">
-                    <Suspense fallback={<PageLoader />}>
-                        <Routes location={location} key={location.pathname}>
+                    <Routes location={location} key={location.pathname}>
                         {/* Ruta para la página de inicio o login (no protegida) */}
                         <Route
                             path="/"
@@ -251,44 +204,30 @@ function App() {
 
                         {/* Ruta comodín para cualquier otra ruta no definida (redirige a la raíz) */}
                         <Route path="*" element={<Navigate to="/" replace />} />
-                        </Routes>
-                    </Suspense>
+                    </Routes>
                 </AnimatePresence>
 
-                {/* Modales con lazy loading */}
+                {/* El modal de acceso ahora está envuelto en AnimatePresence para animar su salida */}
                 <AnimatePresence>
                     {isModalOpen && (
                         <AccessModal onClose={handleCloseModal} onOpenLegalModal={handleOpenLegalModal} onOpenForgotPasswordModal={handleOpenForgotPasswordModal} />
                     )}
                     {isForgotPasswordModalOpen && (
-                        <Suspense fallback={null}>
-                            <ForgotPasswordModal onClose={() => setIsForgotPasswordModalOpen(false)} onBackToLogin={handleBackToLogin} />
-                        </Suspense>
+                        <ForgotPasswordModal onClose={() => setIsForgotPasswordModalOpen(false)} onBackToLogin={handleBackToLogin} />
                     )}
                 </AnimatePresence>
 
-                {/* Modal para contenido legal */}
-                {isLegalModalOpen && (
-                    <Suspense fallback={null}>
-                        <LegalModal
-                            isOpen={isLegalModalOpen}
-                            onClose={() => setIsLegalModalOpen(false)}
-                            title={legalContent.title}
-                            isLoading={isLegalLoading}
-                        >
-                            {legalContent.markdown}
-                        </LegalModal>
-                    </Suspense>
-                )}
+                {/* Modal para contenido legal, se renderiza sobre todo */}
+                <LegalModal
+                    isOpen={isLegalModalOpen}
+                    onClose={() => setIsLegalModalOpen(false)}
+                    title={legalContent.title}
+                    isLoading={isLegalLoading}
+                >
+                    {legalContent.markdown}
+                </LegalModal>
                 {/* Componente Toast para mostrar notificaciones, fuera del <Routes> pero dentro del layout general */}
                 <Toast />
-                
-                {/* Update notification */}
-                <UpdateAvailable
-                    isVisible={updateAvailable && !updateDismissed}
-                    onUpdate={updateServiceWorker}
-                    onDismiss={() => setUpdateDismissed(true)}
-                />
             </div>
         </ErrorBoundary>
     );

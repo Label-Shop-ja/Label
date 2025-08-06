@@ -102,7 +102,7 @@ const fetchOfficialRate = asyncHandler(async (req, res) => {
     const API_BASE_URL = `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/USD`;
 
     try {
-        console.log('Fetching official exchange rates from ExchangeRate-API.com');
+        console.log('¡Coño, intentando conseguir las tasas oficiales externas de ExchangeRate-API.com!');
         const response = await axios.get(API_BASE_URL);
         const data = response.data;
 
@@ -110,7 +110,7 @@ const fetchOfficialRate = asyncHandler(async (req, res) => {
             let exchangeRateConfig = await ExchangeRate.findOne({ user: req.user.id });
 
             if (!exchangeRateConfig) {
-                console.log('Creating new exchange rate configuration for user');
+                console.log('Creando nueva configuración de tasa de cambio para el usuario (al obtener oficial).');
                 exchangeRateConfig = new ExchangeRate({
                     user: req.user.id,
                     conversions: [],
@@ -166,9 +166,9 @@ const fetchOfficialRate = asyncHandler(async (req, res) => {
                         tempConversionMap.set(keyCurrencyToUSD, 1 / rateFromUSD);
                     }
                 } else if (rateFromUSD === 0) {
-                    console.warn(`Exchange rate from USD to ${currency} is 0. Cannot be used.`);
+                    console.warn(`¡Coño! La tasa de USD a ${currency} es 0. No se puede usar.`);
                 } else {
-                    console.warn(`API did not return valid exchange rate for USD to ${currency}.`);
+                    console.warn(`¡Atención! La API no devolvió la tasa de USD a ${currency} o es inválida.`);
                 }
             }
             
@@ -210,27 +210,27 @@ const fetchOfficialRate = asyncHandler(async (req, res) => {
 
             await exchangeRateConfig.save();
 
-            console.log(`Official exchange rates updated successfully. USD/VES: ${officialRateUSDVES || 'N/A'}. Total conversions saved: ${updatedConversions.length}`);
+            console.log(`¡Tasas oficiales actualizadas! USD/VES: ${officialRateUSDVES || 'N/A'}. Total de conversiones guardadas: ${updatedConversions.length}. ¡Éxito criminal!`);
             res.status(200).json({
-                message: 'Official exchange rates updated successfully.',
+                message: 'Tasas oficiales actualizadas.',
                 officialRate: officialRateUSDVES,
                 exchangeRateConfig: exchangeRateConfig
             });
 
         } else {
-            console.error('API did not return expected data or failed. Full response:', JSON.stringify(data, null, 2));
-            res.status(500).json({ message: 'Error processing external API response' });
+            console.error('¡Verga, la API no me devolvió los datos esperados o falló! Respuesta completa:', JSON.stringify(data, null, 2));
+            res.status(500).json({ message: '¡Hubo un peo al procesar la respuesta de la API externa!' });
         }
 
     } catch (error) {
-        console.error('Error connecting to exchange rate API:', error.message);
+        console.error('¡Coño, un peo grave al conectar con la API de tasas de cambio!', error.message);
         if (error.response) {
-            console.error('API error details:', error.response.status, error.response.data);
+            console.error('Detalles del error (respuesta de la API):', error.response.status, error.response.data);
             if (error.response.status === 429) {
-                console.error('API rate limit exceeded (429 Too Many Requests)');
+                console.error('¡Cuidado, mi loco! Puede que hayas excedido el límite de peticiones de la API (429 Too Many Requests).');
             }
         }
-        res.status(500).json({ message: 'Error fetching official exchange rates' });
+        res.status(500).json({ message: '¡Error al intentar obtener la tasa oficial externa!' });
     }
 });
 
@@ -339,16 +339,16 @@ const updateExchangeRates = asyncHandler(async (req, res) => {
             await exchangeRateConfig.save();
             
             res.status(200).json({
-                message: 'Exchange rates updated successfully',
+                message: 'Tasas actualizadas exitosamente',
                 exchangeRateConfig,
                 updated: true
             });
         } else {
-            res.status(500).json({ message: 'Error processing API response' });
+            res.status(500).json({ message: 'Error al procesar respuesta de la API' });
         }
     } catch (error) {
-        console.error('Error updating exchange rates:', error.message);
-        res.status(500).json({ message: 'Error connecting to exchange rate API' });
+        console.error('Error al actualizar tasas:', error.message);
+        res.status(500).json({ message: 'Error al conectar con la API de tasas de cambio' });
     }
 });
 
