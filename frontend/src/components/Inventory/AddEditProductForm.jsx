@@ -1,7 +1,7 @@
 // src/components/Inventory/AddEditProductForm.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Upload, Loader2, Save, Settings, Package, DollarSign, AlertTriangle, X, Trash2, XCircle, ChevronDown, FileText, CreditCard, Cog, Palette, BarChart3, Tag, Scale, Apple, Camera, Box } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { useReduxTheme } from '../../hooks/useReduxTheme';
 import VariantForm from './VariantForm';
 import ErrorBoundary from '../Common/ErrorBoundary';
 
@@ -45,7 +45,7 @@ const AddEditProductForm = ({
     // Valores por defecto para evitar errores
     const safeSetShouldNavigateToPage = setShouldNavigateToPage || (() => {});
     
-    const { theme } = useTheme();
+    const { theme } = useReduxTheme();
     const [currentPage, setCurrentPage] = useState(0);
     const [expandedVariants, setExpandedVariants] = useState(new Set());
     const [showVariantDeleteConfirm, setShowVariantDeleteConfirm] = useState(false);

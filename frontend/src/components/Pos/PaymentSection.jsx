@@ -1,7 +1,7 @@
 // C:\Proyectos\Label\frontend\src\components\Pos\PaymentSection.jsx
 import React from 'react';
 import { FaDollarSign, FaCreditCard, FaMoneyBillWave, FaExchangeAlt } from 'react-icons/fa';
-import { useTheme } from '../../context/ThemeContext';
+import { useReduxTheme } from '../../hooks/useReduxTheme';
 import { getPriceColorClass, getPriceBgColorClass } from '../../utils/priceColors';
 
 const PaymentSection = ({
@@ -9,7 +9,7 @@ const PaymentSection = ({
     setCustomerName, handleProcessSale, loading, saleItemsLength,
     formatPrice, convertPrice, exchangeRate
 }) => {
-    const { theme } = useTheme();
+    const { theme } = useReduxTheme();
     const primaryCurrency = exchangeRate?.fromCurrency || 'USD';
     const secondaryCurrency = exchangeRate?.toCurrency || 'VES';
     const rate = exchangeRate?.rate || 1;

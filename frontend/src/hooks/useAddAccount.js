@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { authService } from '../redux/authService';
 import AccountManager from '../services/AccountManager';
-import { useNotification } from '../context/NotificationContext';
+import { useReduxNotification } from './useReduxNotification';
 
 export const useAddAccount = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [message, setMessage] = useState('');
-  const { showNotification } = useNotification();
+  const { showNotification } = useReduxNotification();
 
   const addAccount = async (userData, provider = 'local') => {
     setIsLoading(true);

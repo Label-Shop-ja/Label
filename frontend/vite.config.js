@@ -16,8 +16,8 @@ export default defineConfig({
   ].filter(Boolean),
   server: {
     host: '0.0.0.0',
-    port: 5173,
-    strictPort: true,
+    port: 5174,
+    strictPort: false,
     open: false
   },
   build: {

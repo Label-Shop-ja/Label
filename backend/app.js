@@ -49,7 +49,7 @@ app.use(passport.session());
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? process.env.CORS_ORIGIN?.split(',') || [process.env.FRONTEND_URL]
-    : ['http://localhost:5173', /^http:\/\/192\.168\..+:5173$/],
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', /^http:\/\/192\.168\..+:517[3-5]$/],
   credentials: true,
   optionsSuccessStatus: 200 // Support legacy browsers
 };

@@ -1,9 +1,9 @@
 import React from 'react';
-import { useTheme } from '../../context/ThemeContext';
+import { useReduxTheme } from '../../hooks/useReduxTheme';
 import { Sun, Moon } from 'lucide-react';
 
 const ThemeSwitcher = () => {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useReduxTheme();
 
   const toggleTheme = () => {
     // Cambia entre 'dark' y 'light'

@@ -13,7 +13,7 @@ import {
 import AddEditProductFormUI from './AddEditProductForm';
 import ProductSearchStep from './ProductSearchStep';
 import { X } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { useReduxTheme } from '../../hooks/useReduxTheme';
 
 // Define defaultNewProductState aquí, ya que es la base para la inicialización
 const defaultNewProductState = {
@@ -54,7 +54,7 @@ const AddEditProductFormLogic = ({
     // Usa el contexto de moneda y desestructura TODO lo que necesitas de una vez
     // ¡NUEVA PROP: availableCurrencies!
     const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, convertPrice, formatPrice, baseCurrency: contextBaseCurrency, availableCurrencies } = currencyContext;
-    const { theme } = useTheme();
+    const { theme } = useReduxTheme();
 
     // Estados internos para la lógica del formulario
     const [productData, setProductData] = useState(initialProductData || defaultNewProductState);

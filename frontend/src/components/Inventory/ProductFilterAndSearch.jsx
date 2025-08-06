@@ -3,7 +3,7 @@ import React, { useRef, useState } from 'react';
 import { Search, XCircle, PlusSquare, Filter } from 'lucide-react';
 import { Menu } from '@headlessui/react';
 import { ChevronDown, BarChart2, AlertTriangle } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { useReduxTheme } from '../../hooks/useReduxTheme';
 
 const ProductFilterAndSearch = ({
     searchTerm, setSearchTerm,
@@ -19,7 +19,7 @@ const ProductFilterAndSearch = ({
 }) => {
     const debounceTimeoutRef = useRef(null);
     const [filtersVisible, setFiltersVisible] = useState(false);
-    const { theme } = useTheme();
+    const { theme } = useReduxTheme();
 
     const handleSearchTermChange = (e) => {
         setSearchTerm(e.target.value);

@@ -10,7 +10,8 @@ import UpdateAvailable from './components/Common/UpdateAvailable';
 import AccessModal from './components/Auth/AccessModal';
 import DashboardLayout from './components/DashboardLayout';
 import useAuth from './hooks/useAuth';
-import { useCurrency } from './context/CurrencyContext';
+import { useReduxCurrency } from './hooks/useReduxCurrency';
+import { useReduxTheme } from './hooks/useReduxTheme';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import ErrorBoundary from './components/Common/ErrorBoundary';
 import Toast from './components/Common/Toast';
@@ -58,8 +59,9 @@ function App() {
     
     const isSidebarExpanded = isSidebarPinned || isSidebarHovered;
 
-    const { isAuthenticated, isLoading: authLoading, verify } = useAuth();
-    const { loadingCurrency, currencyError } = useCurrency();
+    const { isAuthenticated, isLoading: authLoading, verify, user } = useAuth();
+    const { loadingCurrency, currencyError, fetchExchangeRate } = useReduxCurrency();
+    const { theme } = useReduxTheme();
     const location = useLocation();
 
     const handleOpenModal = () => {
@@ -125,14 +127,19 @@ function App() {
             prefetchResources(['/dashboard', '/inventario', '/pos']);
         }
         
-        // Auth verification
+        // Auth verification - Force verification if we have a token but no user
         const hasToken = localStorage.getItem('accessToken');
         const wasLoggedOut = localStorage.getItem('wasLoggedOut') === 'true';
         
-        if (!isAuthenticated && !wasLoggedOut && hasToken) {
+        if (hasToken && !wasLoggedOut && (!isAuthenticated || !user)) {
             verify();
         }
-    }, [verify, isAuthenticated]);
+        
+        // Initialize currency when user is authenticated
+        if (isAuthenticated && user) {
+            fetchExchangeRate();
+        }
+    }, [verify, isAuthenticated, user, fetchExchangeRate]);
 
     // Efecto para actualizar el título de la página dinámicamente
     useEffect(() => {

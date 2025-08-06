@@ -24,7 +24,7 @@ const BulkActionsBar = lazy(() => import('./BulkActionsBar'));
 const BulkEditCategoryModal = lazy(() => import('./BulkEditCategoryModal'));
 
 // NUEVAS IMPORTACIONES
-import { useCurrency } from '../../context/CurrencyContext'; // <-- ¡NUEVA LÍNEA!
+import { useReduxCurrency } from '../../hooks/useReduxCurrency'; // <-- ¡NUEVA LÍNEA!
 const ExchangeRateModal = lazy(() => import('../Currency/ExchangeRateModal'));   // <-- ¡NUEVA LÍNEA!
 
 // Íconos de Lucide React, si se usan directamente en este componente principal
@@ -121,7 +121,7 @@ function InventoryPage() {
     const [highStockAlerts, setHighStockAlerts] = useState([]);
 
     // Usa el contexto de moneda
-    const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, updateExchangeRate, convertPrice, formatPrice } = useCurrency(); // <-- ¡NUEVA LÍNEA!
+    const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, updateExchangeRate, convertPrice, formatPrice } = useReduxCurrency(); // <-- ¡NUEVA LÍNEA!
 
 
 
@@ -757,7 +757,7 @@ function InventoryPage() {
                         displayMessage={displayMessage}
                         unitOfMeasureOptions={unitOfMeasureOptions}
                         debounceTimeoutRef={debounceTimeoutRef}
-                        currencyContext={useCurrency()}
+                        currencyContext={{ exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, updateExchangeRate, convertPrice, formatPrice }}
                     />
                 </Suspense>
 
@@ -774,7 +774,7 @@ function InventoryPage() {
                         displayMessage={displayMessage}
                         unitOfMeasureOptions={unitOfMeasureOptions}
                         debounceTimeoutRef={debounceTimeoutRef}
-                        currencyContext={useCurrency()}
+                        currencyContext={{ exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, updateExchangeRate, convertPrice, formatPrice }}
                     />
                 </Suspense>
 

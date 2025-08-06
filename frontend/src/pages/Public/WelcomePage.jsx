@@ -6,7 +6,7 @@ import { loadSlim } from 'tsparticles-slim';
 import Footer from '../../components/Common/Footer';
 import { PackageCheck, TrendingUp, ShoppingCart, BarChart3, Users, ShieldCheck, ArrowDown, ArrowUp, Loader2, Zap } from 'lucide-react';
 import WelcomeHeader from '../../components/Public/WelcomeHeader';
-import { useTheme } from '../../context/ThemeContext';
+import { useReduxTheme } from '../../hooks/useReduxTheme';
 import { useSEO } from '../../hooks/useSEO';
 
 // 1. Definimos las "variantes" de animación para orquestar la entrada.
@@ -82,7 +82,7 @@ const WelcomePage = ({ onOpenModal, onOpenLegalModal, isModalOpening }) => {
   // Refs para apuntar a las secciones de la página
   const topSectionRef = useRef(null);
   const bottomSectionRef = useRef(null);
-  const { theme } = useTheme();
+  const { theme } = useReduxTheme();
 
   // Estado para controlar qué beneficio está expandido
   const [expandedBenefit, setExpandedBenefit] = useState(null);

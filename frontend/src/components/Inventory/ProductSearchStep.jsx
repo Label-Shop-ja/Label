@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axiosInstance from '../../api/axiosInstance';
-import { useTheme } from '../../context/ThemeContext';
+import { useReduxTheme } from '../../hooks/useReduxTheme';
 
 const ProductSearchStep = ({ onProductSelect, onNewProduct, searchValue, onSearchChange, onClose }) => {
-    const { theme } = useTheme();
+    const { theme } = useReduxTheme();
     const [searchResults, setSearchResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);

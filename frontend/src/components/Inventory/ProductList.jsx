@@ -1,17 +1,17 @@
 // src/components/Inventory/ProductList.jsx
 import React, { lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useCurrency } from '../../context/CurrencyContext';
+import { useReduxCurrency } from '../../hooks/useReduxCurrency';
 import ErrorBoundary from '../Common/ErrorBoundary';
-import { useNotification } from '../../context/NotificationContext';
+import { useReduxNotification } from '../../hooks/useReduxNotification';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from "../../api/axiosInstance";
 // Importación perezosa del componente ProductCard
 const ProductCard = lazy(() => import('./ProductCard'));
 
 const ProductList = ({ products, handleEditClick, confirmDeleteProduct, expandedProducts, toggleProductExpansion, loading, error, onEdit, onDelete, onViewDetails }) => {
-    const { exchangeRate, convertPrice, formatPrice } = useCurrency();
-    const { showNotification } = useNotification();
+    const { exchangeRate, convertPrice, formatPrice } = useReduxCurrency();
+    const { showNotification } = useReduxNotification();
     const { t } = useTranslation();
 
     const handleDelete = async (id) => {

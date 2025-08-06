@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useNotification } from '../../context/NotificationContext';
+import { useReduxNotification } from '../../hooks/useReduxNotification';
 
 
 
 export default function Toast() {
-    const { notification } = useNotification();
+    const { notification } = useReduxNotification();
     const location = useLocation();
     const [isVisible, setIsVisible] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);

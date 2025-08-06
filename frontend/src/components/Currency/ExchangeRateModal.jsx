@@ -1,8 +1,8 @@
 // C:\Proyectos\Label\frontend\src\components\Currency\ExchangeRateModal.jsx
 import React, { useState, useCallback } from 'react';
 import { X, Loader2, RefreshCw, DollarSign, TrendingUp, Clock } from 'lucide-react';
-import { useCurrency } from '../../context/CurrencyContext';
-import { useTheme } from '../../context/ThemeContext';
+import { useReduxCurrency } from '../../hooks/useReduxCurrency';
+import { useReduxTheme } from '../../hooks/useReduxTheme';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -30,14 +30,14 @@ const scrollbarStyles = `
 `;
 
 const ExchangeRateModal = ({ isOpen, onClose }) => {
-    const { theme } = useTheme();
+    const { theme } = useReduxTheme();
     const { 
         exchangeRate, 
         loadingCurrency, 
         currencyError, 
         updateExchangeRatesManually,
         formatPrice, 
-    } = useCurrency();
+    } = useReduxCurrency();
 
     const [isUpdatingRates, setIsUpdatingRates] = useState(false);
 

@@ -1,12 +1,12 @@
 // C:\Proyectos\Label\frontend\src\components\PosPage.jsx
 import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import axiosInstance from '../api/axiosInstance';
-import { useCurrency } from '../context/CurrencyContext';
-import { useNotification } from '../context/NotificationContext';
+import { useReduxCurrency } from '../hooks/useReduxCurrency';
+import { useReduxNotification } from '../hooks/useReduxNotification';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { useDebounce } from '../hooks/useDebounce';
-import { useTheme } from '../context/ThemeContext';
+import { useReduxTheme } from '../hooks/useReduxTheme';
 import ErrorBoundary from "./Common/ErrorBoundary";
 
 // Importaciones perezosas de los nuevos componentes
@@ -63,8 +63,8 @@ function PosPage() {
   const searchInputRef = useRef(null); // Ref para enfocar el campo de búsqueda
 
   // Usa el contexto de moneda y tema
-  const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, convertPrice, formatPrice } = useCurrency();
-  const { theme } = useTheme();
+  const { exchangeRate, loadingCurrency, currencyError, fetchExchangeRate, convertPrice, formatPrice } = useReduxCurrency();
+  const { theme } = useReduxTheme();
   const location = useLocation();
 
   // --- NUEVO: Debounce del término de búsqueda para no sobrecargar el servidor ---
@@ -116,7 +116,7 @@ function PosPage() {
   }, [saleItems]);
 
   // Función global para mostrar mensajes
-  const { showNotification } = useNotification();
+  const { showNotification } = useReduxNotification();
   const { t } = useTranslation();
   const displayMessage = useCallback((msg, type) => {
     showNotification(msg, type);
