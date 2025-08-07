@@ -6,7 +6,7 @@ const FinancialPage = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [newTransaction, setNewTransaction] = useState({
     description: '',
     amount: '',
@@ -308,7 +308,7 @@ const FinancialPage = () => {
         type: 'expense',
         category: '',
       });
-      setShowAddForm(false);
+      setShowAddModal(false);
     } catch (err) {
       setError('Error al añadir transacción');
     }
@@ -576,138 +576,16 @@ const FinancialPage = () => {
         <motion.button
           whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.4)" }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => setShowAddForm(!showAddForm)}
+          onClick={() => setShowAddModal(true)}
           className="relative overflow-hidden flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 hover:from-blue-700 hover:via-blue-800 hover:to-blue-900 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-500 group"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
-          <span className="relative text-sm">{showAddForm ? '✕' : '+'}</span>
-          <span className="relative text-sm">{showAddForm ? 'Cancelar' : 'Nueva Transacción'}</span>
+          <span className="relative text-sm">+</span>
+          <span className="relative text-sm">Nueva Transacción</span>
         </motion.button>
       </motion.div>
 
-      {/* Formulario Espectacular */}
-      <AnimatePresence>
-        {showAddForm && (
-          <motion.div
-            initial={{ opacity: 0, height: 0, scale: 0.95 }}
-            animate={{ opacity: 1, height: 'auto', scale: 1 }}
-            exit={{ opacity: 0, height: 0, scale: 0.95 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="bg-gradient-to-br from-deep-night-blue/80 to-deep-night-blue/60 p-8 rounded-2xl border border-neutral-gray-200/20 backdrop-blur-lg shadow-2xl"
-          >
-            <motion.h3 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-3xl font-bold text-white mb-8 flex items-center gap-3"
-            >
-              <span className="text-4xl">✨</span>
-              Añadir Nueva Transacción
-            </motion.h3>
-            <form onSubmit={handleAddTransaction} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <label className="block text-neutral-light text-sm font-bold mb-2">📝 Descripción</label>
-                <input
-                  type="text"
-                  name="description"
-                  value={newTransaction.description}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Venta de producto, Compra de materiales..."
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                  required
-                />
-              </motion.div>
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <label className="block text-neutral-light text-sm font-bold mb-2">💰 Monto</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    name="amount"
-                    value={newTransaction.amount === '' ? '' : newTransaction.amount.toFixed(2)}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-right font-mono text-lg"
-                    required
-                  />
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400 text-sm">
-                    $
-                  </div>
-                  <div className="absolute right-3 bottom-1 text-xs text-slate-400 dark:text-slate-500">
-                    Escribe sin punto decimal
-                  </div>
-                </div>
-              </motion.div>
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <label className="block text-neutral-light text-sm font-bold mb-2">🏷️ Tipo</label>
-                <select
-                  name="type"
-                  value={newTransaction.type}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                >
-                  <option value="expense">💸 Gasto</option>
-                  <option value="income">💰 Ingreso</option>
-                </select>
-              </motion.div>
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <label className="block text-neutral-light text-sm font-bold mb-2">📁 Categoría</label>
-                <input
-                  type="text"
-                  name="category"
-                  value={newTransaction.category}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Ventas, Gastos operativos, Marketing..."
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                  required
-                />
-              </motion.div>
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="md:col-span-2 flex gap-4 justify-end"
-              >
-                <motion.button
-                  type="button"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowAddForm(false)}
-                  className="px-6 py-3 bg-neutral-gray-200/20 hover:bg-neutral-gray-200/30 text-neutral-light font-semibold rounded-xl transition-all duration-300"
-                >
-                  Cancelar
-                </motion.button>
-                <motion.button
-                  type="submit"
-                  whileHover={{ scale: 1.02, boxShadow: "0 10px 30px rgba(220, 38, 127, 0.4)" }}
-                  whileTap={{ scale: 0.98 }}
-                  className="relative overflow-hidden px-8 py-3 bg-gradient-to-r from-copper-rose-accent to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-xl shadow-lg transition-all duration-300 group"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                  <span className="relative flex items-center gap-2">
-                    <span>✨</span>
-                    Guardar Transacción
-                  </span>
-                </motion.button>
-              </motion.div>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* Historial de Transacciones */}
       <motion.div
@@ -1250,6 +1128,115 @@ const FinancialPage = () => {
                   )}
                 </div>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Agregar Transacción */}
+      <AnimatePresence>
+        {showAddModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowAddModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl shadow-2xl border border-slate-700/50 max-w-2xl w-full backdrop-blur-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-700/50">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-white text-xl font-bold">✨</span>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white">Nueva Transacción</h3>
+                  <p className="text-slate-400 text-sm">Registrar ingreso o gasto</p>
+                </div>
+              </div>
+              
+              <form onSubmit={handleAddTransaction} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-slate-300 text-sm font-medium mb-2">📝 Descripción</label>
+                    <input
+                      type="text"
+                      name="description"
+                      value={newTransaction.description}
+                      onChange={handleInputChange}
+                      placeholder="Ej: Venta de producto, Compra de materiales..."
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 text-sm font-medium mb-2">💰 Monto</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        name="amount"
+                        value={newTransaction.amount === '' ? '' : newTransaction.amount.toFixed(2)}
+                        onChange={handleInputChange}
+                        placeholder="0.00"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-right font-mono text-lg"
+                        required
+                      />
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm">
+                        $
+                      </div>
+                      <div className="absolute right-3 bottom-1 text-xs text-slate-500">
+                        Sin punto decimal
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 text-sm font-medium mb-2">🏷️ Tipo</label>
+                    <select
+                      name="type"
+                      value={newTransaction.type}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    >
+                      <option value="expense">💸 Gasto</option>
+                      <option value="income">💰 Ingreso</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 text-sm font-medium mb-2">📁 Categoría</label>
+                    <input
+                      type="text"
+                      name="category"
+                      value={newTransaction.category}
+                      onChange={handleInputChange}
+                      placeholder="Ej: Ventas, Gastos operativos, Marketing..."
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="flex-1 px-6 py-3 bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 text-slate-300 font-medium rounded-lg transition-all duration-200"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Guardar Transacción
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}

@@ -1,5 +1,11 @@
 {
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev": "concurrently \"npm run server --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev:backend": "npm run server --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }
