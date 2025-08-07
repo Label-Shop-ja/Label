@@ -13,6 +13,7 @@ import {
     getVariantInventoryReport,
     getProductFilterOptions,
     searchGlobalProducts,
+    getProductChangeLogs,
 } from '../controllers/productController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import Product from '../models/productModel.js';
@@ -44,6 +45,9 @@ router.put('/bulk-update', protect, updateMultipleProducts);
 // NUEVA RUTA: Búsqueda global de productos
 router.get('/global-search', protect, searchGlobalProducts);
 
+
+// Ruta para obtener historial de cambios de un producto
+router.get('/:id/changes', protect, getProductChangeLogs);
 
 // Ruta para un producto específico por su ID.
 router.route('/:id')

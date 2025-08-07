@@ -26,6 +26,7 @@ const BulkEditCategoryModal = lazy(() => import('./BulkEditCategoryModal'));
 // NUEVAS IMPORTACIONES
 import { useReduxCurrency } from '../../hooks/useReduxCurrency'; // <-- ¡NUEVA LÍNEA!
 const ExchangeRateModal = lazy(() => import('../Currency/ExchangeRateModal'));   // <-- ¡NUEVA LÍNEA!
+const ProductDetailsModal = lazy(() => import('./ProductDetailsModal')); // <-- ¡NUEVA LÍNEA!
 
 // Íconos de Lucide React, si se usan directamente en este componente principal
 import { Loader2, Upload } from 'lucide-react';
@@ -77,6 +78,9 @@ function InventoryPage() {
     // Estado para el reporte de inventario por variante
     const [variantReport, setVariantReport] = useState([]);
     const [showVariantReport, setShowVariantReport] = useState(false);
+    // Estado para el modal de detalles del producto
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [productDetails, setProductDetails] = useState(null);
 
     // Estados para filtros y paginación
     const [searchTerm, setSearchTerm] = useState('');
@@ -219,6 +223,12 @@ function InventoryPage() {
         setLocalError('');
         setSuccessMessage('');
     }, []); // La dependencia de generateSkuFromName se elimina porque ahora es una función estable en el scope del módulo.
+
+    // Función para manejar la vista de detalles del producto
+    const handleViewDetails = useCallback((product) => {
+        setProductDetails(product);
+        setShowDetailsModal(true);
+    }, []);
 
     // Función para alternar la visibilidad de las variantes de un producto
     const toggleProductExpansion = useCallback((productId) => {
@@ -383,7 +393,9 @@ function InventoryPage() {
         setShowBulkEditCategoryModal(false);
         setShowBulkConfirmModal(false);
         setShowConfirmModal(false);
+        setShowDetailsModal(false);
         setProductToDelete(null);
+        setProductDetails(null);
         setLocalError('');
         setSuccessMessage('');
         // Reiniciar los estados del formulario para la próxima apertura del modal
@@ -727,6 +739,7 @@ function InventoryPage() {
                                 confirmDeleteProduct={confirmDeleteProduct}
                                 expandedProducts={expandedProducts}
                                 toggleProductExpansion={toggleProductExpansion}
+                                onViewDetails={handleViewDetails}
                             />
                         ) : (
                             <ProductTable
@@ -739,6 +752,7 @@ function InventoryPage() {
                                 selectedProducts={selectedProducts}
                                 onProductSelect={handleProductSelect}
                                 onSelectAll={handleSelectAll}
+                                onViewDetails={handleViewDetails}
                             />
                         )}
                     </Suspense>
@@ -778,6 +792,14 @@ function InventoryPage() {
                     />
                 </Suspense>
 
+                {/* Modal de Detalles del Producto */}
+                <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"><Loader2 size={48} className="animate-spin text-action-blue" /></div>}>
+                    <ProductDetailsModal
+                        isOpen={showDetailsModal}
+                        onClose={closeModal}
+                        product={productDetails}
+                    />
+                </Suspense>
 
                 {/* Reporte de Inventario por Variante */}
                 <Suspense fallback={<div className="mt-12 bg-deep-night-blue p-8 rounded-lg shadow-2xl border border-action-blue-light h-64 flex items-center justify-center text-neutral-light">Cargando reporte...</div>}>

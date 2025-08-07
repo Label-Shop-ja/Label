@@ -1,13 +1,13 @@
 // C:\Proyectos\Label\frontend\src\components\Inventory\ProductTable.jsx
 import React, { lazy, Suspense } from 'react';
-import { Edit, Trash2, Package, PackageCheck, PackageX } from 'lucide-react';
+import { Edit, Trash2, Package, PackageCheck, PackageX, Info } from 'lucide-react';
 import { useReduxCurrency } from '../../hooks/useReduxCurrency';
 import { Menu, Transition } from '@headlessui/react';
 import { MoreVertical } from 'lucide-react';
 
 const SortableHeader = lazy(() => import('./SortableHeader'));
 
-function ProductTable({ products, handleEditClick, confirmDeleteProduct, sortBy, sortOrder, onSort, selectedProducts, onProductSelect, onSelectAll }) {
+function ProductTable({ products, handleEditClick, confirmDeleteProduct, sortBy, sortOrder, onSort, selectedProducts, onProductSelect, onSelectAll, onViewDetails }) {
     const { formatPrice } = useReduxCurrency();
 
     const getStockIndicator = (stock, reorderThreshold) => {
@@ -127,6 +127,18 @@ function ProductTable({ products, handleEditClick, confirmDeleteProduct, sortBy,
                                             >
                                                 <Menu.Items className="absolute right-0 z-10 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                                     <div className="py-1">
+                                                        <Menu.Item>
+                                                          {({ active }) => (
+                                                            <button
+                                                              onClick={() => onViewDetails?.(product)}
+                                                              className={`${
+                                                                active ? 'bg-blue-100 text-blue-600' : 'text-text-base'
+                                                              } flex items-center w-full px-4 py-2 text-sm gap-2`}
+                                                            >
+                                                              <Info size={16} /> Detalles
+                                                            </button>
+                                                          )}
+                                                        </Menu.Item>
                                                         <Menu.Item>
                                                           {({ active }) => (
                                                             <button

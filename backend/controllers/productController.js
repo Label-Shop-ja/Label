@@ -1,6 +1,7 @@
 // productController.js
 import asyncHandler from 'express-async-handler';
 import { productService } from '../services/productService.js';
+import { logProductChange, compareProductChanges, getProductChangeLogs } from '../services/productChangeLogService.js';
 
 // @desc    Obtener todos los productos del usuario con filtros, paginación y ordenamiento
 // @route   GET /api/products
@@ -30,11 +31,32 @@ const createProduct = asyncHandler(async (req, res) => {
 // @route   PUT /api/products/:id
 // @access  Private
 const updateProduct = asyncHandler(async (req, res) => {
+    const { changeReason, changeType, ...productData } = req.body;
+    
+    // Get original product for comparison
+    const originalProduct = await productService.getProductById(req.params.id, req.user.id);
+    
     const updatedProduct = await productService.updateProduct(
         req.params.id,
-        req.body,
+        productData,
         req.user.id
     );
+    
+    // Log the change if reason is provided
+    if (changeReason) {
+        const changes = compareProductChanges(originalProduct, updatedProduct);
+        await logProductChange(
+            req.user.id,
+            req.params.id,
+            { reason: changeReason, changeType: changeType || 'UPDATE' },
+            changes,
+            {
+                userAgent: req.get('User-Agent'),
+                ipAddress: req.ip,
+            }
+        );
+    }
+    
     res.status(200).json(updatedProduct);
 });
 
@@ -155,6 +177,14 @@ const searchGlobalProducts = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Obtener historial de cambios de un producto
+// @route   GET /api/products/:id/changes
+// @access  Private
+const getProductChangeLogsController = asyncHandler(async (req, res) => {
+    const logs = await getProductChangeLogs(req.params.id);
+    res.status(200).json(logs);
+});
+
 export {
     getProducts,
     getProductById,
@@ -168,4 +198,5 @@ export {
     getVariantInventoryReport,
     getProductFilterOptions,
     searchGlobalProducts,
+    getProductChangeLogsController as getProductChangeLogs,
 };
