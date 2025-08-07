@@ -1,14 +1,14 @@
 // C:\Proyectos\Label\frontend\src\components\Inventory\ProductTable.jsx
 import React, { lazy, Suspense } from 'react';
 import { Edit, Trash2, Package, PackageCheck, PackageX } from 'lucide-react';
-import { useCurrency } from '../../context/CurrencyContext';
+import { useReduxCurrency } from '../../hooks/useReduxCurrency';
 import { Menu, Transition } from '@headlessui/react';
 import { MoreVertical } from 'lucide-react';
 
 const SortableHeader = lazy(() => import('./SortableHeader'));
 
 function ProductTable({ products, handleEditClick, confirmDeleteProduct, sortBy, sortOrder, onSort, selectedProducts, onProductSelect, onSelectAll }) {
-    const { formatPrice } = useCurrency();
+    const { formatPrice } = useReduxCurrency();
 
     const getStockIndicator = (stock, reorderThreshold) => {
         if (stock <= 0) {

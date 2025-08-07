@@ -2,7 +2,7 @@ import React, { useState, lazy, Suspense } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { DollarSign, TrendingUp } from 'lucide-react';
 import ExchangeRateDisplay from '../Currency/ExchangeRateDisplay';
-import { useCurrency } from '../../context/CurrencyContext';
+import { useReduxCurrency } from '../../hooks/useReduxCurrency';
 const ExchangeRateModal = lazy(() => import('../Currency/ExchangeRateModal'));
 
 const breadcrumbNameMap = {
@@ -23,7 +23,7 @@ const Breadcrumbs = () => {
   const [showExchangeRateModal, setShowExchangeRateModal] = useState(false);
 
   // Obtén la tasa desde el contexto
-  const { exchangeRate, loadingCurrency, currencyError, formatPrice } = useCurrency();
+  const { exchangeRate, loadingCurrency, currencyError, formatPrice } = useReduxCurrency();
 
   if (pathnames.length === 0 || pathnames[0] !== 'dashboard') {
     return null;

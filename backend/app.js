@@ -2,8 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
+import { createHelmet, mongoSanitizer, additionalSecurity } from './middleware/securityMiddleware.js';
+import { apiLimiter } from './middleware/rateLimiters.js';
+import { requestLogger, securityLogger } from './middleware/loggingMiddleware.js';
 
-// Cargar las variables de entorno ANTES de cualquier otro import que las necesite
+// Load environment variables BEFORE any other imports that need them
 dotenv.config();
 
 
@@ -18,6 +21,7 @@ import clientRoutes from './routes/clientRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import healthRoutes from './routes/healthRoutes.js';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import passport from 'passport';
@@ -25,7 +29,12 @@ import './config/passport-setup.js'; // Ahora sí puede leer las variables de en
 
 const app = express();
 
-// Configuración de Express Session (requerido por Passport)
+// Security middleware - Apply early in the middleware stack
+app.use(createHelmet()); // Security headers
+app.use(mongoSanitizer); // Prevent NoSQL injection
+app.use(additionalSecurity); // Custom security headers
+
+// Express Session configuration (required by Passport)
 app.use(
   session({
     secret: process.env.SESSION_SECRET, // Una clave secreta para firmar la cookie de sesión
@@ -36,15 +45,13 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-// Configuración de CORS
-// Opciones de CORS para mayor seguridad en producción
+// CORS configuration for production and development
 const corsOptions = {
-  // En producción, solo permite peticiones desde la URL del frontend definida en las variables de entorno.
-  // En desarrollo, permite localhost y las IPs locales comunes para facilitar las pruebas.
   origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : ['http://localhost:5173', /^http:\/\/192\.168\..+:5173$/],
+    ? process.env.CORS_ORIGIN?.split(',') || [process.env.FRONTEND_URL]
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', /^http:\/\/192\.168\..+:517[3-5]$/],
   credentials: true,
+  optionsSuccessStatus: 200 // Support legacy browsers
 };
 
 app.use(cors(corsOptions));
@@ -54,6 +61,13 @@ app.use(express.json());
 
 // Middleware para parsear las cookies de las peticiones
 app.use(cookieParser());
+
+// Logging middleware
+app.use(requestLogger);
+app.use(securityLogger);
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
 
 // --- Montaje de las rutas ---
 app.use('/api/auth', authRoutes);
@@ -66,6 +80,9 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/upload', uploadRoutes);
+
+// Health check routes (no rate limiting)
+app.use('/', healthRoutes);
 
 // --- Middlewares de manejo de errores (deben ir al final) ---
 app.use(notFound);

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useCurrency } from '../../context/CurrencyContext';
+import { useReduxCurrency } from '../../hooks/useReduxCurrency';
 import { toast } from 'react-toastify';
 import { PlusCircle, Edit, Trash2, Loader2, Save, XCircle, AlertTriangle } from 'lucide-react';
 import ErrorBoundary from "../../components/Common/ErrorBoundary";
 
 // Un pequeño componente pa' mostrar la tasa oficial y que el usuario se guíe
 const OfficialRateHelper = ({ from, to }) => {
-    const { exchangeRate, formatPrice } = useCurrency();
+    const { exchangeRate, formatPrice } = useReduxCurrency();
     const [rate, setRate] = useState(null);
 
     useEffect(() => {

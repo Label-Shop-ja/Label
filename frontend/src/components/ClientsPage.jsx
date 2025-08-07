@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import { FaUserPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import ErrorBoundary from "./Common/ErrorBoundary";
-import { useNotification } from '../context/NotificationContext';
+import { useReduxNotification } from '../hooks/useReduxNotification';
 import { useTranslation } from 'react-i18next';
 
 const ClientsPage = () => {
@@ -18,7 +18,7 @@ const ClientsPage = () => {
     address: '',
   });
 
-  const { showNotification } = useNotification();
+  const { showNotification } = useReduxNotification();
   const { t } = useTranslation();
 
   // --- Cargar clientes al montar el componente ---

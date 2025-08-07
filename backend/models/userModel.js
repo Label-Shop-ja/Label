@@ -75,6 +75,13 @@ UserSchema.statics.createUserWithDefaults = async function (userData) {
 };
 
 
+// Índices optimizados para consultas de usuarios
+UserSchema.index({ email: 1 }, { unique: true }); // Búsqueda por email (ya existe unique)
+UserSchema.index({ googleId: 1 }); // Login con Google OAuth
+UserSchema.index({ passwordResetToken: 1 }); // Reset de contraseña
+UserSchema.index({ createdAt: -1 }); // Usuarios recientes
+UserSchema.index({ role: 1 }); // Filtro por rol
+
 const User = mongoose.model('User', UserSchema);
 
 export default User;

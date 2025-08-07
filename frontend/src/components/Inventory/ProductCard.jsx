@@ -1,13 +1,13 @@
 // src/components/Inventory/ProductCard.jsx
 import React from 'react';
 import { Edit, Trash2, MoreVertical, Info, BadgeDollarSign, TrendingUp, Package2, AlertTriangle } from 'lucide-react';
-import { useCurrency } from '../../context/CurrencyContext';
-import { useTheme } from '../../context/ThemeContext';
+import { useReduxCurrency } from '../../hooks/useReduxCurrency';
+import { useReduxTheme } from '../../hooks/useReduxTheme';
 import { Menu, Transition } from '@headlessui/react';
 
 const ProductCard = ({ product, handleEditClick, confirmDeleteProduct, isExpanded, toggleProductExpansion, onViewDetails }) => {
-    const { exchangeRate, convertPrice, formatPrice } = useCurrency();
-    const { theme } = useTheme();
+    const { exchangeRate, convertPrice, formatPrice } = useReduxCurrency();
+    const { theme } = useReduxTheme();
 
     // Mostrar precios en su moneda original (incluyendo precios auto-calculados)
     const salePrice = product.price;

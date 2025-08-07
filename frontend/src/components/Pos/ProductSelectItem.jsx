@@ -1,11 +1,9 @@
 // C:\Proyectos\Label\frontend\src\components\Pos\ProductSelectItem.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Info, Plus, MoreHorizontal } from 'lucide-react';
-import { getPriceColorClass } from '../../utils/priceColors';
+import { Info, MoreHorizontal } from 'lucide-react';
 
 const ProductSelectItem = ({ product, onClick, onAddClick, formatPrice, convertPrice, exchangeRate }) => {
     const [isFlashing, setIsFlashing] = useState(false);
-    const [isButtonPressed, setIsButtonPressed] = useState(false);
     const [showDots, setShowDots] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const containerRef = useRef(null);
@@ -33,8 +31,9 @@ const ProductSelectItem = ({ product, onClick, onAddClick, formatPrice, convertP
     const displayStock = product.variants && product.variants.length > 0 ? product.totalStock : product.stock;
 
     const handleClick = () => {
-        setShowDots(true);
-        onClick();
+        onAddClick();
+        setIsFlashing(true);
+        setTimeout(() => setIsFlashing(false), 300);
     };
 
     const handleDotsClick = (e) => {
@@ -44,8 +43,6 @@ const ProductSelectItem = ({ product, onClick, onAddClick, formatPrice, convertP
 
     const handleButtonClick = (e) => {
         e.stopPropagation();
-        setIsButtonPressed(true);
-        setTimeout(() => setIsButtonPressed(false), 150);
         setIsFlashing(true);
         setTimeout(() => setIsFlashing(false), 300);
         onAddClick();
@@ -55,98 +52,101 @@ const ProductSelectItem = ({ product, onClick, onAddClick, formatPrice, convertP
         <>
         <div
             ref={containerRef}
-            className={`bg-surface p-4 rounded-lg shadow flex justify-between items-center border border-primary/20 cursor-pointer hover:bg-surface-secondary transition-all duration-200 relative ${
-                isFlashing ? 'bg-primary/20 scale-105' : ''
+            className={`group relative bg-gradient-to-br from-dark-charcoal to-neutral-gray-900 border border-neutral-gray-700/50 rounded-2xl shadow-xl cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-[1.01] hover:border-primary/40 hover:from-dark-charcoal hover:to-neutral-gray-800 overflow-hidden ${
+                isFlashing ? 'bg-primary/20 scale-105 shadow-2xl border-primary' : ''
             }`}
             onClick={handleClick}
+            onMouseEnter={() => setShowDots(true)}
+            onMouseLeave={() => setShowDots(false)}
         >
-            {/* Sección de Imagen */}
-            <div className="w-20 h-20 flex-shrink-0 bg-surface-secondary rounded-md overflow-hidden mr-4">
-                <img
-                    src={product.imageUrl || (product.variants && product.variants.length > 0 && product.variants[0].imageUrl) || 'https://placehold.co/100x100/2D3748/F8F8F2?text=Sin+Img'}
-                    alt={product.name}
-                    className="object-cover w-full h-full"
-                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/100x100/2D3748/F8F8F2?text=Error'; }}
-                />
-            </div>
+            {/* Overlay de hover */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/8 to-secondary/8 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            
+            <div className="relative p-5 flex items-center gap-4">
+                {/* Imagen moderna */}
+                <div className="w-20 h-20 bg-gradient-to-br from-neutral-gray-800 to-neutral-gray-900 rounded-xl overflow-hidden shadow-lg ring-2 ring-neutral-gray-700/50 flex-shrink-0">
+                    <img
+                        src={product.imageUrl || (product.variants && product.variants.length > 0 && product.variants[0].imageUrl) || 'https://placehold.co/120x120/374151/9CA3AF?text=📦'}
+                        alt={product.name}
+                        className="object-cover w-full h-full transition-all duration-300 group-hover:scale-110 group-hover:brightness-110"
+                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/120x120/374151/9CA3AF?text=❌'; }}
+                    />
+                </div>
 
-            {/* Sección de Info del Producto */}
-            <div className="flex-1 min-w-0">
-                <p className="text-xl font-semibold text-text-base truncate">{product.name}</p>
-                {product.variants && product.variants.length > 0 ? (
-                    <p className="text-sm text-text-muted">
-                        Producto con {product.variants.length} variantes
-                        <span className="relative inline-block ml-1 group">
-                            <Info size={14} className="text-primary cursor-pointer" />
-                            <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 w-48 p-2 bg-surface-secondary text-xs text-text-base rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-normal text-center shadow-lg">
-                                Haz click para seleccionar una variante específica.
-                            </span>
-                        </span>
-                    </p>
-                ) : (
-                    <p className="text-sm text-text-muted">{product.category} - SKU: {product.sku}</p>
-                )}
-                <p className="text-sm text-text-muted">Stock: {displayStock} {product.unitOfMeasure}</p>
-            </div>
-
-            {/* Sección de Precio */}
-            <div className="flex flex-col items-end ml-4 flex-shrink-0 relative pb-6">
-                <p className={`text-2xl font-bold ${getPriceColorClass(priceInPrimary)}`}>{formatPrice(priceInPrimary, primaryCurrency)}</p>
-                {primaryCurrency !== secondaryCurrency && exchangeRate && (
-                    <div className="relative inline-block">
-                        <p className={`text-sm ${getPriceColorClass(priceInSecondary)}`}>
-                            {formatPrice(priceInSecondary, secondaryCurrency)}
+                {/* Info del producto mejorada */}
+                <div className="flex-1 min-w-0 space-y-2">
+                    <div>
+                        <h3 className="text-xl font-semibold text-neutral-light leading-tight group-hover:text-primary transition-colors duration-200">
+                            {product.name}
+                        </h3>
+                        <p className="text-sm text-neutral-gray-400 mt-0.5 font-mono">
+                            SKU: {product.sku}
                         </p>
-                        {/* Botones + y ... */}
-                        {showDots && (
-                            <div className="absolute top-full left-0 mt-4 flex gap-2">
-                                <div 
-                                    className={`w-5 h-5 border border-white/30 bg-gradient-to-br from-cyan-400/20 to-cyan-600/10 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-all duration-150 group ${
-                                        isButtonPressed ? 'scale-75 bg-cyan-500/30' : 'hover:scale-110 hover:border-white/50 hover:from-cyan-400/30 hover:to-cyan-600/20'
-                                    }`}
-                                    onClick={handleButtonClick}
-                                    title="Agregar producto"
-                                >
-                                    <Plus size={12} className="text-white" />
-                                    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-surface-secondary text-xs text-text-base rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-20">
-                                        Agregar producto
-                                    </span>
-                                </div>
-                                <div 
-                                    className="w-5 h-5 bg-gray-600/80 backdrop-blur-sm rounded flex items-center justify-center cursor-pointer hover:bg-gray-500/80 transition-colors"
-                                    onClick={handleDotsClick}
-                                    title="Ver detalles"
-                                >
-                                    <MoreHorizontal size={10} className="text-white" />
-                                </div>
-                            </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {product.variants && product.variants.length > 0 ? (
+                            <span className="bg-gradient-to-r from-secondary to-secondary/80 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                                {product.variants.length} variantes
+                            </span>
+                        ) : (
+                            <span className="bg-neutral-gray-800 text-neutral-gray-300 text-xs font-medium px-3 py-1 rounded-lg border border-neutral-gray-700">
+                                {product.category}
+                            </span>
+                        )}
+                        
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border ${
+                            displayStock > 10 
+                                ? 'bg-success/10 text-success border-success/30' 
+                                : displayStock > 0 
+                                    ? 'bg-warning/10 text-warning border-warning/30'
+                                    : 'bg-error/10 text-error border-error/30'
+                        }`}>
+                            <div className={`w-2.5 h-2.5 rounded-full ${
+                                displayStock > 10 ? 'bg-success' 
+                                : displayStock > 0 ? 'bg-warning' : 'bg-error'
+                            }`}></div>
+                            <span>Stock: {displayStock}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sección de precio y acción */}
+                <div className="flex flex-col items-end gap-3 flex-shrink-0">
+                    <div className="text-right bg-gradient-to-br from-primary/10 to-secondary/10 px-4 py-2 rounded-xl border border-primary/20">
+                        <p className="text-xl font-bold text-primary leading-none">
+                            {formatPrice(priceInPrimary, primaryCurrency)}
+                        </p>
+                        {primaryCurrency !== secondaryCurrency && exchangeRate && (
+                            <p className="text-sm text-secondary font-medium mt-0.5">
+                                {formatPrice(priceInSecondary, secondaryCurrency)}
+                            </p>
                         )}
                     </div>
-                )}
-                {/* Si no hay precio secundario, mostrar botones debajo del precio principal */}
-                {(!primaryCurrency || primaryCurrency === secondaryCurrency || !exchangeRate) && showDots && (
-                    <div className="relative inline-block">
-                        <div className="absolute top-full left-0 mt-4 flex gap-2">
-                            <div 
-                                className={`w-5 h-5 border border-white/30 bg-gradient-to-br from-cyan-400/20 to-cyan-600/10 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-all duration-150 group ${
-                                    isButtonPressed ? 'scale-75 bg-cyan-500/30' : 'hover:scale-110 hover:border-white/50 hover:from-cyan-400/30 hover:to-cyan-600/20'
-                                }`}
-                                onClick={handleButtonClick}
-                                title="Agregar producto"
-                            >
-                                <Plus size={12} className="text-white" />
-                                <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-surface-secondary text-xs text-text-base rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-20">
-                                    Agregar producto
-                                </span>
-                            </div>
-                            <div 
-                                className="w-5 h-5 bg-gray-600/80 backdrop-blur-sm rounded flex items-center justify-center cursor-pointer hover:bg-gray-500/80 transition-colors"
-                                onClick={handleDotsClick}
-                                title="Ver detalles"
-                            >
-                                <MoreHorizontal size={10} className="text-white" />
-                            </div>
-                        </div>
+                    
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleButtonClick(e);
+                        }}
+                        className="px-4 py-2.5 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 min-w-[100px] justify-center"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Agregar
+                    </button>
+                </div>
+
+                {/* Botón de detalles */}
+                {showDots && (
+                    <div 
+                        className="absolute top-2 right-2 w-6 h-6 bg-neutral-gray-800 rounded-full flex items-center justify-center cursor-pointer hover:bg-neutral-gray-700 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                        onClick={handleDotsClick}
+                        title="Ver detalles"
+                    >
+                        <MoreHorizontal size={12} className="text-neutral-light" />
                     </div>
                 )}
             </div>
@@ -154,23 +154,90 @@ const ProductSelectItem = ({ product, onClick, onAddClick, formatPrice, convertP
             
         {/* Product Details Modal */}
         {showModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-                <div className="bg-surface p-6 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-                    <h3 className="text-xl font-bold mb-4">{product.name}</h3>
-                    <div className="space-y-2 text-sm">
-                        <p><strong>Category:</strong> {product.category}</p>
-                        <p><strong>Stock:</strong> {displayStock}</p>
-                        <p><strong>Price:</strong> {formatPrice(priceInPrimary, primaryCurrency)}</p>
-                        {product.description && <p><strong>Description:</strong> {product.description}</p>}
-                        {product.brand && <p><strong>Brand:</strong> {product.brand}</p>}
-                        {product.sku && <p><strong>SKU:</strong> {product.sku}</p>}
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+                <div className="bg-dark-charcoal backdrop-blur-xl p-8 rounded-3xl max-w-lg w-full shadow-2xl border border-neutral-gray-700 transform transition-all duration-300 scale-100" onClick={(e) => e.stopPropagation()}>
+                    {/* Header del modal */}
+                    <div className="flex items-start gap-4 mb-6">
+                        <div className="w-20 h-20 bg-neutral-gray-800 rounded-2xl overflow-hidden shadow-lg ring-2 ring-neutral-gray-600">
+                            <img
+                                src={product.imageUrl || 'https://placehold.co/100x100/2D3748/F8F8F2?text=📦'}
+                                alt={product.name}
+                                className="object-cover w-full h-full"
+                                onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/100x100/2D3748/F8F8F2?text=❌'; }}
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-2xl font-bold text-neutral-light mb-2">{product.name}</h3>
+                            <div className="flex items-center gap-2">
+                                <span className="bg-primary/20 text-primary text-sm font-medium px-3 py-1 rounded-full">
+                                    {product.category}
+                                </span>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setShowModal(false)}
+                            className="w-8 h-8 bg-neutral-gray-800 hover:bg-neutral-gray-700 rounded-full flex items-center justify-center transition-colors"
+                        >
+                            <svg className="w-4 h-4 text-neutral-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
-                    <button 
-                        onClick={() => setShowModal(false)}
-                        className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/80"
-                    >
-                        Close
-                    </button>
+                    
+                    {/* Contenido del modal */}
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-neutral-gray-800 p-4 rounded-xl">
+                                <p className="text-sm text-neutral-gray-400 mb-1">Stock Disponible</p>
+                                <p className="text-xl font-bold text-neutral-light">{displayStock} {product.unitOfMeasure}</p>
+                            </div>
+                            <div className="bg-primary/10 p-4 rounded-xl">
+                                <p className="text-sm text-neutral-gray-400 mb-1">Precio</p>
+                                <p className="text-xl font-bold text-primary">{formatPrice(priceInPrimary, primaryCurrency)}</p>
+                            </div>
+                        </div>
+                        
+                        {product.description && (
+                            <div className="bg-neutral-gray-800 p-4 rounded-xl">
+                                <p className="text-sm text-neutral-gray-400 mb-2">Descripción</p>
+                                <p className="text-neutral-light">{product.description}</p>
+                            </div>
+                        )}
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            {product.brand && (
+                                <div>
+                                    <p className="text-neutral-gray-400 mb-1">Marca</p>
+                                    <p className="font-medium text-neutral-light">{product.brand}</p>
+                                </div>
+                            )}
+                            {product.sku && (
+                                <div>
+                                    <p className="text-neutral-gray-400 mb-1">SKU</p>
+                                    <p className="font-mono text-neutral-light">{product.sku}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* Footer del modal */}
+                    <div className="flex gap-3 mt-8">
+                        <button 
+                            onClick={() => setShowModal(false)}
+                            className="flex-1 px-6 py-3 bg-neutral-gray-800 text-neutral-light rounded-xl font-medium hover:bg-neutral-gray-700 transition-colors"
+                        >
+                            Cerrar
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setShowModal(false);
+                                onAddClick();
+                            }}
+                            className="flex-1 px-6 py-3 bg-primary hover:bg-primary/80 text-white rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        >
+                            Agregar al Carrito
+                        </button>
+                    </div>
                 </div>
             </div>
         )}

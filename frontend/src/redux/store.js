@@ -1,14 +1,18 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './authSlice';
+import productReducer from './productSlice';
+import currencyReducer from './currencySlice';
+import themeReducer from './themeSlice';
+import notificationReducer from './notificationSlice';
 import { setupAxiosInterceptors } from '../api/axiosInstance';
-import productReducer from './productSlice'; // 1. Importar el nuevo reducer
 
 const store = configureStore({
   reducer: {
-    // This is where authReducer is initialized.
     auth: authReducer,
-    // You can add other reducers here in the future.
-    products: productReducer, // 2. Añadirlo a la tienda
+    products: productReducer,
+    currency: currencyReducer,
+    theme: themeReducer,
+    notification: notificationReducer,
   },
 });
 

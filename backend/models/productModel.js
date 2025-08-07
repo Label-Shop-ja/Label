@@ -282,10 +282,16 @@ const productSchema = mongoose.Schema(
     }
 );
 
-// Índices para optimizar las búsquedas
-productSchema.index({ user: 1 }); // Para filtrar productos por usuario rápidamente
+// Índices optimizados para consultas frecuentes
+productSchema.index({ user: 1 }); // Productos por usuario
 productSchema.index({ user: 1, sku: 1 }, { unique: true }); // SKU único por usuario
-productSchema.index({ name: 'text', description: 'text', sku: 'text', brand: 'text', supplier: 'text' }); // Para búsquedas de texto
+productSchema.index({ user: 1, category: 1 }); // Productos por categoría
+productSchema.index({ user: 1, createdAt: -1 }); // Productos recientes
+productSchema.index({ user: 1, stock: 1 }); // Filtros por stock
+productSchema.index({ user: 1, isPerishable: 1, shelfLifeDays: 1 }); // Productos perecederos
+productSchema.index({ 'variants.sku': 1 }); // Búsqueda por SKU de variante
+productSchema.index({ user: 1, reorderThreshold: 1, stock: 1 }); // Alertas de stock bajo
+productSchema.index({ name: 'text', description: 'text', sku: 'text', brand: 'text', supplier: 'text' }); // Búsqueda de texto
 
 // Virtual para calcular el stock total del producto a partir de sus variantes
 productSchema.virtual('totalStock').get(function() {

@@ -60,7 +60,12 @@ const saleSchema = mongoose.Schema(
   }
 );
 
-// Índice para buscar ventas por usuario de forma eficiente
-saleSchema.index({ user: 1 });
+// Índices optimizados para consultas de ventas
+saleSchema.index({ user: 1, createdAt: -1 }); // Ventas recientes por usuario
+saleSchema.index({ user: 1, paymentMethod: 1 }); // Ventas por método de pago
+saleSchema.index({ 'productsSold.product': 1 }); // Historial de ventas por producto
+saleSchema.index({ user: 1, totalAmount: -1 }); // Ventas de alto valor
+saleSchema.index({ user: 1, customerName: 1 }); // Ventas por cliente
+saleSchema.index({ createdAt: -1 }); // Ventas recientes globales
 
 export default mongoose.model('Sale', saleSchema);

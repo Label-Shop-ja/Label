@@ -1,7 +1,7 @@
 // src/components/Inventory/VariantForm.jsx
 import React from 'react';
 import { X, Upload, Loader2, ChevronDown, ChevronUp, Trash2, Copy, GripVertical } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { useReduxTheme } from '../../hooks/useReduxTheme';
 
 const VariantForm = ({
     variant,
@@ -20,7 +20,7 @@ const VariantForm = ({
     onToggleExpand,
     onDuplicateVariant,
 }) => {
-    const { theme } = useTheme();
+    const { theme } = useReduxTheme();
     const [expandedSections, setExpandedSections] = React.useState(new Set(['basic']));
     const formRef = React.useRef(null);
     const [needsScroll, setNeedsScroll] = React.useState(false);

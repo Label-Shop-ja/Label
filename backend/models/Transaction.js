@@ -33,7 +33,11 @@ const transactionSchema = mongoose.Schema(
   }
 );
 
-// Índice para buscar transacciones por usuario de forma eficiente
-transactionSchema.index({ user: 1 });
+// Índices optimizados para consultas de transacciones
+transactionSchema.index({ user: 1, createdAt: -1 }); // Transacciones recientes
+transactionSchema.index({ user: 1, type: 1 }); // Filtro por tipo (ingreso/gasto)
+transactionSchema.index({ user: 1, category: 1 }); // Filtro por categoría
+transactionSchema.index({ user: 1, amount: -1 }); // Transacciones de alto valor
+transactionSchema.index({ createdAt: -1 }); // Transacciones recientes globales
 
 export default mongoose.model('Transaction', transactionSchema);

@@ -1,11 +1,37 @@
 {
+  "name": "label",
+  "version": "1.0.0",
+  "description": "Herramienta completa para gestionar, controlar y escalar tu negocio",
+  "type": "module",
   "scripts": {
-    "prepare": "husky",
-    "dev": "concurrently \"npm run server --prefix backend\" \"npm run dev --prefix frontend\"",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "npm run server --prefix backend",
-    "dev:frontend": "npm run dev --prefix frontend"
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "build:prod": "npm run build:prod --prefix frontend",
+    "deploy:check": "node scripts/preDeployCheck.js",
+    "deploy": "node scripts/deploy.js",
+    "security:check": "node scripts/securityCheck.js",
+    "i18n:migrate": "node scripts/migrateI18n.js",
+    "i18n:validate": "node scripts/validateI18n.js",
+    "test:all": "npm run test:backend && npm run test:frontend",
+    "test:backend": "npm run test-monitoring --prefix backend",
+    "test:frontend": "npm run test:performance --prefix frontend",
+    "test:security": "npm run security:check && npm run test-security --prefix backend",
+    "quality:check": "npm run security:check && npm run i18n:validate",
+    "performance:analyze": "node scripts/analyzePerformance.js",
+    "performance:build": "npm run build:prod --prefix frontend && npm run performance:analyze",
+    "optimize:all": "npm run quality:check && npm run performance:build"
   },
+  "keywords": ["business", "management", "pos", "inventory", "finance"],
+  "author": "Angel Gustavo",
+  "license": "PRIVATE",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
