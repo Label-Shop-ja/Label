@@ -21,6 +21,7 @@ const protect = asyncHandler(async (req, res, next) => {
       req.user = await User.findById(decoded.id).select('-password');
     } catch (error) {
       // Este catch solo se activará si jwt.verify falla (token malformado, expirado, etc.)
+      console.log('Token verification error:', error.message);
       res.status(401);
       throw new Error('No autorizado, el token falló');
     }

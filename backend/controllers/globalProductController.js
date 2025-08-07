@@ -6,11 +6,12 @@ import asyncHandler from 'express-async-handler';
 //          Esta función es llamada internamente por productController cuando un usuario crea un producto.
 // @access  Internal (no es una ruta API directa)
 export const createGlobalProduct = async (productData) => {
-    // Extraer todos los campos necesarios del producto
+    // Extraer campos para producto global (EXCLUIR costos y precios)
     const { 
         name, description, category, sku, unitOfMeasure, brand, supplier, imageUrl,
         model, barcode, weight, length, width, height, color, size, material,
-        isPerishable, reorderThreshold, optimalMaxStock, shelfLifeDays, profitPercentage
+        isPerishable, reorderThreshold, optimalMaxStock, shelfLifeDays
+        // EXCLUIDOS: costPrice, price, stock, profitPercentage
     } = productData;
 
     // Asegurarse de que el SKU esté limpio y en mayúsculas para la búsqueda.
@@ -20,13 +21,13 @@ export const createGlobalProduct = async (productData) => {
         let globalProduct = await GlobalProduct.findOne({ sku: cleanedSku });
 
         if (globalProduct) {
-            // Si el producto global ya existe, lo actualizamos con la nueva información
+            // Si el producto global ya existe, actualizamos solo información descriptiva
             globalProduct.name = name;
-            globalProduct.description = description || '';
+            globalProduct.description = description || globalProduct.description;
             globalProduct.category = category;
             globalProduct.unitOfMeasure = unitOfMeasure;
-            globalProduct.brand = brand || '';
-            globalProduct.supplier = supplier || '';
+            globalProduct.brand = brand || globalProduct.brand;
+            globalProduct.supplier = supplier || globalProduct.supplier;
             globalProduct.imageUrl = imageUrl !== undefined && imageUrl !== null ? imageUrl : globalProduct.imageUrl;
             globalProduct.model = model || globalProduct.model;
             globalProduct.barcode = barcode || globalProduct.barcode;
@@ -41,13 +42,12 @@ export const createGlobalProduct = async (productData) => {
             globalProduct.reorderThreshold = reorderThreshold !== undefined ? reorderThreshold : globalProduct.reorderThreshold;
             globalProduct.optimalMaxStock = optimalMaxStock !== undefined ? optimalMaxStock : globalProduct.optimalMaxStock;
             globalProduct.shelfLifeDays = shelfLifeDays !== undefined ? shelfLifeDays : globalProduct.shelfLifeDays;
-            globalProduct.profitPercentage = profitPercentage !== undefined ? profitPercentage : globalProduct.profitPercentage;
             globalProduct.lastUsedAt = Date.now();
 
             await globalProduct.save();
             return globalProduct;
         } else {
-            // Si no existe, creamos un nuevo producto global con todos los campos
+            // Si no existe, creamos un nuevo producto global SIN campos de costos/precios
             globalProduct = await GlobalProduct.create({
                 name,
                 description: description || '',
@@ -70,10 +70,9 @@ export const createGlobalProduct = async (productData) => {
                 reorderThreshold: reorderThreshold || 0,
                 optimalMaxStock: optimalMaxStock || 0,
                 shelfLifeDays: shelfLifeDays || 0,
-                profitPercentage: profitPercentage || 30,
+                // profitPercentage se mantiene con valor por defecto del schema (30)
                 lastUsedAt: Date.now(),
             });
-            // console.log(`Nuevo GlobalProduct creado: ${globalProduct.sku}`);
             return globalProduct;
         }
     } catch (error) {
@@ -141,3 +140,31 @@ export const getGlobalProducts = asyncHandler(async (req, res) => {
     const globalProducts = await GlobalProduct.find(query).limit(10); // Limitar sugerencias a 10
     res.status(200).json(globalProducts);
 });
+
+// @desc    Preparar producto global para uso del usuario (sin SKU original)
+// @access  Internal
+export const prepareGlobalProductForUser = (globalProduct) => {
+    const productData = globalProduct.toObject ? globalProduct.toObject() : globalProduct;
+    
+    // Eliminar campos que no deben copiarse al producto del usuario
+    const {
+        _id,
+        sku, // ELIMINAR SKU original para evitar duplicados
+        lastUsedAt,
+        createdAt,
+        updatedAt,
+        __v,
+        ...cleanProductData
+    } = productData;
+    
+    return {
+        ...cleanProductData,
+        // El SKU se generará automáticamente en createProduct
+        // Los precios y costos los definirá el usuario
+        costPrice: 0,
+        price: 0,
+        stock: 0,
+        // Marcar que viene de un producto global para evitar bucle
+        _isFromGlobalProduct: true
+    };
+};

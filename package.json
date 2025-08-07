@@ -22,7 +22,8 @@
     "quality:check": "npm run security:check && npm run i18n:validate",
     "performance:analyze": "node scripts/analyzePerformance.js",
     "performance:build": "npm run build:prod --prefix frontend && npm run performance:analyze",
-    "optimize:all": "npm run quality:check && npm run performance:build"
+    "optimize:all": "npm run quality:check && npm run performance:build",
+    "fix:auth": "node scripts/fixAuth.js"
   },
   "keywords": ["business", "management", "pos", "inventory", "finance"],
   "author": "Angel Gustavo",

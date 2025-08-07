@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from './authService';
 import AccountManager from '../services/AccountManager';
+import { clearAuthState, isTokenExpired } from '../utils/authUtils';
 
 // Cargar el estado inicial desde localStorage para persistencia básica
 const getInitialAuthState = () => {
@@ -16,6 +17,16 @@ const getInitialAuthState = () => {
   
   const userFromStorage = JSON.parse(localStorage.getItem('user'));
   const tokenFromStorage = localStorage.getItem('accessToken');
+  
+  // Verificar si el token ha expirado
+  if (tokenFromStorage && isTokenExpired(tokenFromStorage)) {
+    clearAuthState();
+    return {
+      user: null,
+      accessToken: null,
+      isAuthenticated: false
+    };
+  }
   
   return {
     user: userFromStorage || null,
@@ -154,6 +165,26 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+// Async thunk para refrescar el token
+export const refreshToken = createAsyncThunk(
+  'auth/refreshToken',
+  async (_, thunkAPI) => {
+    try {
+      const response = await authService.refreshToken();
+      return response.data;
+    } catch (error) {
+      const message =
+        (error.response &&
+          error.response.data &&
+          error.response.data.message) ||
+        error.message ||
+        error.toString();
+      thunkAPI.dispatch(authSlice.actions.logoutUser());
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 export const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -175,8 +206,7 @@ export const authSlice = createSlice({
       state.user = null;
       state.accessToken = null;
       state.isAuthenticated = false;
-      localStorage.removeItem('user');
-      localStorage.removeItem('accessToken');
+      clearAuthState();
       localStorage.setItem('wasLoggedOut', 'true');
     },
     // Acción para establecer las credenciales manualmente (útil para el callback de OAuth)
@@ -302,10 +332,24 @@ export const authSlice = createSlice({
         state.isError = true;
         state.resetPasswordStatus = 'failed';
         state.message = action.payload;
+      })
+      // Casos para el refresh token
+      .addCase(refreshToken.pending, (state) => {
+        // No mostrar loading para refresh automático
+      })
+      .addCase(refreshToken.fulfilled, (state, action) => {
+        state.accessToken = action.payload.accessToken;
+        localStorage.setItem('accessToken', action.payload.accessToken);
+      })
+      .addCase(refreshToken.rejected, (state) => {
+        // El logout ya se maneja en el thunk
+        state.user = null;
+        state.accessToken = null;
+        state.isAuthenticated = false;
       });
   },
 });
 
-export const { reset, setAccessToken, logoutUser, setCredentials } = authSlice.actions; // No olvides exportar la nueva acción
+export const { reset, setAccessToken, logoutUser, setCredentials } = authSlice.actions;
 
 export default authSlice.reducer;

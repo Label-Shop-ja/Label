@@ -28,6 +28,7 @@ import LegalModal from './components/Common/LegalModal'; // Importamos el nuevo 
 import ResetPasswordPage from './pages/Auth/ResetPasswordPage'; // Importamos la página de reseteo
 import ForgotPasswordModal from './components/Auth/ForgotPasswordModal'; // Importamos el nuevo modal
 import Toast from './components/Common/Toast';
+// import AuthDebug from './components/AuthDebug';
 
 function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -228,6 +229,8 @@ function App() {
                 </LegalModal>
                 {/* Componente Toast para mostrar notificaciones, fuera del <Routes> pero dentro del layout general */}
                 <Toast />
+                {/* Componente de debug para autenticación (solo en desarrollo) */}
+                {/* <AuthDebug /> */}
             </div>
         </ErrorBoundary>
     );

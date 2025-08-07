@@ -284,7 +284,7 @@ const productSchema = mongoose.Schema(
 
 // Índices optimizados para consultas frecuentes
 productSchema.index({ user: 1 }); // Productos por usuario
-productSchema.index({ user: 1, sku: 1 }, { unique: true }); // SKU único por usuario
+productSchema.index({ user: 1, sku: 1 }, { unique: true }); // SKU único POR USUARIO (no globalmente)
 productSchema.index({ user: 1, category: 1 }); // Productos por categoría
 productSchema.index({ user: 1, createdAt: -1 }); // Productos recientes
 productSchema.index({ user: 1, stock: 1 }); // Filtros por stock

@@ -34,4 +34,8 @@ const resetPassword = async (resetData) => {
   return response.data;
 };
 
-export const authService = { login, register, verifyToken, forgotPassword, verifyResetCode, resetPassword };
+const refreshToken = async () => {
+  return axiosInstance.post(API_URL + 'refresh');
+};
+
+export const authService = { login, register, verifyToken, forgotPassword, verifyResetCode, resetPassword, refreshToken };

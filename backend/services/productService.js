@@ -116,14 +116,17 @@ const createProduct = async (productData, userId) => {
             user: userId, // ¡CRUCIAL! Asocia el producto con el usuario.
         });
 
-        // Actualiza el catálogo global SOLO al crear productos nuevos
-        // Esto permite que otros usuarios vean sugerencias basadas en productos creados
-        // pero no afecta el catálogo cuando se editan productos existentes
-        try {
-            await createGlobalProduct(product);
-        } catch (globalError) {
-            console.warn('Error al crear producto global:', globalError.message);
-            // No fallar la creación del producto por esto
+        // SOLO actualizar catálogo global si es un producto completamente nuevo
+        // NO si viene de un producto global existente (evitar bucle)
+        const isFromGlobalProduct = productData._isFromGlobalProduct || false;
+        
+        if (!isFromGlobalProduct) {
+            try {
+                await createGlobalProduct(product);
+            } catch (globalError) {
+                console.warn('Error al crear producto global:', globalError.message);
+                // No fallar la creación del producto por esto
+            }
         }
 
         return product;

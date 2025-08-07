@@ -131,6 +131,7 @@ const searchGlobalProducts = asyncHandler(async (req, res) => {
     
     try {
         const GlobalProduct = (await import('../models/GlobalProduct.js')).default;
+        const { prepareGlobalProductForUser } = await import('../controllers/globalProductController.js');
         
         const searchTerm = q.trim();
         const globalProducts = await GlobalProduct.find({
@@ -144,7 +145,10 @@ const searchGlobalProducts = asyncHandler(async (req, res) => {
         .sort({ lastUsedAt: -1 })
         .lean();
         
-        res.status(200).json(globalProducts);
+        // Preparar productos para uso del usuario (sin SKU original)
+        const preparedProducts = globalProducts.map(prepareGlobalProductForUser);
+        
+        res.status(200).json(preparedProducts);
     } catch (error) {
         console.error('Error searching global products:', error);
         res.status(200).json([]);
